@@ -1,0 +1,4 @@
+[submodule "submodules/SeisSol"]
+	path = submodules/SeisSol
+	url = https://github.com/SeisSol/SeisSol.git
+	branch = thomas/automated_DR_workflow
