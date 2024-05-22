@@ -91,6 +91,6 @@ if __name__ == "__main__":
     os.system("module load pumgen; pumgen -s msh4 tmp/mesh.msh")
     generate_input_seissol_fl33.generate()
     moment_rate_calculator.compute(
-        finite_fault_fn, "yaml_files/usgs_material.yaml", projection
+        finite_fault_fn, "yaml_files/material.yaml", projection
     )
     print("now run seissol")
