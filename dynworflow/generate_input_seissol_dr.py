@@ -191,7 +191,7 @@ for i in range(nsample):
         template_par["surface_output_interval"] = 5.0
     template_par["fault_fname"] = fn_fault
     template_par["output_file"] = f"output/dyn_{code}"
-    template_par["material_fname"] = "yaml_files/usgs_material.yaml"
+    template_par["material_fname"] = "yaml_files/material.yaml"
     template_par["fault_print_time_interval"] = fault_sampling
     fn_param = f"parameters_dyn_{code}.par"
     render_file(template_par, "parameters_dyn.tmpl.par", fn_param)
