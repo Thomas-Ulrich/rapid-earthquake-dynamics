@@ -87,31 +87,16 @@ def retrieve_usgs_id_from_dtgeo_dict(fname, min_mag):
     return usgs_id
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="download usgs finite model data for a specific earthquake"
-    )
-    parser.add_argument(
-        "usgs_id_or_dtgeo_npy",
-        help="usgs earthquake code or event dictionnary (dtgeo workflow)",
-    )
-    parser.add_argument(
-        "--min_magnitude",
-        nargs=1,
-        help="min magnitude in eq query",
-        default=[7.0],
-        type=float,
-    )
-    parser.add_argument("--suffix", nargs=1, help="suffix for folder name")
-    args = parser.parse_args()
-    minM = args.min_magnitude[0]
+def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix):
 
-    if args.usgs_id_or_dtgeo_npy[-3:] == "npy":
-        usgs_id = retrieve_usgs_id_from_dtgeo_dict(args.usgs_id_or_dtgeo_npy, minM)
+    if usgs_id_or_dtgeo_npy[-3:] == "npy":
+        usgs_id = retrieve_usgs_id_from_dtgeo_dict(
+            args.usgs_id_or_dtgeo_npy, min_magnitude
+        )
     else:
-        usgs_id = args.usgs_id_or_dtgeo_npy
+        usgs_id = usgs_id_or_dtgeo_npy
 
-    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&&minmagnitude={minM}&eventid={usgs_id}"
+    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&&minmagnitude={min_magnitude}&eventid={usgs_id}"
     fn_json = f"{usgs_id}.json"
     wget_overwrite(url, fn_json)
 
@@ -130,7 +115,6 @@ if __name__ == "__main__":
     hypocenter_x = finite_fault["properties"]["longitude"]
     hypocenter_y = finite_fault["properties"]["latitude"]
     hypocenter_z = finite_fault["properties"]["depth"]
-    suffix = args.suffix[0] if args.suffix else ""
 
     folder_name = f"{day}_Mw{mag}_{descr[:20]}_{code_finite_fault}{suffix}"
 
@@ -148,3 +132,28 @@ if __name__ == "__main__":
 
     shutil.move(fn_json, f"{folder_name}/tmp/{fn_json}")
     print(folder_name)
+    return folder_name
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="download usgs finite model data for a specific earthquake"
+    )
+    parser.add_argument(
+        "usgs_id_or_dtgeo_npy",
+        help="usgs earthquake code or event dictionnary (dtgeo workflow)",
+    )
+    parser.add_argument(
+        "--min_magnitude",
+        nargs=1,
+        help="min magnitude in eq query",
+        default=[7.0],
+        type=float,
+    )
+    parser.add_argument("--suffix", nargs=1, help="suffix for folder name")
+    args = parser.parse_args()
+    folder = get_data(
+        args.usgs_id_or_dtgeo_npy,
+        args.min_magnitude[0],
+        args.suffix[0] if args.suffix else "",
+    )
