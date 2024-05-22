@@ -35,12 +35,16 @@ if __name__ == "__main__":
     suffix = ""
     if args.user_defined_kinematic_model:
         finite_fault_fn = args.user_defined_kinematic_model[0]
-        suffix = os.path.basename(finite_fault_fn)
+        suffix, ext = os.path.splitext(os.path.basename(finite_fault_fn))
 
     folder_name = get_usgs_finite_fault_data.get_data(
         args.usgs_id_or_dtgeo_npy, min_magnitude=7, suffix=suffix
     )
     os.chdir(folder_name)
+
+    if args.user_defined_kinematic_model:
+        shutil.copy(f"../{finite_fault_fn}", "tmp")
+        finite_fault_fn = f"tmp/{finite_fault_fn}"
 
     if not args.user_defined_kinematic_model:
         finite_fault_fn = f"tmp/basic_inversion.param"
