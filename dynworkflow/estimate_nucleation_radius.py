@@ -6,8 +6,7 @@ import easi
 import seissolxdmf
 from tqdm import tqdm
 
-
-class seissolxdmfExtended(seissolxdmf.seissolxdmf):
+class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
     def __init__(self, xdmfFilename):
         super().__init__(xdmfFilename)
         self.xyz = self.ReadGeometry()
@@ -104,7 +103,7 @@ def compute_slip_area(centers, sx, slip_yaml):
 def compute_critical_nucleation(
     fault_xdmf, mat_yaml, slip_yaml, list_fault_yaml, hypo_depth
 ):
-    sx = seissolxdmfExtended(fault_xdmf)
+    sx = SeissolxdmfExtended(fault_xdmf)
     centers = sx.ComputeCellCenters()
     slip_area = compute_slip_area(centers, sx, slip_yaml)
 
@@ -161,7 +160,6 @@ def compute_critical_nucleation(
             nucRadius = rad
         results.append(nucRadius)
     return results
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute critical depletion")
