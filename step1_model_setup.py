@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from dynworflow import (
+from dynworkflow import (
     get_usgs_finite_fault_data,
     infer_fault_mesh_size_and_spatial_zoom,
     modify_FL33_34_fault_instantaneous_slip,
@@ -7,13 +7,22 @@ from dynworflow import (
     generate_input_seissol_fl33,
     prepare_velocity_model_files,
 )
-from dynworflow.kinematic_models.kinmodmodules import (
-    FL33_input_files_generator,
-    moment_rate_calculator,
-)
+
 import argparse
 import os
 import shutil
+import sys
+
+# Append kinematic_models folder to path
+# Get the directory of the current script
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+relative_path = "dynworkflow/kinematic_models"
+absolute_path = os.path.join(current_script_dir, relative_path)
+if absolute_path not in sys.path:
+    sys.path.append(absolute_path)
+
+import generate_FL33_input_files
+import compute_moment_rate_from_finite_fault_file
 
 
 if __name__ == "__main__":
@@ -70,7 +79,7 @@ if __name__ == "__main__":
     with open(f"tmp/inferred_fault_mesh_size.txt", "w") as f:
         f.write(str(fault_mesh_size))
 
-    FL33_input_files_generator.main(
+    generate_FL33_input_files.main(
         finite_fault_fn,
         "cubic",
         spatial_zoom,
@@ -90,7 +99,7 @@ if __name__ == "__main__":
 
     os.system("module load pumgen; pumgen -s msh4 tmp/mesh.msh")
     generate_input_seissol_fl33.generate()
-    moment_rate_calculator.compute(
+    compute_moment_rate_from_finite_fault_file.compute(
         finite_fault_fn, "yaml_files/material.yaml", projection
     )
     print("now run seissol")

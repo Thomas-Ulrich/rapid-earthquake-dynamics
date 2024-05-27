@@ -1,23 +1,32 @@
 #!/usr/bin/env python3
 from dynworkflow import generate_input_seissol_dr
-from dynworkflow.kinematic_models.kinmodmodules import (
-    fault_output_generator,
-    ugrid_data_projector,
-)
+import sys
+import os
 
+# Append kinematic_models folder to path
+# Get the directory of the current script
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+relative_path = "dynworkflow/kinematic_models"
+absolute_path = os.path.join(current_script_dir, relative_path)
+if absolute_path not in sys.path:
+    sys.path.append(absolute_path)
+
+import generate_fault_output_from_fl33_input_files
+import project_fault_tractions_onto_asagi_grid
 
 if __name__ == "__main__":
-    fault_output_generator.generate(
+    generate_fault_output_from_fl33_input_files.generate(
         "output/fl33-fault.xdmf",
         "yaml_files/FL33_34_fault.yaml",
         "output/dyn-kinmod-fault",
         "Gaussian",
         0.5,
     )
+
     with open(f"tmp/inferred_fault_mesh_size.txt", "r") as f:
         inferred_fault_mesh_size = float(f.read())
 
-    ugrid_data_projector.generate_input_files(
+    project_fault_tractions_onto_asagi_grid.generate_input_files(
         "output/fl33-fault.xdmf",
         inferred_fault_mesh_size / 2,
         gaussian_kernel=inferred_fault_mesh_size,
