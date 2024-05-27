@@ -13,9 +13,10 @@ import itertools
 from dynworkflow.compile_scenario_macro_properties import infer_duration
 import warnings
 import seissolxdmf as sx
+import argparse
 
 
-def generate():
+def generate(mode, dic_values):
     if not os.path.exists("yaml_files"):
         os.makedirs("yaml_files")
 
@@ -40,17 +41,25 @@ def generate():
     number_of_segments = len(glob.glob(f"tmp/*.ts"))
     print(f"found {number_of_segments} segments")
 
-    # mode = "latin_hypercube"
-    # mode = "grid_search"
-    mode = "picked_models"
+    assert mode in ["latin_hypercube", "grid_search", "picked_models"]
     longer_and_more_frequent_output = True
 
     if mode == "latin_hypercube":
-        # R, B, C
-        l_bounds = [0.55, 0.8, 0.1]
-        u_bounds = [0.95, 1.2, 0.3]
+
+        def get_min_max(dic_values, key):
+            values = dic_values[key]
+            return min(values), max(values)
+
+        R0, R1 = get_min_max(dic_values, "R")
+        B0, B1 = get_min_max(dic_values, "B")
+        C0, C1 = get_min_max(dic_values, "C")
+
+        l_bounds = [R0, B0, C0]
+        u_bounds = [R1, B1, C1]
+
         # cohesion is fixed in this appraoch
-        list_cohesion = [(0.25, 1)]
+        list_cohesion = dic_values["cohesion"]
+        assert len(list_cohesion) == 1
 
         if not os.path.exists("tmp/seed.txt"):
             seed = random.randint(1, 1000000)
@@ -63,7 +72,7 @@ def generate():
             print("seed read from tmp/seed.txt")
 
         sampler = qmc.LatinHypercube(d=3, seed=seed)
-        nsample = 50
+        nsample = dic_values["nsamples"]
         sample = sampler.random(n=nsample)
         pars = qmc.scale(sample, l_bounds, u_bounds)
         pars = np.around(pars, decimals=3)
@@ -72,19 +81,14 @@ def generate():
 
     elif mode == "grid_search":
         # grid parameter space
-        paramB = [0.9, 1.0, 1.1, 1.2]
-        # paramB = [1.0]
-        paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
-        # paramC = [0.3]
-        paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-        # paramR = [0.65]
-        list_cohesion = [(0.25, 1)]
-        # list_cohesion = [(0.25, 0), (0.25, 1), (0.25, 3)]
+        paramB = dic_values["B"]
+        paramC = dic_values["C"]
+        paramR = dic_values["R"]
+        list_cohesion = dic_values["cohesion"]
         paramCoh = list(range(len(list_cohesion)))
         use_R_segment_wise = True
         if use_R_segment_wise:
             params = [paramCoh, paramB, paramC] + [paramR] * number_of_segments
-            # params = [paramCoh, paramB, paramC] + [[0.85]] + [paramR] * (number_of_segments-1)
             assert len(params) == number_of_segments + 3
         else:
             params = [paramCoh, paramB, paramC, paramR]
@@ -95,8 +99,13 @@ def generate():
         pars = np.around(np.array(param_combinations), decimals=3)
         print(pars)
     elif mode == "picked_models":
-        list_cohesion = [(0.25, 0), (0.25, 1), (0.25, 2.5)]
-        pars = [[0, 0.9, 0.3, 0.65], [1, 1.0, 0.3, 0.65], [2, 1.2, 0.3, 0.65]]
+        list_cohesion = dic_values["cohesion"]
+        n = len(list_cohesion)
+        assert len(dic_values["B"]) == len(dic_values["C"]) == len(dic_values["R"]) == n
+        pars = [
+            [i, dic_values["B"][i], dic_values["C"][i], dic_values["R"][i]]
+            for i in range(n)
+        ]
         pars = np.array(pars)
     else:
         raise NotImplementedError(f"unkown mode {mode}")
@@ -240,4 +249,69 @@ def generate():
 
 
 if __name__ == "__main__":
-    generate()
+    # Default values for parameters
+    paramB = [0.9, 1.0, 1.1, 1.2]
+    paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
+    paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
+    paramCoh = [(0.25, 1)]
+    list_to_semicolon_separated_string = lambda li: ";".join([str(v) for v in li])
+    semicolon_separated_string_to_list = lambda li: [float(v) for v in li.split(";")]
+    list_of_tuples_to_semicolon_separated_string = lambda li: ";".join(
+        [f"{v[0]} {v[1]}" for v in li]
+    )
+    semicolon_separated_string_to_list_of_tuples = lambda s: [
+        tuple(map(float, w.split())) for w in s.split(";")
+    ]
+
+    parser = argparse.ArgumentParser(
+        description="automatically generate input files for dynamic rupture models"
+    )
+    parser.add_argument(
+        "mode",
+        default="grid_search",
+        choices=["latin_hypercube", "grid_search", "picked_models"],
+        help="mode use to sample the parameter space",
+    )
+    parser.add_argument(
+        "--Bvalues",
+        nargs=1,
+        help="B (stress drop factor) values, separated by ';'",
+        default=list_to_semicolon_separated_string(paramR),
+    )
+    parser.add_argument(
+        "--Cvalues",
+        nargs=1,
+        help="C (Dc slip factor) values, separated by ';'",
+        default=list_to_semicolon_separated_string(paramR),
+    )
+    parser.add_argument(
+        "--Rvalues",
+        nargs=1,
+        help="R (relative prestress) values, separated by ';'",
+        default=list_to_semicolon_separated_string(paramR),
+    )
+    parser.add_argument(
+        "--cohesionvalues",
+        nargs=1,
+        help="fault cohesion (c0 + c1*sigma_zz) values, 2 value per parameter set, separated by';'",
+        default=list_of_tuples_to_semicolon_separated_string(paramCoh),
+    )
+    parser.add_argument(
+        "--nsamples",
+        nargs=1,
+        help="number of samples (for Latin hypercube)",
+        default=[50],
+    )
+
+    args = parser.parse_args()
+    dic_values = {}
+    dic_values["B"] = semicolon_separated_string_to_list(args.Bvalues[0])
+    dic_values["C"] = semicolon_separated_string_to_list(args.Cvalues[0])
+    dic_values["R"] = semicolon_separated_string_to_list(args.Rvalues[0])
+    dic_values["cohesion"] = semicolon_separated_string_to_list_of_tuples(
+        args.cohesionvalues[0]
+    )
+    dic_values["nsamples"] = args.nsamples[0]
+
+    print(dic_values)
+    generate(args.mode, dic_values)
