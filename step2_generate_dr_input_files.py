@@ -24,22 +24,21 @@ if __name__ == "__main__":
         taper=None,
         paraview_readable=None,
     )
+    # mode = 'grid_search'
+    # mode = 'latin_hypercube'
+    mode = "picked_models"
     dic_values = {}
-    dic_values['B'] =  [0.9, 1.0, 1.1, 1.2]
-    dic_values['C'] =  [0.1, 0.15, 0.2, 0.25, 0.3]
-    dic_values['R'] =   [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-    dic_values['cohesion'] =  [(0.25, 1)]
-
-    generate_input_seissol_dr.generate('grid_search', dic_values)
-
-    """
-    #Example of use of the two other modes
-    dic_values['nsamples'] =  50
-    generate_input_seissol_dr.generate('latin_hypercube', dic_values)
-
-    dic_values['B'] = [0.9, 1.0, 1.2]
-    dic_values['C'] = [0.3 for i in range(3)]
-    dic_values['R'] = [0.65 for i in range(3)]
-    dic_values['cohesion'] =  [(0.25, 0), (0.25, 1), (0.25, 2.5)]
-    generate_input_seissol_dr.generate('picked_models', dic_values)
-     """
+    if mode == "picked_models":
+        dic_values["B"] = [0.9, 1.0, 1.2]
+        dic_values["C"] = [0.3 for i in range(3)]
+        dic_values["R"] = [0.65 for i in range(3)]
+        dic_values["cohesion"] = [(0.25, 0), (0.25, 1), (0.25, 2.5)]
+        generate_input_seissol_dr.generate(mode, dic_values)
+    else:
+        dic_values["B"] = [0.9, 1.0, 1.1, 1.2]
+        dic_values["C"] = [0.1, 0.15, 0.2, 0.25, 0.3]
+        dic_values["R"] = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
+        dic_values["cohesion"] = [(0.25, 1)]
+        # only relevant for Latin Hypercube
+        dic_values["nsamples"] = 50
+        generate_input_seissol_dr.generate(mode, dic_values)
