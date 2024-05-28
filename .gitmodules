@@ -2,3 +2,6 @@
 	path = submodules/SeisSol
 	url = https://github.com/SeisSol/SeisSol.git
 	branch = thomas/automated_DR_workflow
+[submodule "submodules/seismic-waveform-factory"]
+	path = submodules/seismic-waveform-factory
+	url = https://github.com/Thomas-Ulrich/seismic-waveform-factory.git
