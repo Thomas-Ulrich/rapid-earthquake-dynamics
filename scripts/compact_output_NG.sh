@@ -33,6 +33,18 @@ counter=0
 total_params=$(ls output/dyn_*-surface.xdmf | wc -l)
 total_params=$((total_params * 3))
 
+
+# First sanity check to find if any nan at t=0
+pattern="^0,plastic_moment,0"
+for current_file in output/dyn_*-energy.csv; do
+    counter=$((counter+1))
+    if tail -n 1 "$current_file" | grep -q "$pattern"; then
+        base_filename="${current_file%-energy.csv}"
+        echo "no output detected in $current_file, removing... $base_filename*"
+        rm $base_filename*
+    fi
+done
+
 for current_file in output/dyn_*-surface.xdmf; do
     counter=$((counter+1))
     echo "Processing file $counter of $total_params: $current_file"
