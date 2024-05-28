@@ -13,12 +13,17 @@ n = 3  # Adjust this to the number of parts you want to split into
 parts = np.array_split(np.arange(nfiles), n)
 split_files = [list(np.array(parameter_files)[part]) for part in parts]
 
+
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+relative_path = "scripts/job_NG.sh"
+absolute_path_2_job = os.path.join(current_script_dir, relative_path)
+
 # Step 4: Write each part to a separate file and process it
 for i, part in enumerate(split_files):
     part_filename = f'part_{i+1}.txt'
     with open(part_filename, 'w') as f:
         for par_file in part:
             f.write(par_file + '\n')
-    command = f"sbatch job_NG.sh {part_filename}"
+    command = f"sbatch {absolute_path_2_job} {part_filename}"
     print(command)
     os.system(command)
