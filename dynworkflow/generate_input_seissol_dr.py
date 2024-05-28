@@ -42,7 +42,7 @@ def generate(mode, dic_values):
     print(f"found {number_of_segments} segments")
 
     assert mode in ["latin_hypercube", "grid_search", "picked_models"]
-    longer_and_more_frequent_output = True
+    longer_and_more_frequent_output = mode == "picked_models"
 
     if mode == "latin_hypercube":
 
@@ -178,7 +178,7 @@ def generate(mode, dic_values):
         }
 
         sR = "_".join(map(str, R))
-        code = f"coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
+        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
         fn_fault = f"yaml_files/fault_{code}.yaml"
         list_fault_yaml.append(fn_fault)
 
@@ -226,7 +226,7 @@ def generate(mode, dic_values):
         cohesion_const, cohesion_lin = list_cohesion[int(cohi)]
         R = row[3:]
         sR = "_".join(map(str, R))
-        code = f"coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
+        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
         if list_nucleation_size[i]:
             fn_fault = f"yaml_files/fault_{code}.yaml"
             assert fn_fault == fn
@@ -312,6 +312,5 @@ if __name__ == "__main__":
         args.cohesionvalues[0]
     )
     dic_values["nsamples"] = args.nsamples[0]
-
     print(dic_values)
     generate(args.mode, dic_values)

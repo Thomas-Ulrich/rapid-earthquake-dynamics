@@ -33,9 +33,9 @@ if __name__ == "__main__":
         taper=None,
         paraview_readable=None,
     )
-    # mode = 'grid_search'
+    mode = 'grid_search'
     # mode = 'latin_hypercube'
-    mode = "picked_models"
+    # mode = "picked_models"
     dic_values = {}
     if mode == "picked_models":
         dic_values["B"] = [0.9, 1.0, 1.2]
