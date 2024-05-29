@@ -25,31 +25,57 @@ def computeMw(label, time, moment_rate):
     return M0, Mw
 
 
-def extract_params_from_prefix(fname):
-    # Define a regular expression pattern to extract B, C, and R values
-    def extract_BCR(out, match, i0=1):
+def extract_params_from_prefix(fname: str) -> dict:
+    """
+    Extract simulation parameters from a file name prefix.
+
+    Parameters:
+    fname (str): File name to extract parameters from.
+
+    Returns:
+    dict: A dictionary containing the extracted parameters:
+        - sim_id (int): Simulation ID
+        - coh (tuple[float, float] or float): Cohesion values (or NaN if not present)
+        - B (float): B value
+        - C (float): C value
+        - R (float or list[float]): R value(s)
+
+    Raises:
+    ValueError: If no match is found in the file name prefix.
+    """
+
+    def extract_BCR(out: dict, match, i0: int = 1) -> None:
+        """
+        Extract B, C, and R values from a match object.
+
+        Parameters:
+        out (dict): Dictionary to store the extracted values.
+        match: Match object from re.search.
+        i0 (int): Starting index for group extraction.
+        """
         out["B"] = float(match.group(i0))
         out["C"] = float(match.group(i0 + 1))
-        # Extract R values and convert to a list
         R_value = list(map(float, match.group(i0 + 2).split("_")))
         if len(R_value) == 1:
             R_value = R_value[0]
         out["R"] = R_value
 
     patterns = [
-        r"coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
-        r"B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
+        r"dyn_(\d+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
+        r"dyn_(\d+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
     ]
+
     for i in range(2):
         match = re.search(patterns[i], fname)
         out = {}
         if i == 0 and match:
-            # Extract cohesion_values
-            out["coh"] = (float(match.group(1)), float(match.group(2)))
-            extract_BCR(out, match, 3)
+            out["sim_id"] = int(match.group(1))
+            out["coh"] = (float(match.group(2)), float(match.group(3)))
+            extract_BCR(out, match, 4)
             break
         elif i == 1 and match:
-            extract_BCR(out, match, 1)
+            out["sim_id"] = int(match.group(1))
+            extract_BCR(out, match, 2)
             out["coh"] = np.nan
     if not out:
         raise ValueError(f"No match found in the file name: {fname}")
@@ -229,6 +255,7 @@ if __name__ == "__main__":
 
     results = {
         "coh": [],
+        "sim_id": [],
         "B": [],
         "C": [],
         "R0": [],
@@ -296,6 +323,7 @@ if __name__ == "__main__":
         out = extract_params_from_prefix(fn)
         M0, Mw = computeMw(label, df.index.values, df["seismic_moment_rate"])
         results["Mw"].append(Mw)
+        results["sim_id"].append(out["sim_id"])
         results["coh"].append(out["coh"])
         results["B"].append(out["B"])
         results["C"].append(out["C"])
