@@ -10,6 +10,7 @@ import re
 from obspy.signal.cross_correlation import correlate, correlate_template, xcorr_max
 from scipy import integrate
 from cmcrameri import cm
+import pickle
 
 
 def infer_duration(time, moment_rate):
@@ -61,15 +62,15 @@ def extract_params_from_prefix(fname: str) -> dict:
         out["R"] = R_value
 
     patterns = [
-        r"dyn_(\d+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
-        r"dyn_(\d+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
+        r"dyn[/_-]([^_]+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
+        r"dyn[/_-]([^_]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
     ]
 
     for i in range(2):
         match = re.search(patterns[i], fname)
         out = {}
         if i == 0 and match:
-            out["sim_id"] = int(match.group(1))
+            out["sim_id"] = match.group(1)
             out["coh"] = (float(match.group(2)), float(match.group(3)))
             extract_BCR(out, match, 4)
             break
@@ -355,7 +356,18 @@ if __name__ == "__main__":
 
     result_df = pd.DataFrame(results)
     result_df["overall_gof"] = np.sqrt(result_df["M0mis"] * result_df["ccmax"])
+
+    if os.path.exists("gof_average.pkl"):
+        print("gof_average.pkl detected: merging with results dataframe")
+        gofa = pickle.load(open("gof_average.pkl", "rb"))
+        gofa["sim_id"] = gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")
+        gofa = gofa[gofa["gofa_name"].str.contains("surface_waves_ENZ\d+")]
+        gofa = gofa[["gofa", "sim_id"]]
+        # merge the two DataFrames by sim_id
+        result_df = pd.merge(result_df, gofa, on="sim_id")
+
     print(result_df)
+
     coh = result_df["coh"].values
     B = result_df["B"].values
     C = result_df["C"].values
