@@ -168,8 +168,7 @@ def generate(h_domain, h_fault, interactive):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="generate yaml and netcdf input to be used with friction law 33/34 based on a (here"
-        + "upsampled) kinematic model in the standard rupture format srf file."
+        description="generate a mesh given fault data from a kinematic model"
     )
 
     parser.add_argument(
