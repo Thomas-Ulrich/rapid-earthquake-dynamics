@@ -5,6 +5,8 @@ from scipy import interpolate
 import easi
 import seissolxdmf
 from tqdm import tqdm
+import os
+
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
     def __init__(self, xdmfFilename):
@@ -100,6 +102,45 @@ def compute_slip_area(centers, sx, slip_yaml):
     return np.sum(face_area[slip > 0.05 * np.amax(slip)])
 
 
+def compute_critical_nucleation_one_file(
+    centers, center, slip_area, CG, tags, fault_yaml
+):
+    bn_fault_yaml = os.path.basename(fault_yaml)
+    out = easi.evaluate_model(centers, tags, ["mu_s", "mu_d", "d_c", "T_n"], fault_yaml)
+
+    mu_s, mu_d, Dc, normalStress = out["mu_s"], out["mu_d"], out["d_c"], out["T_n"]
+    W = -np.abs(mu_s - mu_d) * normalStress / Dc
+    # L = 0.624 * CG / np.median(W)
+    L = 0.624 * CG / W
+    area_crit = np.pi * L**2
+
+    radius = np.arange(0.5e3, 15.0e3, 0.25e3)
+
+    nucRadius = False
+    for rad in radius:
+        ids = points_in_sphere(centers, center, rad)
+        estimatedR = np.median(L[ids])
+        if rad > 2.0 * estimatedR:
+            ratio_slip_area = 100 * np.pi * rad**2 / slip_area
+            if ratio_slip_area > 15.0:
+                nucRadius = min(rad, np.sqrt((0.15 / np.pi) * slip_area))
+                ratio_slip_area = 100 * np.pi * nucRadius**2 / slip_area
+            else:
+                nucRadius = rad
+            break
+    print(
+        f"{bn_fault_yaml}: {rad:.0f} {estimatedR:.0f} {ratio_slip_area:.1f} {np.std(L[ids]):.0f}"
+    )
+    return nucRadius
+
+
+def compute_nucleation(args):
+    centers, center, slip_area, CG, tags, fault_yaml = args
+    return compute_critical_nucleation_one_file(
+        centers, center, slip_area, CG, tags, fault_yaml
+    )
+
+
 def compute_critical_nucleation(
     fault_xdmf, mat_yaml, slip_yaml, list_fault_yaml, hypo_depth
 ):
@@ -113,53 +154,18 @@ def compute_critical_nucleation(
 
     CG = compute_CG(centers, ids, sx, mat_yaml)
     tags = sx.ReadFaultTags()[ids]
-    results = []
-    for fault_yaml in tqdm(list_fault_yaml):
-        print(f"now processing {fault_yaml}")
-        out = easi.evaluate_model(
-            centers, tags, ["mu_s", "mu_d", "d_c", "T_n"], fault_yaml
-        )
+    args_list = [
+        (centers, center, slip_area, CG, tags, fault_yaml)
+        for fault_yaml in list_fault_yaml
+    ]
+    from multiprocessing import Pool
 
-        mu_s, mu_d, Dc, normalStress = out["mu_s"], out["mu_d"], out["d_c"], out["T_n"]
-        W = -np.abs(mu_s - mu_d) * normalStress / Dc
-        # L = 0.624 * CG / np.median(W)
-        L = 0.624 * CG / W
-        area_crit = np.pi * L**2
-
-        radius = np.arange(0.5e3, 15.0e3, 0.25e3)
-        nucRadius = False
-        for rad in radius:
-            ids = points_in_sphere(centers, center, rad)
-            estimatedR = np.median(L[ids])
-            if rad > 2.0 * estimatedR:
-                ratio_slip_area = 100 * np.pi * rad**2 / slip_area
-                print(
-                    (
-                        "selected_radius, estimated_radius, std, nuc_area/slip_area"
-                        " (%) :"
-                        f" {rad:.0f} {estimatedR:.0f} {np.std(L[ids]):.0f}"
-                        f" {ratio_slip_area:.1f}"
-                    ),
-                )
-                if ratio_slip_area > 15.0:
-                    nucRadius = False
-                else:
-                    nucRadius = rad
-                break
-        if not nucRadius:
-            rad = min(rad, np.sqrt((0.15 / np.pi) * slip_area))
-            ratio_slip_area = 100 * np.pi * rad**2 / slip_area
-            print(
-                (
-                    "selected_radius (forced to 15% of slip area),"
-                    " estimated_radius, std, nuc_area/slip_area (%) :"
-                    f" {rad:.0f} {estimatedR:.0f} {np.std(L[ids]):.0f}"
-                    f" {ratio_slip_area:.1f}"
-                ),
-            )
-            nucRadius = rad
-        results.append(nucRadius)
+    print("fault_yaml: selected_r estimated_r ratio_slip_area std")
+    with Pool() as pool:
+        async_result = pool.map_async(compute_nucleation, args_list)
+        results = async_result.get()
     return results
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute critical depletion")
