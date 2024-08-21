@@ -120,8 +120,8 @@ def compute_critical_nucleation_one_file(
     for rad in radius:
         ids = points_in_sphere(centers, center, rad)
         estimatedR = np.median(L[ids])
+        ratio_slip_area = 100 * np.pi * rad**2 / slip_area
         if rad > 2.0 * estimatedR:
-            ratio_slip_area = 100 * np.pi * rad**2 / slip_area
             if ratio_slip_area > 15.0:
                 nucRadius = min(rad, np.sqrt((0.15 / np.pi) * slip_area))
                 ratio_slip_area = 100 * np.pi * nucRadius**2 / slip_area
