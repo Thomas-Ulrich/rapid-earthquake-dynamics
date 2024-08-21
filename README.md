@@ -5,6 +5,8 @@ workflows for automated generation of dynamic rupture scenarios from earthquake 
 
 # Installing requirements
 
+## easi library with python bindings
+
 Install and load the easi library with python binding
 This can be done, e.g. by installing seissol with:
 
@@ -15,9 +17,21 @@ spack module tcl refresh $(spack find -d --format "{name}{/hash:5}" seissol)
 module load seissol
 ```
 
+## other python requirements
+
 Then install other requirements:
 
 ```bash
 python -m pip install -r rapid-earthquake-dynamics/requirements.txt
 ```
 
+## axitra
+
+```
+git clone https://github.com/coutanto/axitra
+cd axitra/MOMENT_DISP_F90_OPENMP
+make all python
+```
+
+Finally update axitra_path in
+https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics/blob/main/dynworkflow/input_files/waveforms_config.tmpl.ini
