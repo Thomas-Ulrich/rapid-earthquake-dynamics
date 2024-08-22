@@ -102,4 +102,4 @@ if __name__ == "__main__":
     compute_moment_rate_from_finite_fault_file.compute(
         finite_fault_fn, "yaml_files/material.yaml", projection
     )
-    print("now run seissol")
+    print("step1 completed")
