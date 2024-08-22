@@ -106,6 +106,11 @@ def generate_XY_panel(
                 specific_index = result.index[0]
                 gof_array[i, j] = result.loc[specific_index, name_col]
     im = ax.pcolormesh(X, Y, gof_array, cmap=cmap)
+
+    mask_invalid = np.ma.masked_where(np.isfinite(gof_array), gof_array)
+    mask_invalid[np.isnan(gof_array)] = 1
+    ax.pcolor(X, Y, mask_invalid, hatch="/", alpha=0)
+
     im.set_clim(0, result_df[name_col].max())
     ax.set_xlabel(name_arr1)
     ax.set_ylabel(name_arr2)
@@ -116,15 +121,19 @@ def generate_XY_panel(
     ax.set_yticks(unique_arr2)
     ax.set_title(f"{name3}={val3}")
     if name_col == "ccmax":
-        label = "gof usgs moment rate release"
+        label = "gof moment rate release"
     elif name_col == "M0mis":
-        label = "gof usgs moment release"
+        label = "gof seismic moment"
     elif name_col == "combined_M0_cc_gof":
+        label = "gof M0 and moment rate"
+    elif name_col == "gof_wf":
+        label = "gof waveforms"
+    elif name_col == "combined_gof":
         label = "combined gof"
     else:
         label = name_col
 
-    fig.colorbar(im, label=label, ax=ax)
+    plt.colorbar(im, label=label, ax=ax)
 
 
 def generate_BCR_plots(B, C, R):
@@ -171,10 +180,18 @@ def generate_BCR_plots(B, C, R):
         row = k % nrow
         col = k // nrow * n_div
         generate_XY_panel(
-            "R0", R, "C", C, "B", Bk, "ccmax", axarr[row, col], cm.cmaps["acton"]
+            "R0",
+            R,
+            "C",
+            C,
+            "B",
+            Bk,
+            "combined_M0_cc_gof",
+            axarr[row, col],
+            cm.cmaps["acton"],
         )
         generate_XY_panel(
-            "R0", R, "C", C, "B", Bk, "M0mis", axarr[row, col + 1], cm.cmaps["oslo"]
+            "R0", R, "C", C, "B", Bk, "gof_wf", axarr[row, col + 1], cm.cmaps["oslo"]
         )
         generate_XY_panel(
             "R0",
@@ -183,7 +200,8 @@ def generate_BCR_plots(B, C, R):
             C,
             "B",
             Bk,
-            "combined_M0_cc_gof",
+            # "combined_M0_cc_gof",
+            "combined_gof",
             axarr[row, col + 2],
             cm.cmaps["batlowW"],
         )
@@ -374,6 +392,9 @@ if __name__ == "__main__":
         # merge the two DataFrames by sim_id
         result_df = pd.merge(result_df, gofa, on="sim_id")
         result_df = result_df.rename(columns={"gofa": "gof_wf"})
+        result_df["combined_gof"] = np.sqrt(
+            result_df["combined_M0_cc_gof"] * result_df["gof_wf"]
+        )
 
     print(result_df)
 
@@ -381,8 +402,15 @@ if __name__ == "__main__":
     B = result_df["B"].values
     C = result_df["C"].values
     R = result_df["R0"].values
-    if len(coh) == 1:
+
+    def are_all_elements_same(arr):
+        if arr.size == 0:
+            return True
+        return np.all([np.array_equal(x, arr[0]) for x in arr])
+
+    if are_all_elements_same(coh):
         generate_BCR_plots(B, C, R)
+
     varying_param = [len(np.unique(x)) > 1 for x in [coh, B, C, R]]
 
     combined_M0_cc_gof = result_df["combined_M0_cc_gof"].values
