@@ -6,8 +6,8 @@ from extract_velocity_model_from_usgs_fsp import (
     write_z_rigidity_to_txt,
 )
 
-def generate():
 
+def generate():
     vel_model = """H P_VEL S_VEL DENS QP QS
 0.6 3.3 1.9 2.0 200 100
 1.4 4.5 2.6 2.3 350 175
@@ -26,6 +26,7 @@ def generate():
 
     write_yaml_material_file(df)
     write_z_rigidity_to_txt(df)
+
 
 if __name__ == "__main__":
     generate()

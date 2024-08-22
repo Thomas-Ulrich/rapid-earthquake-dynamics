@@ -14,6 +14,7 @@ for filename in extracted_output/dyn*-fault.xdmf; do
 done
 mv PointSource* tmp
 $script_dir/dynworkflow/add_source_files_to_waveform_config.py
+export OMP_NUM_THREADS=$(grep -c ^processor /proc/cpuinfo)
 $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_sources.ini
 $script_dir/dynworkflow/compile_scenario_macro_properties.py extracted_output
 
