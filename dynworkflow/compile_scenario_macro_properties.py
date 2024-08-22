@@ -12,6 +12,9 @@ from scipy import integrate
 from cmcrameri import cm
 import pickle
 
+pd.set_option("display.max_rows", None)
+# pd.set_option('display.max_columns', None)
+
 
 def infer_duration(time, moment_rate):
     moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
@@ -116,7 +119,7 @@ def generate_XY_panel(
         label = "gof usgs moment rate release"
     elif name_col == "M0mis":
         label = "gof usgs moment release"
-    elif name_col == "overall_gof":
+    elif name_col == "combined_M0_cc_gof":
         label = "combined gof"
     else:
         label = name_col
@@ -180,7 +183,7 @@ def generate_BCR_plots(B, C, R):
             C,
             "B",
             Bk,
-            "overall_gof",
+            "combined_M0_cc_gof",
             axarr[row, col + 2],
             cm.cmaps["batlowW"],
         )
@@ -355,7 +358,12 @@ if __name__ == "__main__":
         results["M0mis"].append(M0_gof)
 
     result_df = pd.DataFrame(results)
-    result_df["overall_gof"] = np.sqrt(result_df["M0mis"] * result_df["ccmax"])
+    result_df["combined_M0_cc_gof"] = np.sqrt(result_df["M0mis"] * result_df["ccmax"])
+
+    result_df = result_df.sort_values(
+        by="combined_M0_cc_gof", ascending=False
+    ).reset_index(drop=True)
+    print(result_df)
 
     if os.path.exists("gof_average.pkl"):
         print("gof_average.pkl detected: merging with results dataframe")
@@ -365,6 +373,7 @@ if __name__ == "__main__":
         gofa = gofa[["gofa", "sim_id"]]
         # merge the two DataFrames by sim_id
         result_df = pd.merge(result_df, gofa, on="sim_id")
+        result_df = result_df.rename(columns={"gofa": "gof_wf"})
 
     print(result_df)
 
@@ -376,14 +385,16 @@ if __name__ == "__main__":
         generate_BCR_plots(B, C, R)
     varying_param = [len(np.unique(x)) > 1 for x in [coh, B, C, R]]
 
-    overall_gof = result_df["overall_gof"].values
+    combined_M0_cc_gof = result_df["combined_M0_cc_gof"].values
     Mw = result_df["Mw"].values
-    indices_of_nlargest_values = result_df["overall_gof"].nlargest(args.nmin[0]).index
+    indices_of_nlargest_values = (
+        result_df["combined_M0_cc_gof"].nlargest(args.nmin[0]).index
+    )
     indices_of_nmax_largest_values = (
-        result_df["overall_gof"].nlargest(args.nmax[0]).index
+        result_df["combined_M0_cc_gof"].nlargest(args.nmax[0]).index
     )
     indices_greater_than_threshold = result_df[
-        result_df["overall_gof"] > args.gof_threshold[0]
+        result_df["combined_M0_cc_gof"] > args.gof_threshold[0]
     ].index
     if len(indices_greater_than_threshold) > args.nmax[0]:
         selected_indices = indices_of_nmax_largest_values
@@ -420,7 +431,7 @@ if __name__ == "__main__":
                 labelargs = {"label": f"{label} (Mw={Mw[i]:.2f})"}
             else:
                 labelargs = {
-                    "label": f"{label} (Mw={Mw[i]:.2f}, gof={overall_gof[i]:.2})"
+                    "label": f"{label} (Mw={Mw[i]:.2f}, gof={combined_M0_cc_gof[i]:.2})"
                 }
             alpha = 1.0
         else:
@@ -454,7 +465,7 @@ if __name__ == "__main__":
 
     selected_rows = result_df[result_df["Mw"] > 6]
     selected_rows = selected_rows.sort_values(
-        by="overall_gof", ascending=False
+        by="combined_M0_cc_gof", ascending=False
     ).reset_index(drop=True)
     print(selected_rows)
 
