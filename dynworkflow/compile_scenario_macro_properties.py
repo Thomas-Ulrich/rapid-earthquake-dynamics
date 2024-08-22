@@ -159,7 +159,7 @@ def generate_BCR_plots(B, C, R):
         generate_XY_panel(
             "B", B, "C", C, "R0", Rk, "M0mis", axarr[row, col + 1], cm.cmaps["oslo"]
         )
-    fname = "plots/BC_constant_R.pdf"
+    fname = "plots/parameter_space_BC_constant_R.pdf"
     plt.savefig(fname)
     print(f"done writing {fname}")
 
@@ -206,7 +206,7 @@ def generate_BCR_plots(B, C, R):
             cm.cmaps["batlowW"],
         )
 
-    fname = "plots/R0C_constant_B.pdf"
+    fname = "plots/parameter_space_R0C_constant_B.pdf"
     plt.savefig(fname)
     print(f"done writing {fname}")
 
