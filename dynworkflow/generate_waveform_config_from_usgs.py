@@ -38,14 +38,9 @@ def generate_waveform_config_file(ignore_source_files=False):
     input_file_dir = f"{script_directory}/input_files"
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
-    if ignore_source_files:
-        point_source_files = "{{ point_source_files }}"
-    else:
-        point_source_files = ",".join(sorted(glob.glob("tmp/PointSou*.h5")))
 
     template_par = {
         "setup_name": code_finite_fault,
-        "source_files": point_source_files,
         "stations": "{{ stations }}",
         "lon": hypocenter_x,
         "lat": hypocenter_y,
@@ -55,6 +50,14 @@ def generate_waveform_config_file(ignore_source_files=False):
         "t_after_SH_onset": 6.0 * float(duration),
         "projection": proj,
     }
+
+    if not ignore_source_files:
+        point_source_files = ",".join(sorted(glob.glob("tmp/PointSou*.h5")))
+        template_par["source_files"] = point_source_files
+    else:
+        template_par[
+            "source_files"
+        ] = "{{ source_files | default('{{ source_files }}', true) }}"
 
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)

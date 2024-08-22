@@ -4,6 +4,7 @@ proj=$(cat "tmp/projection.txt")
 
 script_dir=$(realpath $(dirname "$0"))
 echo $script_dir   
+
 $script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py spatial extracted_output/dyn-kinmod_extracted-fault.xdmf 1 tmp/depth_vs_rigidity.txt --DH 10 --proj "${proj}" --NZ 4
 
 # Use globbing directly within the loop to capture filenames
@@ -12,9 +13,9 @@ for filename in extracted_output/dyn*-fault.xdmf; do
     $script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py spatial "$filename" 1 tmp/depth_vs_rigidity.txt --DH 10 --proj "${proj}" --NZ 4
 done
 mv PointSource* tmp
-$script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config.ini 
-$script_dir/submodules/SeiSol/preprocessing/science/automated_workflow_dyn_from_kin/compile_scenario_macro_properties.py extracted_output
-
+$script_dir/dynworkflow/add_source_files_to_waveform_config.py
+$script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_sources.ini
+$script_dir/dynworkflow/compile_scenario_macro_properties.py extracted_output
 
 # Read each line from selected_output.txt and process it
 #while IFS= read -r faultoutput; do
