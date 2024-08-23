@@ -128,6 +128,7 @@ def run_step1():
         os.makedirs("output")
 
     print("step1 completed")
+    return folder_name
 
 
 def select_station_and_download_waveforms():
@@ -161,9 +162,9 @@ def select_station_and_download_waveforms():
     )
     scommand = " ".join(command)
     print(f"{scommand}")
-    print(f"cd {folder_name}")
 
 
 if __name__ == "__main__":
-    run_step1()
+    folder_name = run_step1()
     select_station_and_download_waveforms()
+    print(f"cd {folder_name}")
