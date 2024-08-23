@@ -46,7 +46,7 @@ def generate():
 
     template = templateEnv.get_template(f"parameters_fl34.tmpl.par")
     outputText = template.render(template_par)
-    fname = "parameters_fl34.par"
+    fname = "parameters_fl33.par"
     with open(fname, "w") as fid:
         fid.write(outputText)
     print(f"done creating {fname}")
