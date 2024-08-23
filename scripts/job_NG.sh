@@ -52,4 +52,18 @@ mapfile -t filenames < "$part_file"
 for filename in "${filenames[@]}"; do
     echo "Processing file: $filename"
     srun SeisSol_Release_sskx_4_elastic $filename
+
+    # Extract the core part of the filename by removing 'parameters_' and '.par'
+    core_name=$(basename "$filename" .par)
+    core_name=${core_name#parameters_}
+
+    # Construct the expected output file path
+    output_file="output/${core_name}-energy.csv"
+
+    # Check if the output file exists
+    # If the output file does not exist, process the file
+    if [ ! -f "$output_file" ]; then
+        echo "something went wrong? trying rerun seissol with file: $filename"
+        srun SeisSol_Release_sskx_4_elastic $filename
+    fi
 done
