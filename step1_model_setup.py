@@ -6,26 +6,45 @@ from dynworkflow import (
     generate_mesh,
     generate_input_seissol_fl33,
     prepare_velocity_model_files,
+    generate_input_seissol_dr,
+    generate_waveform_config_from_usgs,
 )
 
 import argparse
 import os
 import shutil
 import sys
+import glob
+import subprocess
 
-# Append kinematic_models folder to path
+# Append kinematic_models and external folders to path
 # Get the directory of the current script
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
-relative_path = "dynworkflow/kinematic_models"
-absolute_path = os.path.join(current_script_dir, relative_path)
-if absolute_path not in sys.path:
-    sys.path.append(absolute_path)
+
+relative_paths = [
+    "dynworkflow/kinematic_models",
+    "external",
+]
+for relative_path in relative_paths:
+    absolute_path = os.path.join(current_script_dir, relative_path)
+    if absolute_path not in sys.path:
+        sys.path.append(absolute_path)
+
 
 import generate_FL33_input_files
 import compute_moment_rate_from_finite_fault_file
+import generate_fault_output_from_fl33_input_files
+import project_fault_tractions_onto_asagi_grid
+import vizualizeBoundaryConditions
 
 
-if __name__ == "__main__":
+def run_step1():
+    # Check if 'pumgen' is available
+    status = os.system("which pumgen > /dev/null 2>&1")
+    if status != 0:
+        print("pumgen is not available.")
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(
         description="automatically setup a dynamic rupture model from a kinematic model"
     )
@@ -97,9 +116,54 @@ if __name__ == "__main__":
     )
     generate_mesh.generate(h_domain=20e3, h_fault=fault_mesh_size, interactive=False)
 
-    os.system("module load pumgen; pumgen -s msh4 tmp/mesh.msh")
+    result = os.system("pumgen -s msh4 tmp/mesh.msh")
+    if result != 0:
+        sys.exit(1)
+
     generate_input_seissol_fl33.generate()
     compute_moment_rate_from_finite_fault_file.compute(
         finite_fault_fn, "yaml_files/material.yaml", projection
     )
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
     print("step1 completed")
+
+
+def select_station_and_download_waveforms():
+    vizualizeBoundaryConditions.generate_boundary_file("tmp/mesh.xdmf", "faults")
+    # mv to tmp
+    files = glob.glob("mesh_bc_faults.*")
+    for file in files:
+        shutil.move(file, os.path.join("tmp", os.path.basename(file)))
+
+    generate_fault_output_from_fl33_input_files.generate(
+        "tmp/mesh_bc_faults.xdmf",
+        "yaml_files/FL33_34_fault.yaml",
+        "output/dyn-kinmod-fault",
+        "Gaussian",
+        0.5,
+    )
+    generate_waveform_config_from_usgs.generate_waveform_config_file(
+        ignore_source_files=True
+    )
+    command = [
+        os.path.join(
+            current_script_dir,
+            "submodules/seismic-waveform-factory/scripts/select_stations.py",
+        ),
+        "waveforms_config.ini",
+        "15",
+    ]
+    subprocess.run(command, check=True)
+    print(
+        "done selecting stations. If you are not satisfied, change waveforms_config.ini and rerun:"
+    )
+    scommand = " ".join(command)
+    print(f"{scommand}")
+    print(f"cd {folder_name}")
+
+
+if __name__ == "__main__":
+    run_step1()
+    select_station_and_download_waveforms()
