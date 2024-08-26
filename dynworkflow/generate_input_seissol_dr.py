@@ -251,7 +251,8 @@ def generate(mode, dic_values):
 if __name__ == "__main__":
     # Default values for parameters
     paramB = [0.9, 1.0, 1.1, 1.2]
-    paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
+    #paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
+    paramC = [0.1, 0.2, 0.3, 0.4, 0.5]
     paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
     paramCoh = [(0.25, 1)]
     list_to_semicolon_separated_string = lambda li: ";".join([str(v) for v in li])
