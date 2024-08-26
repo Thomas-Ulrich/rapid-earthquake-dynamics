@@ -88,7 +88,6 @@ def retrieve_usgs_id_from_dtgeo_dict(fname, min_mag):
 
 
 def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix):
-
     if usgs_id_or_dtgeo_npy[-3:] == "npy":
         usgs_id = retrieve_usgs_id_from_dtgeo_dict(
             args.usgs_id_or_dtgeo_npy, min_magnitude

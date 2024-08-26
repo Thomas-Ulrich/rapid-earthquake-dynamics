@@ -8,7 +8,6 @@ import os
 
 
 def generate(h_domain, h_fault, interactive):
-
     # domain dimensions
     length_added = 120e3
     z0, z1 = -length_added, 0

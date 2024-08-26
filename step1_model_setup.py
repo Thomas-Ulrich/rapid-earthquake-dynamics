@@ -71,8 +71,12 @@ def run_step1():
     os.chdir(folder_name)
 
     if args.user_defined_kinematic_model:
-        shutil.copy(f"../{finite_fault_fn}", "tmp")
-        finite_fault_fn = f"tmp/{finite_fault_fn}"
+        if os.path.exists(finite_fault_fn):
+            # absolute path given
+            shutil.copy(finite_fault_fn, "tmp")
+        else:
+            shutil.copy(f"../{finite_fault_fn}", "tmp")
+            finite_fault_fn = f"tmp/{finite_fault_fn}"
 
     if not args.user_defined_kinematic_model:
         finite_fault_fn = f"tmp/basic_inversion.param"
