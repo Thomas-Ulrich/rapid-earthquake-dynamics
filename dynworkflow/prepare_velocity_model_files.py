@@ -46,6 +46,19 @@ def write_z_rigidity_to_txt(df):
     print(f"done writing {fname}")
 
 
+def write_axitra_velocity_file(df):
+    """to be used in axitra"""
+    to_write = "# layer_width Vp Vs rho Qp Qs\n"
+    for index, row in df.iterrows():
+        h = row["H"] if row["H"] < 1e4 else 0
+        to_write += f"{1000*h:.18e} {1000*row['P_VEL']:.18e} {1000*row['S_VEL']:.18e} {1000*row['DENS']:.18e} {row['QP']:.18e} {row['QS']:.18e}\n"
+    fname = "tmp/axitra_velocity_file.txt"
+    print(to_write)
+    with open(fname, "w") as fid:
+        fid.write(to_write)
+    print(f"done writing {fname}")
+
+
 def generate_slipnear_velocity_files():
     vel_model = """H P_VEL S_VEL DENS QP QS
 0.6 3.3 1.9 2.0 200 100
@@ -65,6 +78,7 @@ def generate_slipnear_velocity_files():
 
     write_yaml_material_file(df)
     write_z_rigidity_to_txt(df)
+    write_axitra_velocity_file(df)
 
 
 def read_velocity_model_from_fsp_file(fname):
@@ -107,6 +121,14 @@ def read_velocity_model_from_fsp_file(fname):
     df["rho"] = 1000.0 * df["DENS"]
     df["mu"] = 1e6 * df["rho"] * df["S_VEL"] ** 2
     df["lambda"] = 1e6 * df["rho"] * (df["P_VEL"] ** 2 - 2.0 * df["S_VEL"] ** 2)
+    df["H"] = 10000
+
+    df.at[0, "DEPTH"] = 0
+    # in this file, DEPTH is the top layer depth
+    for index, row in df.iterrows():
+        if index < len(df) - 1:
+            df.loc[index, "H"] = df["DEPTH"].iloc[index + 1] - df["DEPTH"].iloc[index]
+
     df.at[0, "DEPTH"] = -10
     print(df)
     return df
@@ -116,6 +138,7 @@ def generate_usgs_velocity_files():
     df = read_velocity_model_from_fsp_file("tmp/complete_inversion.fsp")
     write_yaml_material_file(df)
     write_z_rigidity_to_txt(df)
+    write_axitra_velocity_file(df)
 
 
 if __name__ == "__main__":
