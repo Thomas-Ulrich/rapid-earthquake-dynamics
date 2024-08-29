@@ -110,8 +110,11 @@ def generate_XY_panel(
     mask_invalid = np.ma.masked_where(np.isfinite(gof_array), gof_array)
     mask_invalid[np.isnan(gof_array)] = 1
     ax.pcolor(X, Y, mask_invalid, hatch="/", alpha=0)
+    if name_col in ["Mw"]:
+        im.set_clim(result_df[name_col].min(), result_df[name_col].max())
+    else:
+        im.set_clim(0, result_df[name_col].max())
 
-    im.set_clim(0, result_df[name_col].max())
     ax.set_xlabel(name_arr1)
     ax.set_ylabel(name_arr2)
     ax.set_xticks(unique_arr1)
@@ -211,6 +214,43 @@ def generate_BCR_plots(B, C, R):
     print(f"done writing {fname}")
 
 
+def generate_BCR_moment_plots(B, C, R):
+    unique_B = np.unique(B)
+    n_div = 1
+    nrow, ncol = len(unique_B) // n_div, 2 * n_div
+    fig, axarr = plt.subplots(
+        nrow,
+        ncol,
+        figsize=(ncol * 4, nrow * 4),
+        dpi=160,
+        sharex=False,
+        sharey=True,
+        squeeze=False,
+    )
+
+    for k, Bk in enumerate(unique_B):
+        row = k % nrow
+        col = k // nrow * n_div
+        generate_XY_panel(
+            "R0",
+            R,
+            "C",
+            C,
+            "B",
+            Bk,
+            "Mw",
+            axarr[row, col],
+            cm.cmaps["acton"],
+        )
+        generate_XY_panel(
+            "R0", R, "C", C, "B", Bk, "duration", axarr[row, col + 1], cm.cmaps["oslo"]
+        )
+
+    fname = "plots/parameter_space_Mw_duration_R0C_constant_B.pdf"
+    plt.savefig(fname)
+    print(f"done writing {fname}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="compute scenario properties")
     parser.add_argument(
@@ -282,6 +322,7 @@ if __name__ == "__main__":
         "C": [],
         "R0": [],
         "Mw": [],
+        "duration": [],
         "ccmax": [],
         "M0mis": [],
         "faultfn": [],
@@ -344,7 +385,9 @@ if __name__ == "__main__":
             faultfn = glob.glob(f"{prefix}_*-fault.xdmf")[0]
         out = extract_params_from_prefix(fn)
         M0, Mw = computeMw(label, df.index.values, df["seismic_moment_rate"])
+        duration = infer_duration(df.index.values, df["seismic_moment_rate"])
         results["Mw"].append(Mw)
+        results["duration"].append(duration)
         results["sim_id"].append(out["sim_id"])
         results["coh"].append(out["coh"])
         results["B"].append(out["B"])
@@ -410,6 +453,7 @@ if __name__ == "__main__":
 
     if are_all_elements_same(coh):
         generate_BCR_plots(B, C, R)
+        generate_BCR_moment_plots(B, C, R)
 
     varying_param = [len(np.unique(x)) > 1 for x in [coh, B, C, R]]
 
