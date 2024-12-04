@@ -19,6 +19,8 @@ def main(
         mfp = MultiFaultPlane.from_srf(filename)
     elif ext == ".param":
         mfp = MultiFaultPlane.from_usgs_param_file(filename)
+    elif ext == ".param2":
+        mfp = MultiFaultPlane.from_usgs_param_file_alternative(filename)
     elif ext == ".fsp":
         mfp = MultiFaultPlane.from_usgs_fsp_file(filename)
     elif ext == ".txt":

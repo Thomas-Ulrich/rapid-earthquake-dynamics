@@ -281,6 +281,70 @@ class MultiFaultPlane:
         return cls(fault_planes)
 
     @classmethod
+    def from_usgs_param_file_alternative(cls, fname):
+        # format using in Xu et al. (2024), Noto earthquake
+        import re
+        import pandas as pd
+        from io import StringIO
+
+        header = "lat lon depth slip rake strike dip t_rup t_ris t_fal mo"
+        with open(fname, "r") as fid:
+            lines = fid.readlines()
+
+        nseg_line = [l for l in lines if "#Total number of rectangular" in l]
+        if len(nseg_line) != 1:
+            raise ValueError("Not a valid USGS2 param file.")
+
+        nseg = int(nseg_line[0].split()[-1])  # number of fault segments
+        print(f"No. of fault segments in param file: {nseg}")
+
+        fault_seg_line = [l for l in lines if "#NX= " in l]
+        assert (
+            len(fault_seg_line) == nseg
+        ), f"No. of segments are wrong. {len(fault_seg_line)} {nseg}"
+        istart = 4
+        fault_planes = []
+        for i_seg in range(nseg):
+            fault_planes.append(FaultPlane())
+            fp = fault_planes[i_seg]
+
+            numbers = re.findall(r"[-+]?\d*\.\d+|\d+", fault_seg_line[i_seg])
+            # Convert extracted strings to float
+            numbers = [float(num) for num in numbers]
+            nx, dx, ny, dy = numbers
+            nx, ny = map(int, [nx, ny])
+            fp.dx = dx
+            fp.dy = dy
+            fp.init_spatial_arrays(nx, ny)
+
+            line1 = istart + 15
+            line2 = line1 + nx * ny
+            istart = line1 + nx * ny
+            text_file = StringIO("\n".join([header, *lines[line1:line2]]))
+            df = pd.read_csv(text_file, sep="\s+")
+
+            assert (
+                df["t_rup"] >= 0
+            ).all(), (
+                "AssertionError: Not all rupture time are greater than or equal to 0."
+            )
+            for j in range(fp.ny):
+                for i in range(fp.nx):
+                    k = j * fp.nx + i
+                    fp.lon[j, i] = df["lon"][k]
+                    fp.lat[j, i] = df["lat"][k]
+                    fp.depth[j, i] = df["depth"][k]
+                    fp.slip1[j, i] = df["slip"][k]
+                    fp.rake[j, i] = df["rake"][k]
+                    fp.strike[j, i] = df["strike"][k]
+                    fp.dip[j, i] = df["dip"][k]
+                    fp.PSarea_cm2 = dx * dy * 1e10
+                    fp.t0[j, i] = df["t_rup"][k]
+                    fp.tacc[j, i] = df["t_ris"][k]
+                    fp.rise_time[j, i] = df["t_ris"][k] + df["t_fal"][k]
+        return cls(fault_planes)
+
+    @classmethod
     def from_usgs_param_file(cls, fname):
         import re
         import pandas as pd

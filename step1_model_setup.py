@@ -158,7 +158,8 @@ def select_station_and_download_waveforms():
             "submodules/seismic-waveform-factory/scripts/select_stations.py",
         ),
         "waveforms_config.ini",
-        "15",
+        "14",
+        "7"
     ]
     subprocess.run(command, check=True)
     print(
