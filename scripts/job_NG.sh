@@ -17,8 +17,8 @@
 #SBATCH --ntasks-per-node=2
 #EAR may impact code performance
 #SBATCH --ear=off
-##SBATCH --nodes=20 --partition=general --time=02:30:00
-#SBATCH --nodes=16 --partition=test --time=00:30:00 --exclude="i01r01c[01-02]s[01-12]"
+#SBATCH --nodes=20 --partition=general --time=01:30:00
+##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
 
@@ -43,7 +43,8 @@ source /etc/profile.d/modules.sh
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
-module load seissol/master-intel23-o4-elas-dunav-single-impi
+#module load seissol/master-intel23-o4-elas-dunav-single-impi
+module load seissol/before1168-intel23-o4-elas-dunav-single-impi
 part_file=$1
 
 mapfile -t filenames < "$part_file"
