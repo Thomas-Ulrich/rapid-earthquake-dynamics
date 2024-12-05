@@ -83,7 +83,7 @@ EnergyTerminalOutput = 1 ! Write energy to standard output
 EnergyOutputInterval = 0.25
 
 ReceiverOutput = 1
-RFileName = 'tmp/seissol_station.txt'
+RFileName = 'tmp/seissol_station_5.txt'
 pickdt = 0.05
 ReceiverOutputInterval = 5
 /
