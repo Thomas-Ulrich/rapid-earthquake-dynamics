@@ -419,9 +419,7 @@ if __name__ == "__main__":
         # allow 15% variation on the misfit
         M0_gof = min(1, 1.15 - abs(M0 - M0ref) / M0ref)
         results["M0mis"].append(M0_gof)
-        duration_gof = min(
-            1, abs(duration - inferred_duration) / inferred_duration
-        )
+        duration_gof = min(1, abs(duration - inferred_duration) / inferred_duration)
         results["Tgof"].append(duration_gof)
     result_df = pd.DataFrame(results)
     result_df["combined_M0_cc_gof"] = np.sqrt(

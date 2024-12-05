@@ -304,6 +304,7 @@ class MultiFaultPlane:
         ), f"No. of segments are wrong. {len(fault_seg_line)} {nseg}"
         istart = 4
         fault_planes = []
+        t0min = 1e99
         for i_seg in range(nseg):
             fault_planes.append(FaultPlane())
             fp = fault_planes[i_seg]
@@ -342,7 +343,11 @@ class MultiFaultPlane:
                     fp.t0[j, i] = df["t_rup"][k]
                     fp.tacc[j, i] = df["t_ris"][k]
                     fp.rise_time[j, i] = df["t_ris"][k] + df["t_fal"][k]
-        return cls(fault_planes)
+            if np.amin(fp.t0[:, :]) < t0min:
+                t0min = np.amin(fp.t0[:, :])
+                ids = np.where(fp.t0[:, :] == t0min)
+                hypocenter = [*fp.lon[ids], *fp.lat[ids], *fp.depth[ids]]
+        return cls(fault_planes, hypocenter)
 
     @classmethod
     def from_usgs_param_file(cls, fname):
