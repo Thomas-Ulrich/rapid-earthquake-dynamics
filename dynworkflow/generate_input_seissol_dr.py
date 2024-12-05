@@ -185,13 +185,12 @@ def generate(mode, dic_values):
         render_file(template_par, "fault.tmpl.yaml", fn_fault)
 
         if longer_and_more_frequent_output:
-            template_par["end_time"] = usgs_duration + max(20.0, 0.25 * usgs_duration)
             template_par["terminatorMomentRateThreshold"] = -1
             template_par["surface_output_interval"] = 1.0
         else:
-            template_par["end_time"] = usgs_duration + max(5.0, 0.25 * usgs_duration)
             template_par["terminatorMomentRateThreshold"] = 5e17
             template_par["surface_output_interval"] = 5.0
+        template_par["end_time"] = usgs_duration + max(20.0, 0.25 * usgs_duration)
         template_par["fault_fname"] = fn_fault
         template_par["output_file"] = f"output/dyn_{code}"
         template_par["material_fname"] = "yaml_files/material.yaml"
