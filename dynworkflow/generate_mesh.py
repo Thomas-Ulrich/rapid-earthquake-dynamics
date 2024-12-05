@@ -33,6 +33,14 @@ def generate(h_domain, h_fault, interactive):
                     vertex_id, x, y, z = map(float, match.groups())
                     if z > -h_fault:
                         z = 0.0
+                    for vert in allv:
+                        dist2_to_v = (
+                            (x - vert[0]) ** 2 + (y - vert[1]) ** 2 + (z - vert[2]) ** 2
+                        )
+                        if dist2_to_v < 100**2:
+                            x, y, z = vert
+                            print("found an almost duplicated vertex, merging...")
+                            break
                     vertices.append([x, y, z])
         allv.extend(vertices)
         vertices = np.array(vertices)
@@ -50,6 +58,7 @@ def generate(h_domain, h_fault, interactive):
 
     # compute fault normals
     gmsh.model.occ.synchronize()
+
     fault_normals = []
     for i, fn in enumerate(ts_files):
         fault_normal = gmsh.model.getNormal(fault[1], [0.5, 0.5])
