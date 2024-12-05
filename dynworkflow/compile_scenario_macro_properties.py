@@ -370,8 +370,8 @@ if __name__ == "__main__":
     for i, fn in enumerate(energy_files):
         df = pd.read_csv(fn)
         df = df.pivot_table(index="time", columns="variable", values="measurement")
-        if len(df) < 2:
-            print(f"skipping empty {fn}")
+        if len(df) < 2 or df["seismic_moment"].iloc[-1] == 0.0:
+            print(f"skipping empty or 0 seismic moment: {fn}")
             continue
         dt = df.index[1] - df.index[0]
         assert dt == 0.25
