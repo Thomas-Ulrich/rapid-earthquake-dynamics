@@ -110,9 +110,12 @@ def run_step1():
         write_paraview=False,
         PSRthreshold=0.0,
     )
-    if not args.user_defined_kinematic_model:
+    suffix, ext = os.path.splitext(os.path.basename(finite_fault_fn))
+    if not ext == ".txt":
+        print("using USGS 1D velocity model")
         prepare_velocity_model_files.generate_usgs_velocity_files()
     else:
+        print("using slipnear 1D velocity model")
         prepare_velocity_model_files.generate_slipnear_velocity_files()
 
     modify_FL33_34_fault_instantaneous_slip.update_file(
@@ -158,7 +161,8 @@ def select_station_and_download_waveforms():
             "submodules/seismic-waveform-factory/scripts/select_stations.py",
         ),
         "waveforms_config.ini",
-        "15",
+        "14",
+        "7",
     ]
     subprocess.run(command, check=True)
     print(
