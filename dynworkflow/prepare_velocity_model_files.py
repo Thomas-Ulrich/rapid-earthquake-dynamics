@@ -59,13 +59,15 @@ def write_axitra_velocity_file(df):
     print(f"done writing {fname}")
 
 
-def generate_slipnear_velocity_files():
-    vel_model = """H P_VEL S_VEL DENS QP QS
+vel_model_slipnear = """H P_VEL S_VEL DENS QP QS
 0.6 3.3 1.9 2.0 200 100
 1.4 4.5 2.6 2.3 350 175
 3.0 5.5 3.18 2.5 500 250
 25.0 6.5 3.75 2.9 600 300
 10000 8.1 4.68 3.3 1000 500"""
+
+
+def generate_arbitrary_velocity_files(vel_model=vel_model_slipnear):
     df = pd.read_csv(io.StringIO(vel_model), sep=" ")
     df["rho"] = 1000.0 * df["DENS"]
     df["mu"] = 1e6 * df["rho"] * df["S_VEL"] ** 2

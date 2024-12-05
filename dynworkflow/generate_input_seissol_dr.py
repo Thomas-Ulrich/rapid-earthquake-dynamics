@@ -86,7 +86,7 @@ def generate(mode, dic_values):
         paramR = dic_values["R"]
         list_cohesion = dic_values["cohesion"]
         paramCoh = list(range(len(list_cohesion)))
-        use_R_segment_wise = True
+        use_R_segment_wise = False
         if use_R_segment_wise:
             params = [paramCoh, paramB, paramC] + [paramR] * number_of_segments
             assert len(params) == number_of_segments + 3

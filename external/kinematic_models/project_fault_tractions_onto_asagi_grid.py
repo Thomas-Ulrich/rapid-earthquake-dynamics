@@ -185,8 +185,7 @@ def generate_input_files(
     unique_tags = np.unique(tags)
 
     template_yaml = f"""!Any
-    components:
-    """
+    components:\n"""
 
     for tag in unique_tags:
         ids = np.where(tags == tag)[0]
@@ -205,7 +204,7 @@ def generate_input_files(
         ta = -np.dot(xu1, ua)
         tb = -np.dot(xu1, ub)
 
-        template_yaml += f""" - !GroupFilter
+        template_yaml += f"""     - !GroupFilter
         groups: {tag}
         components: !AffineMap
           matrix:

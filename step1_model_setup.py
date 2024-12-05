@@ -58,6 +58,13 @@ def run_step1():
         help="input filename of alternative model to usgs (e.g. Slipnear)",
         type=str,
     )
+    parser.add_argument(
+        "--velocity_model",
+        nargs=1,
+        help="input 1D velocity model in axitra format",
+        type=str,
+    )
+
     args = parser.parse_args()
 
     suffix = ""
@@ -77,6 +84,15 @@ def run_step1():
         else:
             shutil.copy(f"../{finite_fault_fn}", "tmp")
             finite_fault_fn = f"tmp/{finite_fault_fn}"
+
+    if args.velocity_model:
+        vel_model = args.velocity_model[0]
+        if os.path.exists(vel_model):
+            # absolute path given
+            shutil.copy(vel_model, "tmp")
+        else:
+            shutil.copy(f"../{vel_model}", "tmp")
+            vel_model = f"tmp/{vel_model}"
 
     if not args.user_defined_kinematic_model:
         finite_fault_fn = f"tmp/basic_inversion.param"
@@ -112,11 +128,19 @@ def run_step1():
     )
     suffix, ext = os.path.splitext(os.path.basename(finite_fault_fn))
     if not ext == ".txt":
-        print("using USGS 1D velocity model")
-        prepare_velocity_model_files.generate_usgs_velocity_files()
+        if args.velocity_model:
+            print("using user-defined velocity model 1D velocity model")
+            with open(vel_model, "r") as fid:
+                file_contents = fid.read()
+            prepare_velocity_model_files.generate_arbitrary_velocity_files(
+                file_contents
+            )
+        else:
+            print("using USGS 1D velocity model")
+            prepare_velocity_model_files.generate_usgs_velocity_files()
     else:
         print("using slipnear 1D velocity model")
-        prepare_velocity_model_files.generate_slipnear_velocity_files()
+        prepare_velocity_model_files.generate_arbitrary_velocity_files()
 
     modify_FL33_34_fault_instantaneous_slip.update_file(
         f"yaml_files/FL33_34_fault.yaml"

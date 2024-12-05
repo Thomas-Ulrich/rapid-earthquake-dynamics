@@ -159,7 +159,7 @@ def compute_critical_nucleation(
         for fault_yaml in list_fault_yaml
     ]
     from multiprocessing import Pool
-
+    print(f"using {os.cpu_count()} CPUs")
     print("fault_yaml: selected_r estimated_r ratio_slip_area std")
     with Pool() as pool:
         async_result = pool.map_async(compute_nucleation, args_list)
