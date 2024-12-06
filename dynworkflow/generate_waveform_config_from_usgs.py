@@ -20,11 +20,10 @@ def generate_waveform_config_file(ignore_source_files=False):
     dyfi = get_value_from_usgs_data(jsondata, "dyfi")[0]
     eventtime = dyfi["properties"]["eventtime"]
 
-    finite_fault = get_value_from_usgs_data(jsondata, "finite-fault")[0]
-    code_finite_fault = finite_fault["code"]
-    hypocenter_x = finite_fault["properties"]["longitude"]
-    hypocenter_y = finite_fault["properties"]["latitude"]
-    hypocenter_z = finite_fault["properties"]["depth"]
+    code = get_value_from_usgs_data(jsondata, "code")[0]
+    hypocenter_x = dyfi["properties"]["longitude"]
+    hypocenter_y = dyfi["properties"]["latitude"]
+    hypocenter_z = dyfi["properties"]["depth"]
 
     moment_tensor = get_value_from_usgs_data(jsondata, "moment-tensor")[0]
     duration = moment_tensor["properties"]["sourcetime-duration"]
@@ -40,7 +39,7 @@ def generate_waveform_config_file(ignore_source_files=False):
     templateEnv = jinja2.Environment(loader=templateLoader)
 
     template_par = {
-        "setup_name": code_finite_fault,
+        "setup_name": code,
         "stations": "{{ stations }}",
         "lon": hypocenter_x,
         "lat": hypocenter_y,

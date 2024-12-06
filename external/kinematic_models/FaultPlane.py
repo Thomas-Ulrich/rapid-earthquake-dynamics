@@ -304,6 +304,7 @@ class MultiFaultPlane:
         ), f"No. of segments are wrong. {len(fault_seg_line)} {nseg}"
         istart = 4
         fault_planes = []
+        t0min = 1e99
         for i_seg in range(nseg):
             fault_planes.append(FaultPlane())
             fp = fault_planes[i_seg]
@@ -342,7 +343,11 @@ class MultiFaultPlane:
                     fp.t0[j, i] = df["t_rup"][k]
                     fp.tacc[j, i] = df["t_ris"][k]
                     fp.rise_time[j, i] = df["t_ris"][k] + df["t_fal"][k]
-        return cls(fault_planes)
+            if np.amin(fp.t0[:, :]) < t0min:
+                t0min = np.amin(fp.t0[:, :])
+                ids = np.where(fp.t0[:, :] == t0min)
+                hypocenter = [*fp.lon[ids], *fp.lat[ids], *fp.depth[ids]]
+        return cls(fault_planes, hypocenter)
 
     @classmethod
     def from_usgs_param_file(cls, fname):
@@ -433,8 +438,25 @@ class MultiFaultPlane:
         fault_planes = []
         fault_planes.append(FaultPlane())
         fp = fault_planes[0]
-        df = pd.read_csv(fname, sep='\s+', skiprows=25, usecols=range(8), comment=":")
-        df = df.sort_values(by=["depth(km)", "Lat", "Lon"], ascending=[True, True, True]).reset_index()
+
+        def get_first_line_id_starting_with(fname, pattern):
+            with open(fname, "r") as fid:
+                lines = fid.readlines()
+            for i, line in enumerate(lines):
+                if line.startswith(pattern):
+                    return i
+            raise ValueError(f"{pattern} not found")
+
+        line_sep = get_first_line_id_starting_with(
+            fname, " ================================================"
+        )
+
+        df = pd.read_csv(
+            fname, sep="\s+", skiprows=line_sep + 2, usecols=range(8), comment=":"
+        )
+        df = df.sort_values(
+            by=["depth(km)", "Lat", "Lon"], ascending=[True, True, True]
+        ).reset_index()
         rows_with_same_depth = df[df["depth(km)"] == df.iloc[0]["depth(km)"]]
         nx = len(rows_with_same_depth)
         ny = len(df) // nx
@@ -477,6 +499,40 @@ class MultiFaultPlane:
                 fp.tacc[j, i] = 5.0
                 fp.rise_time[j, i] = 10.0
 
+        def trim(fp):
+            # the slipnear is typically padded with zero to a large extent
+            # we remove the padding (but one)
+            idy, idx = np.where(fp.slip1 > 0)
+            i0, i1 = max(0, min(idx) - 1), min(nx - 1, max(idx) + 1)
+            j0, j1 = max(0, min(idy) - 1), min(ny - 1, max(idy) + 1)
+            nx1 = i1 - i0 + 1
+            ny1 = j1 - j0 + 1
+            if (nx1 != nx) or (ny1 != ny):
+                print("trimming the kinematic model")
+                fp1 = FaultPlane()
+                fp1.dx = dx
+                fp1.dy = dy
+                fp1.init_spatial_arrays(nx1, ny1)
+                fp_attrs = [
+                    "lon",
+                    "lat",
+                    "depth",
+                    "slip1",
+                    "rake",
+                    "strike",
+                    "dip",
+                    "t0",
+                    "tacc",
+                    "rise_time",
+                ]
+                for attr in fp_attrs:
+                    setattr(fp1, attr, getattr(fp, attr)[j0 : j1 + 1, i0 : i1 + 1])
+                fp1.PSarea_cm2 = dx * dy * 1e10
+                return fp1
+            else:
+                return fp
+
+        fault_planes[0] = trim(fp)
         return cls(fault_planes, hypocenter)
 
     @classmethod

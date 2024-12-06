@@ -325,6 +325,7 @@ if __name__ == "__main__":
         "duration": [],
         "ccmax": [],
         "M0mis": [],
+        "Tgof": [],
         "faultfn": [],
         "shift_syn_ref_sec": [],
     }
@@ -370,8 +371,8 @@ if __name__ == "__main__":
     for i, fn in enumerate(energy_files):
         df = pd.read_csv(fn)
         df = df.pivot_table(index="time", columns="variable", values="measurement")
-        if len(df) < 2:
-            print(f"skipping empty {fn}")
+        if len(df) < 2 or df["seismic_moment"].iloc[-1] == 0.0:
+            print(f"skipping empty or 0 seismic moment: {fn}")
             continue
         dt = df.index[1] - df.index[0]
         assert dt == 0.25
@@ -394,7 +395,8 @@ if __name__ == "__main__":
         results["C"].append(out["C"])
         results["R0"].append(out["R"])
         results["faultfn"].append(faultfn)
-        max_shift = int(0.25 * inferred_duration / dt)
+        # max_shift = int(min(5, 0.25 * inferred_duration) / dt)
+        max_shift = 0
 
         len_corr = max(len(mr_ref_interp), len(df["seismic_moment_rate"]))
         # signal padded for easier interpretation of the shift
@@ -417,9 +419,12 @@ if __name__ == "__main__":
         # allow 15% variation on the misfit
         M0_gof = min(1, 1.15 - abs(M0 - M0ref) / M0ref)
         results["M0mis"].append(M0_gof)
-
+        duration_gof = min(1, abs(duration - inferred_duration) / inferred_duration)
+        results["Tgof"].append(duration_gof)
     result_df = pd.DataFrame(results)
-    result_df["combined_M0_cc_gof"] = np.sqrt(result_df["M0mis"] * result_df["ccmax"])
+    result_df["combined_M0_cc_gof"] = np.sqrt(
+        result_df["M0mis"] * result_df["ccmax"] * result_df["Tgof"]
+    )
 
     result_df = result_df.sort_values(
         by="combined_M0_cc_gof", ascending=False

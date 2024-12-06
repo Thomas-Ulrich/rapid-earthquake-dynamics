@@ -73,9 +73,15 @@ def run_step1():
         suffix, ext = os.path.splitext(os.path.basename(finite_fault_fn))
 
     folder_name = get_usgs_finite_fault_data.get_data(
-        args.usgs_id_or_dtgeo_npy, min_magnitude=7, suffix=suffix
+        args.usgs_id_or_dtgeo_npy,
+        min_magnitude=7,
+        suffix=suffix,
+        use_usgs_finite_fault=not args.user_defined_kinematic_model,
     )
     os.chdir(folder_name)
+
+    with open("tmp/projection.txt", "r") as fid:
+        projection = fid.read()
 
     if args.user_defined_kinematic_model:
         if os.path.exists(finite_fault_fn):
@@ -96,14 +102,6 @@ def run_step1():
 
     if not args.user_defined_kinematic_model:
         finite_fault_fn = f"tmp/basic_inversion.param"
-
-    with open(f"tmp/hypocenter.txt", "r") as f:
-        lon, lat, _ = f.read().split()
-
-    projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon} +lat_0={lat}"
-
-    with open(f"tmp/projection.txt", "w") as f:
-        f.write(projection)
 
     (
         spatial_zoom,
