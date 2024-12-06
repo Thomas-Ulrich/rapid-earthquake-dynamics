@@ -24,7 +24,7 @@
        function f (x)
 
         -- ensure R>0.8 in the nucleation region
-        xha = {0, 0, {{ hypo_z }}}
+        xha = { {{ hypo_x }}, {{ hypo_y }}, {{ hypo_z }}}
         r_crita = {{ r_crit }}
         ra = math.sqrt((x['x']-xha[1])^2 + (x['y']-xha[2])^2 + (x['z']-xha[3])^2 )
         coh0 = -{{ cohesion_const }}
@@ -88,7 +88,7 @@
   returns: [forced_rupture_time]
   function: |
       function f (x)
-        xha = {0, 0, {{ hypo_z }}}
+        xha = { {{ hypo_x }}, {{ hypo_y }}, {{ hypo_z }}}
         r_crita = {{ r_crit }}
         ra = math.sqrt((x["x"]-xha[1])^2 + (x["y"]-xha[2])^2 + (x["z"]-xha[3])^2 )
         Vs = 3464.0

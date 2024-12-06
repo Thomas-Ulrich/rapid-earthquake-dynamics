@@ -14,6 +14,7 @@ from dynworkflow.compile_scenario_macro_properties import infer_duration
 import warnings
 import seissolxdmf as sx
 import argparse
+from pyproj import Transformer
 
 
 def generate(mode, dic_values):
@@ -122,7 +123,12 @@ def generate(mode, dic_values):
         if verbose:
             print(f"done creating {out_fname}")
 
-    hypo_z = np.loadtxt("tmp/hypocenter.txt")[2] * -1e3
+    with open(f"tmp/projection.txt", "r") as f:
+        projection = f.read()
+    transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
+    hypo = np.loadtxt("tmp/hypocenter.txt")
+    hypo[2] *= -1e3
+    hypo[0], hypo[1] = transformer.transform(hypo[0], hypo[1])
 
     mr_usgs = np.loadtxt("tmp/moment_rate.mr", skiprows=2)
     usgs_duration = infer_duration(mr_usgs[:, 0], mr_usgs[:, 1])
@@ -173,7 +179,9 @@ def generate(mode, dic_values):
             "B": B,
             "C": C,
             "min_dc": C * max_slip * 0.15,
-            "hypo_z": hypo_z,
+            "hypo_x": hypo[0],
+            "hypo_y": hypo[1],
+            "hypo_z": hypo[2],
             "r_crit": 3000.0,
         }
 
@@ -216,7 +224,7 @@ def generate(mode, dic_values):
         "yaml_files/smooth_PREM_material.yaml",
         "yaml_files/fault_slip.yaml",
         list_fault_yaml,
-        -hypo_z,
+        hypo,
     )
     print(list_nucleation_size)
     for i, fn in enumerate(list_fault_yaml):
@@ -236,7 +244,9 @@ def generate(mode, dic_values):
                 "B": B,
                 "C": C,
                 "min_dc": C * max_slip * 0.15,
-                "hypo_z": hypo_z,
+                "hypo_x": hypo[0],
+                "hypo_y": hypo[1],
+                "hypo_z": hypo[2],
                 "r_crit": list_nucleation_size[i],
             }
             render_file(template_par, "fault.tmpl.yaml", fn_fault)
@@ -250,7 +260,7 @@ def generate(mode, dic_values):
 if __name__ == "__main__":
     # Default values for parameters
     paramB = [0.9, 1.0, 1.1, 1.2]
-    #paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
+    # paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
     paramC = [0.1, 0.2, 0.3, 0.4, 0.5]
     paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
     paramCoh = [(0.25, 1)]

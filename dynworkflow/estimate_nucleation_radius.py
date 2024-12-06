@@ -142,13 +142,13 @@ def compute_nucleation(args):
 
 
 def compute_critical_nucleation(
-    fault_xdmf, mat_yaml, slip_yaml, list_fault_yaml, hypo_depth
+    fault_xdmf, mat_yaml, slip_yaml, list_fault_yaml, hypo_coords
 ):
     sx = SeissolxdmfExtended(fault_xdmf)
     centers = sx.ComputeCellCenters()
     slip_area = compute_slip_area(centers, sx, slip_yaml)
 
-    center = np.array([0, 0, -hypo_depth])
+    center = np.array(hypo_coords)
     ids = points_in_sphere(centers, center, 15e3)
     centers = centers[ids]
 
@@ -159,6 +159,7 @@ def compute_critical_nucleation(
         for fault_yaml in list_fault_yaml
     ]
     from multiprocessing import Pool
+
     print(f"using {os.cpu_count()} CPUs")
     print("fault_yaml: selected_r estimated_r ratio_slip_area std")
     with Pool() as pool:
@@ -173,7 +174,7 @@ if __name__ == "__main__":
         "faultfile", help="fault file (vtk or seissol xdmf fault output)"
     )
     parser.add_argument("faultyamlfile", help="yaml file describing fault parameters")
-    parser.add_argument("hypocenter_depth", type=float, help="hypocenter depth")
+    parser.add_argument("hypocenter", type=float, nargs=3, help="hypocenter coords")
     parser.add_argument(
         "--materialyamlfile",
         help="yaml file desribing Lame parameters",
@@ -189,8 +190,6 @@ if __name__ == "__main__":
     fault_yaml = args.faultyamlfile
     slip_yaml = args.slipyamlfile
     mat_yaml = args.materialyamlfile
-    hypo_depth = args.hypocenter_depth
+    hypo = args.hypocenter
 
-    compute_critical_nucleation(
-        fault_xdmf, mat_yaml, slip_yaml, [fault_yaml], hypo_depth
-    )
+    compute_critical_nucleation(fault_xdmf, mat_yaml, slip_yaml, [fault_yaml], hypo)
