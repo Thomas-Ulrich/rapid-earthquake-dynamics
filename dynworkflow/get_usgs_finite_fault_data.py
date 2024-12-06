@@ -87,7 +87,7 @@ def retrieve_usgs_id_from_dtgeo_dict(fname, min_mag):
     return usgs_id
 
 
-def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix):
+def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix, use_usgs_finite_fault=True):
     if usgs_id_or_dtgeo_npy[-3:] == "npy":
         usgs_id = retrieve_usgs_id_from_dtgeo_dict(
             args.usgs_id_or_dtgeo_npy, min_magnitude
@@ -108,12 +108,16 @@ def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix):
     eventtime = dyfi["properties"]["eventtime"]
     day = eventtime.split("T")[0]
     descr = "_".join(place.split(",")[-1].split())
-    finite_fault = get_value_from_usgs_data(jsondata, "finite-fault")[0]
-    code_finite_fault = finite_fault["code"]
-    update_time = finite_fault["updateTime"]
-    hypocenter_x = finite_fault["properties"]["longitude"]
-    hypocenter_y = finite_fault["properties"]["latitude"]
-    hypocenter_z = finite_fault["properties"]["depth"]
+
+    if use_usgs_finite_fault:
+        finite_fault = get_value_from_usgs_data(jsondata, "finite-fault")[0]
+        code_finite_fault = finite_fault["code"]
+        update_time = finite_fault["updateTime"]
+        hypocenter_x = finite_fault["properties"]["longitude"]
+        hypocenter_y = finite_fault["properties"]["latitude"]
+        hypocenter_z = finite_fault["properties"]["depth"]
+    else:
+        code_finite_fault = usgs_id
 
     folder_name = f"{day}_Mw{mag}_{descr[:20]}_{code_finite_fault}{suffix}"
 
@@ -122,12 +126,19 @@ def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix):
     if not os.path.exists(f"{folder_name}/tmp"):
         os.makedirs(f"{folder_name}/tmp")
 
-    with open(f"{folder_name}/tmp/hypocenter.txt", "w") as f:
-        jsondata = f.write(f"{hypocenter_x} {hypocenter_y} {hypocenter_z}\n")
+    lon = float(dyfi["properties"]["longitude"])
+    lat = float(dyfi["properties"]["latitude"])
+    projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon:.2f} +lat_0={lat:.2f}"
+    with open(f"{folder_name}/tmp/projection.txt", "w") as f:
+        f.write(projection)
 
-    for fn in ["moment_rate.mr", "basic_inversion.param", "complete_inversion.fsp"]:
-        url = f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}/us/{update_time}/{fn}"
-        wget_overwrite(url, f"{folder_name}/tmp/{fn}")
+    if use_usgs_finite_fault:
+        with open(f"{folder_name}/tmp/hypocenter.txt", "w") as f:
+            jsondata = f.write(f"{hypocenter_x} {hypocenter_y} {hypocenter_z}\n")
+
+        for fn in ["moment_rate.mr", "basic_inversion.param", "complete_inversion.fsp"]:
+            url = f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}/us/{update_time}/{fn}"
+            wget_overwrite(url, f"{folder_name}/tmp/{fn}")
 
     shutil.move(fn_json, f"{folder_name}/tmp/{fn_json}")
     print(folder_name)
