@@ -193,21 +193,30 @@ def generate_BCR_plots(B, C, R):
             axarr[row, col],
             cm.cmaps["acton"],
         )
-        generate_XY_panel(
-            "R0", R, "C", C, "B", Bk, "gof_wf", axarr[row, col + 1], cm.cmaps["oslo"]
-        )
-        generate_XY_panel(
-            "R0",
-            R,
-            "C",
-            C,
-            "B",
-            Bk,
-            # "combined_M0_cc_gof",
-            "combined_gof",
-            axarr[row, col + 2],
-            cm.cmaps["batlowW"],
-        )
+        if "gof_wf" in result_df:
+            generate_XY_panel(
+                "R0",
+                R,
+                "C",
+                C,
+                "B",
+                Bk,
+                "gof_wf",
+                axarr[row, col + 1],
+                cm.cmaps["oslo"],
+            )
+            generate_XY_panel(
+                "R0",
+                R,
+                "C",
+                C,
+                "B",
+                Bk,
+                # "combined_M0_cc_gof",
+                "combined_gof",
+                axarr[row, col + 2],
+                cm.cmaps["batlowW"],
+            )
 
     fname = "plots/parameter_space_R0C_constant_B.pdf"
     plt.savefig(fname)
@@ -345,7 +354,7 @@ if __name__ == "__main__":
     if os.path.exists("tmp/moment_rate_from_finite_source_file.txt"):
         print("loading slipnear moment rate")
         mr_ref = np.loadtxt("tmp/moment_rate_from_finite_source_file.txt")
-        ref_name = "slipnear"
+        ref_name = "finite-source model"
     else:
         mr_ref = read_usgs_moment_rate()
         ref_name = "usgs"
@@ -419,7 +428,7 @@ if __name__ == "__main__":
         # allow 15% variation on the misfit
         M0_gof = min(1, 1.15 - abs(M0 - M0ref) / M0ref)
         results["M0mis"].append(M0_gof)
-        duration_gof = min(1, abs(duration - inferred_duration) / inferred_duration)
+        duration_gof = min(1, 1 - abs(duration - inferred_duration) / inferred_duration)
         results["Tgof"].append(duration_gof)
     result_df = pd.DataFrame(results)
     result_df["combined_M0_cc_gof"] = np.sqrt(
@@ -477,7 +486,7 @@ if __name__ == "__main__":
         selected_indices = indices_of_nmax_largest_values
     else:
         selected_indices = indices_greater_than_threshold
-    i = 0
+
     for fn in energy_files:
         prefix_to_match = fn.split("-energy.csv")[0]
         row_with_prefix1 = result_df[
@@ -486,8 +495,13 @@ if __name__ == "__main__":
         row_with_prefix2 = result_df[
             result_df["faultfn"].str.startswith(prefix_to_match + "-")
         ]
-        if row_with_prefix1.empty and row_with_prefix2.empty:
+        if not row_with_prefix1.empty:
+            i = row_with_prefix1.index[0]
+        elif not row_with_prefix2.empty:
+            i = row_with_prefix2.index[0]
+        else:
             continue
+
         df = pd.read_csv(fn)
         df = df.pivot_table(index="time", columns="variable", values="measurement")
         dt = df.index[1] - df.index[0]
@@ -520,7 +534,6 @@ if __name__ == "__main__":
             alpha=alpha,
             **labelargs,
         )
-        i += 1
 
     ax.plot(
         mr_ref[:, 0],
@@ -528,7 +541,7 @@ if __name__ == "__main__":
         label=f"{ref_name} (Mw={Mwref:.2f})",
         color="black",
     )
-    if ref_name != "usgs":
+    if ref_name != "usgs" and os.path.exists("tmp/moment_rate.mr"):
         mr_usgs = read_usgs_moment_rate()
         mr_usgs = trim_trailing_zero(mr_usgs)
         M0usgs, Mwusgs = computeMw("usgs", mr_usgs[:, 0], mr_usgs[:, 1])

@@ -406,6 +406,9 @@ class MultiFaultPlane:
                     fp.t0[j, i] = df["t_rup"][k]
                     fp.tacc[j, i] = df["t_ris"][k]
                     fp.rise_time[j, i] = df["t_ris"][k] + df["t_fal"][k]
+        if nseg == 1:
+            fault_planes[0] = fp.trim()
+
         return cls(fault_planes)
 
     @classmethod
@@ -499,40 +502,7 @@ class MultiFaultPlane:
                 fp.tacc[j, i] = 5.0
                 fp.rise_time[j, i] = 10.0
 
-        def trim(fp):
-            # the slipnear is typically padded with zero to a large extent
-            # we remove the padding (but one)
-            idy, idx = np.where(fp.slip1 > 0)
-            i0, i1 = max(0, min(idx) - 1), min(nx - 1, max(idx) + 1)
-            j0, j1 = max(0, min(idy) - 1), min(ny - 1, max(idy) + 1)
-            nx1 = i1 - i0 + 1
-            ny1 = j1 - j0 + 1
-            if (nx1 != nx) or (ny1 != ny):
-                print("trimming the kinematic model")
-                fp1 = FaultPlane()
-                fp1.dx = dx
-                fp1.dy = dy
-                fp1.init_spatial_arrays(nx1, ny1)
-                fp_attrs = [
-                    "lon",
-                    "lat",
-                    "depth",
-                    "slip1",
-                    "rake",
-                    "strike",
-                    "dip",
-                    "t0",
-                    "tacc",
-                    "rise_time",
-                ]
-                for attr in fp_attrs:
-                    setattr(fp1, attr, getattr(fp, attr)[j0 : j1 + 1, i0 : i1 + 1])
-                fp1.PSarea_cm2 = dx * dy * 1e10
-                return fp1
-            else:
-                return fp
-
-        fault_planes[0] = trim(fp)
+        fault_planes[0] = fp.trim()
         return cls(fault_planes, hypocenter)
 
     @classmethod
@@ -1156,3 +1126,36 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                 fout.write("TRGL %d %d %d\n" % (connect[i, 0], connect[i, 1], connect[i, 2]))
             fout.write("END\n")
         print(f"done writing {fname}")
+
+    def trim(self):
+        # some kinematic models are padded with zero to a large extent
+        # this function removes the padding (but one)
+        idy, idx = np.where(self.slip1 > 0)
+        i0, i1 = max(0, min(idx) - 1), min(self.nx - 1, max(idx) + 1)
+        j0, j1 = max(0, min(idy) - 1), min(self.ny - 1, max(idy) + 1)
+        nx1 = i1 - i0 + 1
+        ny1 = j1 - j0 + 1
+        if (nx1 != self.nx) or (ny1 != self.ny):
+            print("trimming the kinematic model")
+            fp1 = FaultPlane()
+            fp1.dx = self.dx
+            fp1.dy = self.dy
+            fp1.init_spatial_arrays(nx1, ny1)
+            fp_attrs = [
+                "lon",
+                "lat",
+                "depth",
+                "slip1",
+                "rake",
+                "strike",
+                "dip",
+                "t0",
+                "tacc",
+                "rise_time",
+            ]
+            for attr in fp_attrs:
+                setattr(fp1, attr, getattr(self, attr)[j0 : j1 + 1, i0 : i1 + 1])
+            fp1.PSarea_cm2 = self.dx * self.dy * 1e10
+            return fp1
+        else:
+            return self
