@@ -256,6 +256,21 @@ def generate(mode, dic_values):
             os.remove(fn)
             os.remove(fn_param)
 
+    # write parts.txt files
+    parameter_files = sorted(
+        [f for f in os.listdir(".") if f.startswith("parameters_dyn")]
+    )
+    nfiles = len(parameter_files)
+    n = 3
+    parts = np.array_split(np.arange(nfiles), n)
+    split_files = [list(np.array(parameter_files)[part]) for part in parts]
+    for i, part in enumerate(split_files):
+        part_filename = f"part_{i+1}.txt"
+        with open(part_filename, "w") as f:
+            for par_file in part:
+                f.write(par_file + "\n")
+        print(f"done writing {part_filename}")
+
 
 if __name__ == "__main__":
     # Default values for parameters
