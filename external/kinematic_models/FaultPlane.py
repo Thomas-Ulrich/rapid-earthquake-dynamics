@@ -450,12 +450,33 @@ class MultiFaultPlane:
                     return i
             raise ValueError(f"{pattern} not found")
 
+        try: 
+            with open(fname, "r") as fid:
+                lines = fid.readlines()
+            line_number_of_triangular = get_first_line_id_starting_with(
+                fname, " per subfault:"
+            )
+            ntriangles = int(lines[line_number_of_triangular].split(":")[1])
+            line_half_dur = get_first_line_id_starting_with(
+                fname, " isoceles triangular functions (s):"
+            )
+            half_dur = float(lines[line_half_dur].split(":")[1])
+            rise_time = half_dur * (1+ ntriangles)
+            tacc = half_dur
+            print(f"rise time and tacc inferred:  {tacc} {rise_time}")
+            has_STF = True
+        except ValueError:
+            rise_time = 10.0 
+            tacc = 5.0
+            has_STF = False
+            print(f"rise time and tacc could not be determined, using {tacc} {rise_time}")
+
         line_sep = get_first_line_id_starting_with(
             fname, " ================================================"
         )
 
         df = pd.read_csv(
-            fname, sep="\s+", skiprows=line_sep + 2, usecols=range(8), comment=":"
+            fname, sep="\s+", skiprows=line_sep + 2, comment=":"
         )
         df = df.sort_values(
             by=["depth(km)", "Lat", "Lon"], ascending=[True, True, True]
@@ -499,8 +520,45 @@ class MultiFaultPlane:
                 fp.dip[j, i] = df["dip"][k]
                 fp.PSarea_cm2 = dx * dy * 1e10
                 fp.t0[j, i] = df["ontime"][k]
-                fp.tacc[j, i] = 5.0
-                fp.rise_time[j, i] = 10.0
+                fp.tacc[j, i] = tacc
+                fp.rise_time[j, i] = rise_time
+                if has_STF:
+                    dt = tacc/25.
+                    ndt1 = int((fp.t0[j, i] + fp.rise_time[j, i])/dt)+1
+                    if max(i, j) == 0:
+                        fp.ndt = ndt1
+                        fp.dt = dt
+                        fp.init_aSR()
+                        fp.myt = np.linspace(0, fp.ndt-1,fp.ndt)*fp.dt
+                    lSTF = []
+                    if ndt1 == 0:
+                        continue
+                    if ndt1 > fp.ndt:
+                        print(f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array...")
+                        fp.extend_aSR(fp.ndt, ndt1)
+                        fp.myt = np.linspace(0, fp.ndt-1,fp.ndt)*fp.dt
+                    # Function to generate a single triangle function
+                    def triangle_function(t, center, half_width, amplitude):
+                        return np.where(
+                            np.abs(t - center) <= half_width,
+                            amplitude * (1 - np.abs(t - center) / half_width),
+                            0
+                        )
+
+                    # Generate the resulting signal as a sum of multiple triangle functions
+                    def sum_of_triangles(t, triangles):
+                        signal = np.zeros_like(t)
+                        for center, half_width, amplitude in triangles:
+                            signal += triangle_function(t, center, half_width, amplitude)
+                        return signal
+                    
+                    triangles = []
+                    for itr in range(ntriangles):
+                        triangles.append([fp.t0[j, i]+(itr+1)*tacc, tacc, df[f"amp{itr+1}(dyne.cm/s)"][k]])
+                    fp.aSR[j, i, :] = sum_of_triangles(fp.myt, triangles)
+                    integral = np.trapz(fp.aSR[j, i, :], dx =fp.dt)
+                    if integral:
+                        fp.aSR[j, i, :] /= integral
 
         fault_planes[0] = fp.trim()
         return cls(fault_planes, hypocenter)
@@ -1161,6 +1219,12 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             for attr in fp_attrs:
                 setattr(fp1, attr, getattr(self, attr)[j0 : j1 + 1, i0 : i1 + 1])
             fp1.PSarea_cm2 = self.dx * self.dy * 1e10
+            if self.ndt:
+                fp1.dt = self.dt
+                fp1.ndt = self.ndt
+                fp1.myt = self.myt
+                fp1.init_aSR()
+                fp1.aSR[:,:,:] = self.aSR[j0 : j1 + 1, i0 : i1 + 1,:]
             return fp1
         else:
             return self
