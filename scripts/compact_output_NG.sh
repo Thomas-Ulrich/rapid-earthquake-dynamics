@@ -48,7 +48,7 @@ done
 for current_file in output/dyn_*-surface.xdmf; do
     counter=$((counter+1))
     echo "Processing file $counter of $total_params: $current_file"
-    srun -N -n 1 -c 1 --exclusive --mem-per-cpu 8G seissol_output_extractor $current_file --time "i:" --variable u1 u2 u3 --add2prefix _disp &
+    srun -N 1 -n 1 -c 1 --exclusive --mem-per-cpu 8G seissol_output_extractor $current_file --time "i:" --variable u1 u2 u3 --add2prefix _disp &
     # Improved check: avoids unnecessary wait on the first iteration
     #if (( $counter % $SLURM_NTASKS == 0 )); then
     if (( $counter % $SLURM_NTASKS == 0 )); then
@@ -61,7 +61,7 @@ done
 for current_file in output/*-fault.xdmf; do
     counter=$((counter+1))
     echo "Processing file $counter of $total_params: $current_file"
-    srun -N -n 1 -c 1 --exclusive --mem-per-cpu 8G seissol_output_extractor $current_file &
+    srun -N 1 -n 1 -c 1 --exclusive --mem-per-cpu 8G seissol_output_extractor $current_file &
     if (( $counter % $SLURM_NTASKS == 0 )); then
       echo "waiting, $counter"
       wait

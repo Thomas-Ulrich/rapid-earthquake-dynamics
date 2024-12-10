@@ -7,6 +7,7 @@ import numpy as np
 from stf import gaussianSTF, smoothStep
 from FaultPlane import FaultPlane, MultiFaultPlane
 
+
 def compute(filename, yaml_filename, projection, dt=0.5):
     prefix, ext = os.path.splitext(filename)
     prefix = os.path.basename(prefix)
@@ -27,8 +28,12 @@ def compute(filename, yaml_filename, projection, dt=0.5):
     duration = 0
     for p, fp in enumerate(mfp.fault_planes):
         duration = max(duration, fp.t0.max() + fp.rise_time.max())
-
-    time = np.arange(0, duration, dt)
+    fp = mfp.fault_planes[0]
+    has_STF = fp.ndt > 0
+    if has_STF:
+        time = fp.myt
+    else:
+        time = np.arange(0, duration, dt)
     moment_rate = np.zeros_like(time)
 
     for p, fp in enumerate(mfp.fault_planes):
@@ -43,13 +48,16 @@ def compute(filename, yaml_filename, projection, dt=0.5):
             ["mu"],
             yaml_filename,
         )
+
         mu = out["mu"].reshape(fp.x.shape)
         for k, tk in enumerate(time):
-            STF = gaussianSTF(tk - fp.t0[:, :], fp.rise_time[:, :], dt)
+            if not has_STF:
+                STF = gaussianSTF(tk - fp.t0[:, :], fp.rise_time[:, :], dt)
             for j in range(fp.ny):
                 for i in range(fp.nx):
+                    STFij = fp.aSR[j, i, k] if has_STF else STF[j, i]
                     moment_rate[k] += (
-                        mu[j, i] * fp.dx * fp.dy * 1e6 * STF[j, i] * fp.slip1[j, i] * 0.01
+                        mu[j, i] * fp.dx * fp.dy * 1e6 * STFij * fp.slip1[j, i] * 0.01
                     )
     M0 = np.trapz(moment_rate[:], x=time[:])
     Mw = 2.0 * np.log10(M0) / 3.0 - 6.07
@@ -61,6 +69,7 @@ def compute(filename, yaml_filename, projection, dt=0.5):
     with open(fname, "w") as f:
         np.savetxt(f, np.column_stack((time, moment_rate)), fmt="%g")
     print(f"done writing {fname}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -80,7 +89,6 @@ if __name__ == "__main__":
 
     parser.add_argument("filename", help="filename of the srf file")
     parser.add_argument("yaml_filename", help="fault easi/yaml filename")
-
 
     parser.add_argument(
         "--proj",
