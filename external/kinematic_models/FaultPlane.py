@@ -803,6 +803,7 @@ class FaultPlane:
         pf.x, pf.y, pf.depth = upsample_quantities(allarr, spatial_order=1, spatial_zoom=spatial_zoom, padding="extrapolate")
 
         # upsample other quantities
+        self.rake = np.unwrap(np.unwrap(self.rake,axis=0), axis=1)
         allarr = np.array([self.t0, self.strike, self.dip, self.rake])
         pf.t0, pf.strike, pf.dip, pf.rake = upsample_quantities(allarr, spatial_order, spatial_zoom, padding="edge")
         # the interpolation may generate some acausality that we here prevent
@@ -989,6 +990,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
 
         slip = self.upsample_quantity_RGInterpolator(cslip, method, is_slip=True)
         slip[slip<slip_cutoff] = 0.0
+        self.rake = np.unwrap(np.unwrap(self.rake,axis=0), axis=1)
         for arr in [self.t0, self.rake, self.rise_time, self.tacc]:
             upsampled_arrays.append(self.upsample_quantity_RGInterpolator(arr, method))
 
@@ -1004,7 +1006,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         strike_slip = slip * np.cos(rake_rad) * cm2m
         dip_slip = slip * np.sin(rake_rad) * cm2m
 
-        def compute_rake_interp_low_slip(strike_slip, dip_slip, slip_threshold=0.05):
+        def compute_rake_interp_low_slip(strike_slip, dip_slip, slip_threshold=0.1):
             "compute rake with, with interpolation is slip is too small"
             slip = np.sqrt(strike_slip**2 + dip_slip**2)
             rake = np.arctan2(dip_slip, strike_slip)
@@ -1018,11 +1020,14 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                 x_flat = x[~nan_indices].flatten()
                 y_flat = y[~nan_indices].flatten()
                 rake_flat = rake[~nan_indices].flatten()
+                # important for dealing with 2 pi rake jump
+                rake_flat = np.unwrap(rake_flat)
 
                 # Interpolate missing values using linear interpolation
                 rake_interpolated_lin = griddata(
                     (x_flat, y_flat), rake_flat, (x, y), method="linear"
                 )
+                rake[~nan_indices] = rake_flat
                 rake[nan_indices] = rake_interpolated_lin[nan_indices]
                 nan_indices = np.isnan(rake)
                 if nan_indices.any():
