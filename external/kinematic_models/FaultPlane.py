@@ -408,6 +408,7 @@ class MultiFaultPlane:
                     fp.rise_time[j, i] = df["t_ris"][k] + df["t_fal"][k]
         if nseg == 1:
             fault_planes[0] = fp.trim()
+        fault_planes[0] = fp.add_one_zero_slip_row_at_deth()
 
         return cls(fault_planes)
 
@@ -1228,3 +1229,36 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             return fp1
         else:
             return self
+
+    def add_one_zero_slip_row_at_deth(self):
+        fp1 = FaultPlane()
+        fp1.dx = self.dx
+        fp1.dy = self.dy
+        fp1.init_spatial_arrays(self.nx, self.ny+1)
+        fp_attrs = [
+            "lon",
+            "lat",
+            "depth",
+            "slip1",
+            "rake",
+            "strike",
+            "dip",
+            "t0",
+            "tacc",
+            "rise_time",
+        ]
+        for attr in fp_attrs:
+            modified_data = np.zeros_like(fp1.lon)
+            modified_data[:ny, :nx] = getattr(self, attr)
+            setattr(fp1, attr, modified_data)
+
+        fp1.PSarea_cm2 = self.dx * self.dy * 1e10
+        if self.ndt:
+            fp1.dt = self.dt
+            fp1.ndt = self.ndt
+            fp1.myt = self.myt
+            fp1.init_aSR()
+            fp1.aSR[:ny,:nx,:] = self.aSR[:,:,:]
+        return fp1
+
+
