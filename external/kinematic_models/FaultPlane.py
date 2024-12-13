@@ -408,7 +408,6 @@ class MultiFaultPlane:
                     fp.rise_time[j, i] = df["t_ris"][k] + df["t_fal"][k]
         if nseg == 1:
             fault_planes[0] = fp.trim()
-        fault_planes[0] = fp.add_one_zero_slip_row_at_deth()
 
         return cls(fault_planes)
 
@@ -507,6 +506,8 @@ class MultiFaultPlane:
                 return 7.2277920000e10
 
         assert (df["ontime"] >= 0).all(), "AssertionError: Not all rupture time are greater than or equal to 0."
+        Gslip = 0
+        Gslip25 = 0
         for j in range(fp.ny):
             for i in range(fp.nx):
                 k = j * fp.nx + i
@@ -515,7 +516,9 @@ class MultiFaultPlane:
                 fp.depth[j, i] = df["depth(km)"][k]
                 # the slip is based on a homogeneous mu model, but the waveforms
                 # are calculated with the layered G as above
-                fp.slip1[j, i] = df["slip(cm)"][k] * 2.5e10/ G(fp.depth[j, i])
+                fp.slip1[j, i] = df["slip(cm)"][k] #* 2.5e10/ G(fp.depth[j, i])
+                Gslip25 += df["slip(cm)"][k] * 2.5e10
+                Gslip += df["slip(cm)"][k] * G(fp.depth[j, i])
                 fp.rake[j, i] = df["rake"][k]
                 fp.strike[j, i] = df["strike"][k]
                 fp.dip[j, i] = df["dip"][k]
@@ -560,8 +563,10 @@ class MultiFaultPlane:
                     integral = np.trapz(fp.aSR[j, i, :], dx =fp.dt)
                     if integral:
                         fp.aSR[j, i, :] /= integral
-
+        # we scale down the model to have the expected magnitude (see comment above on 25GPa)
+        fp.slip1 *= Gslip25/Gslip
         fault_planes[0] = fp.trim()
+        fault_planes[0] = fault_planes[0].add_one_zero_slip_row_at_depth()
         return cls(fault_planes, hypocenter)
 
     @classmethod
@@ -1230,7 +1235,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         else:
             return self
 
-    def add_one_zero_slip_row_at_deth(self):
+    def add_one_zero_slip_row_at_depth(self):
         fp1 = FaultPlane()
         fp1.dx = self.dx
         fp1.dy = self.dy
@@ -1247,11 +1252,13 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             "tacc",
             "rise_time",
         ]
+        nx, ny = self.nx, self.ny
         for attr in fp_attrs:
             modified_data = np.zeros_like(fp1.lon)
             modified_data[:ny, :nx] = getattr(self, attr)
+            modified_data[ny, :] = 2* getattr(self, attr)[ny-1,:] - getattr(self, attr)[ny-2,:] 
             setattr(fp1, attr, modified_data)
-
+        fp1.slip1[ny,:] = 0
         fp1.PSarea_cm2 = self.dx * self.dy * 1e10
         if self.ndt:
             fp1.dt = self.dt
