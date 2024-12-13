@@ -435,6 +435,14 @@ if __name__ == "__main__":
         result_df["M0mis"] * result_df["ccmax"] * result_df["Tgof"]
     )
 
+    gofa = pickle.load(open("gof_slip.pkl", "rb"))
+    gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")
+    gofa = gofa[["gof_slip", "sim_id"]]
+    result_df = pd.merge(result_df, gofa, on="sim_id")
+    result_df["combined_M0_cc_gof"] = np.sqrt(
+        result_df["M0mis"] * result_df["ccmax"] * result_df["Tgof"]*result_df["gof_slip"]
+    )
+
     result_df = result_df.sort_values(
         by="combined_M0_cc_gof", ascending=False
     ).reset_index(drop=True)

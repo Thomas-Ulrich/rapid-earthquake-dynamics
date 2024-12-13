@@ -6,8 +6,8 @@ import argparse
 import os
 import seissolxdmf as sx
 import seissolxdmfwriter as sw
-
-# import generate_fault_output_from_fl33_input_files
+import pandas as pd
+import tqdm
 
 
 def fuzzysort(arr, idx, dim=0, tol=1e-6):
@@ -103,12 +103,43 @@ def multidim_intersect(arr1, arr2):
     return ind1, ind2
 
 
-def l1_norm(areas, q):
-    return np.dot(areas, np.abs(q))
-
-
 def l2_norm(areas, q):
     return np.dot(areas, np.power(q, 2))
+
+
+def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
+    if os.path.exists(args.output_folder):
+        args.output_folder += "/"
+    fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
+
+    sx_ref = seissolxdmfExtended(reference_model)
+    max_slip = sx_ref.asl.max()
+    areas = sx_ref.compute_areas()
+    results = {
+        "faultfn": [],
+        "gof_slip": [],
+    }
+
+    for fo in tqdm.tqdm(fault_output_files):
+        sx = seissolxdmfExtended(fo)
+        if sx_ref.geometry.shape[0] != sx.geometry.shape[0]:
+            raise ValueError("meshes don't have the same number of nodes")
+        ind1, ind2 = multidim_intersect(sx_ref.connect, sx.connect)
+        id_pos = sx_ref.asl[ind1] > 0.05
+        areas_pos = areas[ind1][id_pos]
+
+        misfit = (
+            l2_norm(areas_pos, (sx_ref.asl[ind1] - sx.asl[ind2])[id_pos])
+            / areas_pos.sum()
+        )
+        misfit = np.sqrt(misfit)
+        gof = max(0, 1 - misfit / max_slip)
+        results["faultfn"].append(fo)
+        results["gof_slip"].append(gof)
+    df = pd.DataFrame(results)
+    print(df)
+    fname = "gof_slip.pkl"
+    df.to_pickle(fname)
 
 
 if __name__ == "__main__":
@@ -130,21 +161,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     atol = args.atol[0]
-
-    if os.path.exists(args.output_folder):
-        args.output_folder += "/"
-    fault_output_files = sorted(glob.glob(f"{args.output_folder}*-fault.xdmf"))
-
-    sx_ref = seissolxdmfExtended(args.reference_model)
-    max_slip = sx_ref.asl.max()
-    areas = sx_ref.compute_areas()
-    sum_areas = areas.sum()
-    for fo in fault_output_files:
-        sx = seissolxdmfExtended(fo)
-        if sx_ref.geometry.shape[0] != sx.geometry.shape[0]:
-            raise ValueError("meshes don't have the same number of nodes")
-        ind1, ind2 = multidim_intersect(sx_ref.connect, sx.connect)
-        misfit = l2_norm(areas, sx_ref.asl[ind1] - sx.asl[ind2]) / sum_areas
-        misfit = np.sqrt(misfit)
-        gof = max(0, 1 - misfit / max_slip)
-        print(f"{fo} {misfit} {gof}")
+    compute_gof_fault_slip(args.output_folder, args.reference_model, atol)
