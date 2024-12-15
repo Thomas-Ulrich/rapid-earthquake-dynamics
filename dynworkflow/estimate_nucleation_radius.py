@@ -75,7 +75,7 @@ def stiffness_average(G1, G2):
     return 2.0 * G1 * G2 / (G1 + G2)
 
 
-def compute_CG(centers, ids, sx, mat_yaml):
+def compute_G_and_CG(centers, ids, sx, mat_yaml):
     "compute nu across the fault, and compute C_Uenishi(nu)"
     fault_normal = sx.ComputeCellNormals()[ids]
     nx = fault_normal.shape[0]
@@ -86,7 +86,7 @@ def compute_CG(centers, ids, sx, mat_yaml):
     G = stiffness_average(out["mu"][0:nx], out["mu"][nx:])
     nu = 0.5 * lambda_x / (lambda_x + G)
     f = C_Uenishi_interp()
-    return np.array([f(nui) for nui in nu]) * G
+    return G, np.array([f(nui) for nui in nu]) * G
 
 
 def points_in_sphere(points, center, radius):
@@ -102,17 +102,58 @@ def compute_slip_area(centers, sx, slip_yaml):
     return np.sum(face_area[slip > 0.05 * np.amax(slip)])
 
 
+def f(x, S):
+    # Galis et al. e.q. (25)
+    return np.sqrt(x) * (1.0 + S * (1.0 - np.sqrt(1.0 - 1.0 / x**2)))
+
+
+def compute_fmin_interp():
+    Si = np.logspace(-2, 2, num=500)
+    fmin = np.zeros_like(Si)
+    # I verified that for S=100, fmin ~15 < 20
+    x = np.linspace(1.01, 20, 1000)
+    for i, S in enumerate(Si):
+        fmin[i] = np.amin(f(x, S))
+    return interpolate.interp1d(Si, fmin)
+
+
 def compute_critical_nucleation_one_file(
-    centers, center, slip_area, CG, tags, fault_yaml
+    centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml
 ):
     bn_fault_yaml = os.path.basename(fault_yaml)
-    out = easi.evaluate_model(centers, tags, ["mu_s", "mu_d", "d_c", "T_n"], fault_yaml)
+    out = easi.evaluate_model(
+        centers,
+        tags,
+        ["d_c", "static_strength", "dynamic_strength", "tau_0"],
+        fault_yaml,
+    )
 
-    mu_s, mu_d, Dc, normalStress = out["mu_s"], out["mu_d"], out["d_c"], out["T_n"]
-    W = -np.abs(mu_s - mu_d) * normalStress / Dc
+    Dc, static_strength, dynamic_strength, tau_0 = (
+        out["d_c"],
+        out["static_strength"],
+        out["dynamic_strength"],
+        out["tau_0"],
+    )
+    strength_drop = static_strength - dynamic_strength
+    eps = 0.001
+    S = (static_strength - tau_0) / np.maximum(eps, tau_0 - dynamic_strength)
+    # 0.01- 100 is the range of numerical evaluation of the function
+    fmin = fmin_interpf(np.maximum(np.minimum(S, 100 - eps), 0.01 + eps))
+
+    W = strength_drop / Dc
     # L = 0.624 * CG / np.median(W)
     L = 0.624 * CG / W
     area_crit = np.pi * L**2
+
+    A2_Gallis = (
+        np.pi**3
+        * strength_drop**2
+        * G**2
+        * Dc**2
+        / (16.0 * fmin**4 * np.maximum(eps, tau_0 - dynamic_strength) ** 4)
+    )
+    area_crit = np.maximum(area_crit, A2_Gallis)
+    L = np.sqrt(area_crit / np.pi)
 
     radius = np.arange(0.5e3, 15.0e3, 0.25e3)
 
@@ -135,15 +176,16 @@ def compute_critical_nucleation_one_file(
 
 
 def compute_nucleation(args):
-    centers, center, slip_area, CG, tags, fault_yaml = args
+    centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml = args
     return compute_critical_nucleation_one_file(
-        centers, center, slip_area, CG, tags, fault_yaml
+        centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml
     )
 
 
 def compute_critical_nucleation(
     fault_xdmf, mat_yaml, slip_yaml, list_fault_yaml, hypo_coords
 ):
+    fmin_interpf = compute_fmin_interp()
     sx = SeissolxdmfExtended(fault_xdmf)
     centers = sx.ComputeCellCenters()
     slip_area = compute_slip_area(centers, sx, slip_yaml)
@@ -152,10 +194,10 @@ def compute_critical_nucleation(
     ids = points_in_sphere(centers, center, 15e3)
     centers = centers[ids]
 
-    CG = compute_CG(centers, ids, sx, mat_yaml)
+    G, CG = compute_G_and_CG(centers, ids, sx, mat_yaml)
     tags = sx.ReadFaultTags()[ids]
     args_list = [
-        (centers, center, slip_area, CG, tags, fault_yaml)
+        (centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml)
         for fault_yaml in list_fault_yaml
     ]
     from multiprocessing import Pool

@@ -2,7 +2,9 @@
 
 [mu_d]: !Include yaml_files/mud.yaml
 
-[T_s, T_d, T_n, mu_s, cohesion]: !EvalModel
+# static_strength, dynamic_strength, tau_0 are not used by seissol
+# but added for convenience for the compute_critical_nucleation python function
+[T_s, T_d, T_n, mu_s, cohesion, static_strength, dynamic_strength, tau_0]: !EvalModel
     parameters: [Ts0, Td0, mu_d, x, y, z, rake_interp_low_slip, R]
     model: !Switch
         [Ts0, Td0]: !Include yaml_files/Ts0Td0.yaml
@@ -19,7 +21,7 @@
             z: 0.0
 {{ R_yaml_block }}
     components: !LuaMap
-      returns: [T_s, T_d, T_n, cohesion, mu_s]
+      returns: [T_s, T_d, T_n, cohesion, mu_s, static_strength, dynamic_strength, tau_0]
       function: |
        function f (x)
 
@@ -54,12 +56,16 @@
           Tau0 =  math.sqrt(T_s^2 + T_d^2)
         end
         mu_s =  x['mu_d'] + math.max(0.01, (Tau0/sigma_n - x['mu_d'])/R + cohesion/sigma_n)
+        mu_d = x['mu_d']
         return {
           T_s = T_s,
           T_d = T_d,
           T_n = T_n,
           cohesion = cohesion,
-          mu_s = mu_s
+          mu_s = mu_s,
+          dynamic_strength = - mu_d * T_n - cohesion,
+          static_strength = - mu_s * T_n - cohesion,  
+          tau_0 = Tau0
         }
         end
 
