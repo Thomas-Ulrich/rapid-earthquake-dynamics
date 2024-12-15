@@ -30,6 +30,8 @@ def generate(mode, dic_values):
         return ASl.max()
 
     usgs_fn = "output/dyn-kinmod-fault.xdmf"
+    if not os.path.exists(usgs_fn):
+        usgs_fn = "extracted_output/dyn-kinmod_extracted-fault.xdmf"
     max_slip = compute_max_slip(usgs_fn)
     assert max_slip > 0
 

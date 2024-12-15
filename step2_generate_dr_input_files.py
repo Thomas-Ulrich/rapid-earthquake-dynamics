@@ -18,14 +18,18 @@ if __name__ == "__main__":
     with open(f"tmp/inferred_fault_mesh_size.txt", "r") as f:
         inferred_fault_mesh_size = float(f.read())
 
+    fl33_file = "output/fl33-fault.xdmf"
+    if not os.path.exists(fl33_file):
+        fl33_file = "extracted_output/fl33_extracted-fault.xdmf"
+
     project_fault_tractions_onto_asagi_grid.generate_input_files(
-        "output/fl33-fault.xdmf",
+        fl33_file,
         inferred_fault_mesh_size / 2,
         gaussian_kernel=inferred_fault_mesh_size,
         taper=None,
         paraview_readable=None,
     )
-    mode = 'grid_search'
+    mode = "grid_search"
     # mode = 'latin_hypercube'
     # mode = "picked_models"
     dic_values = {}
