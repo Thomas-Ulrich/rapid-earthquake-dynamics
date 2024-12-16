@@ -109,7 +109,7 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
             for i in range(nel):
                 STF[i] = regularizedYoffe(ti - onset[i], ts[i], tr[i])
             intSTF += dt * STF
-        #todo: understand why there can be nan with gaussian
+        # todo: understand why there can be nan with gaussian
         intSTF = np.nan_to_num(intSTF, nan=0)
         if k % n_time_sub == 0:
             p = k // n_time_sub

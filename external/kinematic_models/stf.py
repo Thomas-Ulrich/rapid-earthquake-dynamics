@@ -1,6 +1,7 @@
 import numpy as np
 from math import sqrt, asin, atan, pi
 
+
 def asymmetric_cosine(t, trise, tfall=None):
     """
     Initialize a source time function with asymmetric cosine, normalized to 1
@@ -25,6 +26,7 @@ def asymmetric_cosine(t, trise, tfall=None):
     asc /= trise + tfall
     return asc
 
+
 def smoothStep(time, Tnuc):
     positive_ids = time > 0
     result = np.zeros_like(time)
@@ -46,7 +48,7 @@ def gaussianSTF(time, Tnuc, dt):
 
 
 def C1(t, ts, tr):
-    """ C1 to C6 are analytical functions
+    """C1 to C6 are analytical functions
     used for building the regularized Yoffe function
     """
     return (

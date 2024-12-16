@@ -2,6 +2,7 @@ import os
 import argparse
 from FaultPlane import FaultPlane
 
+
 def refine(
     filename,
     projection,
@@ -11,7 +12,6 @@ def refine(
     temporal_zoom,
     time_smoothing_kernel_as_dt_fraction,
 ):
-
     p1 = FaultPlane()
     p1.init_from_srf(filename)
     p1.compute_xy_from_latlon(projection)
@@ -85,13 +85,12 @@ if __name__ == "__main__":
         nargs=1,
         metavar=("PSRthreshold"),
         type=float,
-        default=[None]
+        default=[None],
     )
 
     args = parser.parse_args()
 
-
-    yoffePSRthreshold= args.use_Yoffe[0]
+    yoffePSRthreshold = args.use_Yoffe[0]
 
     refine(
         ags.filename,

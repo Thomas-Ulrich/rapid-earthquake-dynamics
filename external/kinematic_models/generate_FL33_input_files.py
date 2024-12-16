@@ -4,6 +4,7 @@ import argparse
 from FaultPlane import FaultPlane, MultiFaultPlane
 import os.path
 
+
 def main(
     filename,
     interpolation_method,
@@ -47,6 +48,7 @@ def main(
         spatial_zoom=spatial_zoom,
         proj=projection,
     )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

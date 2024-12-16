@@ -12,6 +12,7 @@ from scipy.ndimage import gaussian_filter
 from stf import regularizedYoffe, gaussianSTF, smoothStep, asymmetric_cosine
 from asagiwriter import writeNetcdf
 
+
 def cosine_taper(npts, p=0.1, freqs=None, flimit=None, halfcosine=True, sactaper=False):
     """
     Cosine Taper. (copied from obspy:
@@ -88,13 +89,27 @@ def cosine_taper(npts, p=0.1, freqs=None, flimit=None, halfcosine=True, sactaper
     if halfcosine:
         # cos_win[idx1:idx2+1] =  0.5 * (1.0 + np.cos((np.pi * \
         #    (idx2 - np.arange(idx1, idx2+1)) / (idx2 - idx1))))
-        cos_win[idx1 : idx2 + 1] = 0.5 * (1.0 - np.cos((np.pi * (np.arange(idx1, idx2 + 1) - float(idx1)) / (idx2 - idx1))))
+        cos_win[idx1 : idx2 + 1] = 0.5 * (
+            1.0
+            - np.cos(
+                (np.pi * (np.arange(idx1, idx2 + 1) - float(idx1)) / (idx2 - idx1))
+            )
+        )
         cos_win[idx2 + 1 : idx3] = 1.0
-        cos_win[idx3 : idx4 + 1] = 0.5 * (1.0 + np.cos((np.pi * (float(idx3) - np.arange(idx3, idx4 + 1)) / (idx4 - idx3))))
+        cos_win[idx3 : idx4 + 1] = 0.5 * (
+            1.0
+            + np.cos(
+                (np.pi * (float(idx3) - np.arange(idx3, idx4 + 1)) / (idx4 - idx3))
+            )
+        )
     else:
-        cos_win[idx1 : idx2 + 1] = np.cos(-(np.pi / 2.0 * (float(idx2) - np.arange(idx1, idx2 + 1)) / (idx2 - idx1)))
+        cos_win[idx1 : idx2 + 1] = np.cos(
+            -(np.pi / 2.0 * (float(idx2) - np.arange(idx1, idx2 + 1)) / (idx2 - idx1))
+        )
         cos_win[idx2 + 1 : idx3] = 1.0
-        cos_win[idx3 : idx4 + 1] = np.cos((np.pi / 2.0 * (float(idx3) - np.arange(idx3, idx4 + 1)) / (idx4 - idx3)))
+        cos_win[idx3 : idx4 + 1] = np.cos(
+            (np.pi / 2.0 * (float(idx3) - np.arange(idx3, idx4 + 1)) / (idx4 - idx3))
+        )
 
     # if indices are identical division by zero
     # causes NaN values in cos_win
@@ -119,7 +134,13 @@ def interpolate_nan_from_neighbors(array):
     x1 = xx[~array.mask]
     y1 = yy[~array.mask]
     newarr = array[~array.mask]
-    return interpolate.griddata((x1, y1), newarr.ravel(), (xx, yy), method="linear", fill_value=np.average(array))
+    return interpolate.griddata(
+        (x1, y1),
+        newarr.ravel(),
+        (xx, yy),
+        method="linear",
+        fill_value=np.average(array),
+    )
 
 
 def compute_block_mean(ar, fact):
@@ -127,7 +148,14 @@ def compute_block_mean(ar, fact):
     return a.coarsen(x=fact, y=fact).mean().to_numpy()
 
 
-def upsample_quantities(allarr, spatial_order, spatial_zoom, padding="constant", extra_padding_layer=False, minimize_block_average_variations=False):
+def upsample_quantities(
+    allarr,
+    spatial_order,
+    spatial_zoom,
+    padding="constant",
+    extra_padding_layer=False,
+    minimize_block_average_variations=False,
+):
     """1. pad
     2. upsample, adding spatial_zoom per node
     """
@@ -140,14 +168,22 @@ def upsample_quantities(allarr, spatial_order, spatial_zoom, padding="constant",
     allarr0 = np.zeros((nd, ny, nx))
     for k in range(nd):
         if padding == "extrapolate":
-            my_array0 = np.pad(allarr[k, :, :], ((1, 1), (1, 1)), "reflect", reflect_type="odd")
+            my_array0 = np.pad(
+                allarr[k, :, :], ((1, 1), (1, 1)), "reflect", reflect_type="odd"
+            )
         else:
             my_array0 = np.pad(allarr[k, :, :], ((1, 1), (1, 1)), padding)
         if extra_padding_layer:
             ncrop = spatial_zoom - 1
         else:
             ncrop = spatial_zoom
-        my_array = scipy.ndimage.zoom(my_array0, spatial_zoom, order=spatial_order, mode="grid-constant", grid_mode=True)
+        my_array = scipy.ndimage.zoom(
+            my_array0,
+            spatial_zoom,
+            order=spatial_order,
+            mode="grid-constant",
+            grid_mode=True,
+        )
         if minimize_block_average_variations:
             # inspired by Tinti et al. (2005) (Appendix A)
             # This is for the specific case of fault slip.
@@ -173,7 +209,13 @@ def upsample_quantities(allarr, spatial_order, spatial_zoom, padding="constant",
                         print(f"misfit improved at iter {i}: {misfit}")
                     best_misfit = misfit
                     best = np.copy(my_array)
-                my_array = scipy.ndimage.zoom(correction * my_array0, spatial_zoom, order=spatial_order, mode="grid-constant", grid_mode=True)
+                my_array = scipy.ndimage.zoom(
+                    correction * my_array0,
+                    spatial_zoom,
+                    order=spatial_order,
+                    mode="grid-constant",
+                    grid_mode=True,
+                )
                 my_array = np.maximum(0, my_array)
             my_array = best
         if ncrop > 0:
@@ -366,7 +408,9 @@ class MultiFaultPlane:
         print(f"No. of fault segments in param file: {nseg}")
 
         fault_seg_line = [l for l in lines if "#Fault_segment " in l]
-        assert len(fault_seg_line) == nseg, f"No. of segments are wrong. {len(fault_seg_line)} {nseg}"
+        assert (
+            len(fault_seg_line) == nseg
+        ), f"No. of segments are wrong. {len(fault_seg_line)} {nseg}"
 
         istart = 1
         fault_planes = []
@@ -391,7 +435,11 @@ class MultiFaultPlane:
             text_file = StringIO("\n".join([header, *lines[line1:line2]]))
             df = pd.read_csv(text_file, sep="\s+")
 
-            assert (df["t_rup"] >= 0).all(), "AssertionError: Not all rupture time are greater than or equal to 0."
+            assert (
+                df["t_rup"] >= 0
+            ).all(), (
+                "AssertionError: Not all rupture time are greater than or equal to 0."
+            )
             for j in range(fp.ny):
                 for i in range(fp.nx):
                     k = j * fp.nx + i
@@ -450,7 +498,7 @@ class MultiFaultPlane:
                     return i
             raise ValueError(f"{pattern} not found")
 
-        try: 
+        try:
             with open(fname, "r") as fid:
                 lines = fid.readlines()
             line_number_of_triangular = get_first_line_id_starting_with(
@@ -461,23 +509,23 @@ class MultiFaultPlane:
                 fname, " isoceles triangular functions (s):"
             )
             half_dur = float(lines[line_half_dur].split(":")[1])
-            rise_time = half_dur * (1+ ntriangles)
+            rise_time = half_dur * (1 + ntriangles)
             tacc = half_dur
             print(f"rise time and tacc inferred:  {tacc} {rise_time}")
             has_STF = True
         except ValueError:
-            rise_time = 10.0 
+            rise_time = 10.0
             tacc = 5.0
             has_STF = False
-            print(f"rise time and tacc could not be determined, using {tacc} {rise_time}")
+            print(
+                f"rise time and tacc could not be determined, using {tacc} {rise_time}"
+            )
 
         line_sep = get_first_line_id_starting_with(
             fname, " ================================================"
         )
 
-        df = pd.read_csv(
-            fname, sep="\s+", skiprows=line_sep + 2, comment=":"
-        )
+        df = pd.read_csv(fname, sep="\s+", skiprows=line_sep + 2, comment=":")
         df = df.sort_values(
             by=["depth(km)", "Lat", "Lon"], ascending=[True, True, True]
         ).reset_index()
@@ -505,7 +553,9 @@ class MultiFaultPlane:
             else:
                 return 7.2277920000e10
 
-        assert (df["ontime"] >= 0).all(), "AssertionError: Not all rupture time are greater than or equal to 0."
+        assert (
+            df["ontime"] >= 0
+        ).all(), "AssertionError: Not all rupture time are greater than or equal to 0."
         Gslip = 0
         Gslip25 = 0
         for j in range(fp.ny):
@@ -516,7 +566,7 @@ class MultiFaultPlane:
                 fp.depth[j, i] = df["depth(km)"][k]
                 # the slip is based on a homogeneous mu model, but the waveforms
                 # are calculated with the layered G as above
-                fp.slip1[j, i] = df["slip(cm)"][k] #* 2.5e10/ G(fp.depth[j, i])
+                fp.slip1[j, i] = df["slip(cm)"][k]  # * 2.5e10/ G(fp.depth[j, i])
                 Gslip25 += df["slip(cm)"][k] * 2.5e10
                 Gslip += df["slip(cm)"][k] * G(fp.depth[j, i])
                 fp.rake[j, i] = df["rake"][k]
@@ -527,44 +577,55 @@ class MultiFaultPlane:
                 fp.tacc[j, i] = tacc
                 fp.rise_time[j, i] = rise_time
                 if has_STF:
-                    dt = tacc/25.
-                    ndt1 = int((fp.t0[j, i] + fp.rise_time[j, i])/dt)+1
+                    dt = tacc / 25.0
+                    ndt1 = int((fp.t0[j, i] + fp.rise_time[j, i]) / dt) + 1
                     if max(i, j) == 0:
                         fp.ndt = ndt1
                         fp.dt = dt
                         fp.init_aSR()
-                        fp.myt = np.linspace(0, fp.ndt-1,fp.ndt)*fp.dt
+                        fp.myt = np.linspace(0, fp.ndt - 1, fp.ndt) * fp.dt
                     lSTF = []
                     if ndt1 == 0:
                         continue
                     if ndt1 > fp.ndt:
-                        print(f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array...")
+                        print(
+                            f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array..."
+                        )
                         fp.extend_aSR(fp.ndt, ndt1)
-                        fp.myt = np.linspace(0, fp.ndt-1,fp.ndt)*fp.dt
+                        fp.myt = np.linspace(0, fp.ndt - 1, fp.ndt) * fp.dt
+
                     # Function to generate a single triangle function
                     def triangle_function(t, center, half_width, amplitude):
                         return np.where(
                             np.abs(t - center) <= half_width,
                             amplitude * (1 - np.abs(t - center) / half_width),
-                            0
+                            0,
                         )
 
                     # Generate the resulting signal as a sum of multiple triangle functions
                     def sum_of_triangles(t, triangles):
                         signal = np.zeros_like(t)
                         for center, half_width, amplitude in triangles:
-                            signal += triangle_function(t, center, half_width, amplitude)
+                            signal += triangle_function(
+                                t, center, half_width, amplitude
+                            )
                         return signal
-                    
+
                     triangles = []
                     for itr in range(ntriangles):
-                        triangles.append([fp.t0[j, i]+(itr+1)*tacc, tacc, df[f"amp{itr+1}(dyne.cm/s)"][k]])
+                        triangles.append(
+                            [
+                                fp.t0[j, i] + (itr + 1) * tacc,
+                                tacc,
+                                df[f"amp{itr+1}(dyne.cm/s)"][k],
+                            ]
+                        )
                     fp.aSR[j, i, :] = sum_of_triangles(fp.myt, triangles)
-                    integral = np.trapz(fp.aSR[j, i, :], dx =fp.dt)
+                    integral = np.trapz(fp.aSR[j, i, :], dx=fp.dt)
                     if integral:
                         fp.aSR[j, i, :] /= integral
         # we scale down the model to have the expected magnitude (see comment above on 25GPa)
-        fp.slip1 *= Gslip25/Gslip
+        fp.slip1 *= Gslip25 / Gslip
         fault_planes[0] = fp.trim()
         fault_planes[0] = fault_planes[0].add_one_zero_slip_row_at_depth()
         return cls(fault_planes, hypocenter)
@@ -585,7 +646,9 @@ class MultiFaultPlane:
                     break
             line_el = line.split()
             if line_el[0] != "PLANE":
-                raise ValueError(f"error parsing {fname}: line does not start with PLANE : {line}")
+                raise ValueError(
+                    f"error parsing {fname}: line does not start with PLANE : {line}"
+                )
             nplane = int(line_el[1])
             for p in range(nplane):
                 line_el = fid.readline().split()
@@ -600,7 +663,9 @@ class MultiFaultPlane:
                 print(f"processing fault plane {p}, {fp.nx} {fp.ny}")
                 line_el = fid.readline().split()
                 if line_el[0] != "POINTS":
-                    raise ValueError(f"error parsing {fname}: line does not start with POINTS : {line}")
+                    raise ValueError(
+                        f"error parsing {fname}: line does not start with POINTS : {line}"
+                    )
                 # check that the plane data are consistent with the number of points
                 assert int(line_el[1]) == fp.nx * fp.ny
                 for j in range(fp.ny):
@@ -608,12 +673,34 @@ class MultiFaultPlane:
                         # first header line
                         line = fid.readline()
                         # rho_vs are only present for srf version 2
-                        fp.lon[j, i], fp.lat[j, i], fp.depth[j, i], fp.strike[j, i], fp.dip[j, i], fp.PSarea_cm2, fp.t0[j, i], dt, *rho_vs = [float(v) for v in line.split()]
+                        (
+                            fp.lon[j, i],
+                            fp.lat[j, i],
+                            fp.depth[j, i],
+                            fp.strike[j, i],
+                            fp.dip[j, i],
+                            fp.PSarea_cm2,
+                            fp.t0[j, i],
+                            dt,
+                            *rho_vs,
+                        ) = [float(v) for v in line.split()]
                         # second header line
                         line = fid.readline()
-                        fp.rake[j, i], fp.slip1[j, i], ndt1, slip2, ndt2, slip3, ndt3 = [float(v) for v in line.split()]
+                        (
+                            fp.rake[j, i],
+                            fp.slip1[j, i],
+                            ndt1,
+                            slip2,
+                            ndt2,
+                            slip3,
+                            ndt3,
+                        ) = [float(v) for v in line.split()]
                         if max(slip2, slip3) > 0.0:
-                            raise NotImplementedError("this script assumes slip2 and slip3 are zero", slip2, slip3)
+                            raise NotImplementedError(
+                                "this script assumes slip2 and slip3 are zero",
+                                slip2,
+                                slip3,
+                            )
                         ndt1 = int(ndt1)
                         if max(i, j) == 0:
                             fp.ndt = ndt1
@@ -623,15 +710,23 @@ class MultiFaultPlane:
                         if ndt1 == 0:
                             continue
                         if ndt1 > fp.ndt:
-                            print(f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array...")
+                            print(
+                                f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array..."
+                            )
                             fp.extend_aSR(fp.ndt, ndt1)
                         if abs(dt - fp.dt) > 1e-6:
-                            raise NotImplementedError("this script assumes that dt is the same for all sources", dt, fp.dt)
+                            raise NotImplementedError(
+                                "this script assumes that dt is the same for all sources",
+                                dt,
+                                fp.dt,
+                            )
                         while True:
                             line = fid.readline()
                             lSTF.extend(line.split())
                             if len(lSTF) == ndt1:
-                                fp.aSR[j, i, 0:ndt1] = np.array([float(v) for v in lSTF])
+                                fp.aSR[j, i, 0:ndt1] = np.array(
+                                    [float(v) for v in lSTF]
+                                )
                                 break
             return cls(fault_planes)
 
@@ -682,8 +777,7 @@ class MultiFaultPlane:
                     effective_rise_time:  2e100
                     rake_interp_low_slip: 0.0
 """
-        template_yaml += (
-            """    components: !LuaMap
+        template_yaml += """    components: !LuaMap
       returns: [strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time, rake_interp_low_slip]
       function: |
         function f (x)
@@ -700,7 +794,6 @@ class MultiFaultPlane:
           }
         end
         """
-        )
 
         fname = "yaml_files/FL33_34_fault.yaml"
         with open(fname, "w") as fid:
@@ -793,8 +886,23 @@ class FaultPlane:
             fout.write("POINTS %d\n" % (self.nx * self.ny))
             for j in range(self.ny):
                 for i in range(self.nx):
-                    fout.write("%g %g %g %g %g %e %g %g\n" % (self.lon[j, i], self.lat[j, i], self.depth[j, i], self.strike[j, i], self.dip[j, i], self.PSarea_cm2, self.t0[j, i], self.dt))
-                    fout.write("%g %g %d %f %d %f %d\n" % (self.rake[j, i], self.slip1[j, i], self.ndt, 0.0, 0, 0.0, 0))
+                    fout.write(
+                        "%g %g %g %g %g %e %g %g\n"
+                        % (
+                            self.lon[j, i],
+                            self.lat[j, i],
+                            self.depth[j, i],
+                            self.strike[j, i],
+                            self.dip[j, i],
+                            self.PSarea_cm2,
+                            self.t0[j, i],
+                            self.dt,
+                        )
+                    )
+                    fout.write(
+                        "%g %g %d %f %d %f %d\n"
+                        % (self.rake[j, i], self.slip1[j, i], self.ndt, 0.0, 0, 0.0, 0)
+                    )
                     np.savetxt(fout, self.aSR[j, i, :], fmt="%g", newline=" ")
                     fout.write("\n")
         print("done writing", fname)
@@ -812,10 +920,14 @@ class FaultPlane:
                 else:
                     peakSR = np.amax(self.aSR[j, i, :])
                     id_max = np.where(self.aSR[j, i, :] == peakSR)[0][0]
-                    ids_greater_than_threshold = np.where(self.aSR[j, i, :] > threshold * peakSR)[0]
+                    ids_greater_than_threshold = np.where(
+                        self.aSR[j, i, :] > threshold * peakSR
+                    )[0]
                     first_non_zero = np.amin(ids_greater_than_threshold)
                     last_non_zero = np.amax(ids_greater_than_threshold)
-                    self.rise_time[j, i] = (last_non_zero - first_non_zero + 1) * self.dt
+                    self.rise_time[j, i] = (
+                        last_non_zero - first_non_zero + 1
+                    ) * self.dt
                     self.tacc[j, i] = (id_max - first_non_zero + 1) * self.dt
                     t0_increment = first_non_zero * self.dt
                     self.t0[j, i] += t0_increment
@@ -830,25 +942,59 @@ class FaultPlane:
                     tr = max(tr, ts)
                     for k, tk in enumerate(self.myt):
                         newSR[k, 0] = regularizedYoffe(tk - t0_increment, ts, tr)
-                        newSR[k, 1] = gaussianSTF(tk - t0_increment, self.rise_time[j, i], self.dt)
+                        newSR[k, 1] = gaussianSTF(
+                            tk - t0_increment, self.rise_time[j, i], self.dt
+                        )
                     integral_aSTF = np.trapz(np.abs(self.aSR[j, i, :]), dx=self.dt)
                     integral_Yoffe = np.trapz(np.abs(newSR[:, 0]), dx=self.dt)
                     integral_Gaussian = np.trapz(np.abs(newSR[:, 1]), dx=self.dt)
                     if integral_aSTF > 0:
-                        misfits_Yoffe.append(np.linalg.norm(self.aSR[j, i, :] / integral_aSTF - newSR[:, 0] / integral_Yoffe))
-                        misfits_Gaussian.append(np.linalg.norm(self.aSR[j, i, :] / integral_aSTF - newSR[:, 1] / integral_Gaussian))
+                        misfits_Yoffe.append(
+                            np.linalg.norm(
+                                self.aSR[j, i, :] / integral_aSTF
+                                - newSR[:, 0] / integral_Yoffe
+                            )
+                        )
+                        misfits_Gaussian.append(
+                            np.linalg.norm(
+                                self.aSR[j, i, :] / integral_aSTF
+                                - newSR[:, 1] / integral_Gaussian
+                            )
+                        )
         misfits_Yoffe = np.array(misfits_Yoffe)
         misfits_Gaussian = np.array(misfits_Gaussian)
-        print(f"misfit Yoffe (10-50-90%): {np.percentile(misfits_Yoffe,10):.2f} {np.percentile(misfits_Yoffe,50):.2f} {np.percentile(misfits_Yoffe,90):.2f}")
-        print(f"misfit Gaussian (10-50-90%): {np.percentile(misfits_Gaussian,10):.2f} {np.percentile(misfits_Gaussian,50):.2f} {np.percentile(misfits_Gaussian,90):.2f}")
+        print(
+            f"misfit Yoffe (10-50-90%): {np.percentile(misfits_Yoffe,10):.2f} {np.percentile(misfits_Yoffe,50):.2f} {np.percentile(misfits_Yoffe,90):.2f}"
+        )
+        print(
+            f"misfit Gaussian (10-50-90%): {np.percentile(misfits_Gaussian,10):.2f} {np.percentile(misfits_Gaussian,50):.2f} {np.percentile(misfits_Gaussian,90):.2f}"
+        )
 
         self.rise_time = interpolate_nan_from_neighbors(self.rise_time)
         self.tacc = interpolate_nan_from_neighbors(self.tacc)
 
-        print("slip rise_time (min, 50%, max)", np.amin(self.rise_time), np.median(self.rise_time), np.amax(self.rise_time))
-        print("tacc (min, 50%, max)", np.amin(self.tacc), np.median(self.tacc), np.amax(self.tacc))
+        print(
+            "slip rise_time (min, 50%, max)",
+            np.amin(self.rise_time),
+            np.median(self.rise_time),
+            np.amax(self.rise_time),
+        )
+        print(
+            "tacc (min, 50%, max)",
+            np.amin(self.tacc),
+            np.median(self.tacc),
+            np.amax(self.tacc),
+        )
 
-    def upsample_fault(self, spatial_order, spatial_zoom, temporal_zoom, proj, use_Yoffe=False, time_smoothing_kernel_as_dt_fraction=0.5):
+    def upsample_fault(
+        self,
+        spatial_order,
+        spatial_zoom,
+        temporal_zoom,
+        proj,
+        use_Yoffe=False,
+        time_smoothing_kernel_as_dt_fraction=0.5,
+    ):
         "increase spatial and temporal resolution of kinematic model by interpolation"
         # time vector
         ndt2 = (self.ndt - 1) * temporal_zoom + 1
@@ -864,25 +1010,39 @@ class FaultPlane:
 
         # upsample spatially geometry (bilinear interpolation)
         allarr = np.array([self.x, self.y, self.depth])
-        pf.x, pf.y, pf.depth = upsample_quantities(allarr, spatial_order=1, spatial_zoom=spatial_zoom, padding="extrapolate")
+        pf.x, pf.y, pf.depth = upsample_quantities(
+            allarr, spatial_order=1, spatial_zoom=spatial_zoom, padding="extrapolate"
+        )
 
         # upsample other quantities
-        self.rake = np.unwrap(np.unwrap(self.rake,axis=0), axis=1)
+        self.rake = np.unwrap(np.unwrap(self.rake, axis=0), axis=1)
         allarr = np.array([self.t0, self.strike, self.dip, self.rake])
-        pf.t0, pf.strike, pf.dip, pf.rake = upsample_quantities(allarr, spatial_order, spatial_zoom, padding="edge")
+        pf.t0, pf.strike, pf.dip, pf.rake = upsample_quantities(
+            allarr, spatial_order, spatial_zoom, padding="edge"
+        )
         # the interpolation may generate some acausality that we here prevent
         pf.t0 = np.maximum(pf.t0, np.amin(self.t0))
 
         allarr = np.array([self.slip1])
-        (pf.slip1,) = upsample_quantities(allarr, spatial_order, spatial_zoom, padding="constant", minimize_block_average_variations=True)
+        (pf.slip1,) = upsample_quantities(
+            allarr,
+            spatial_order,
+            spatial_zoom,
+            padding="constant",
+            minimize_block_average_variations=True,
+        )
         pf.compute_latlon_from_xy(proj)
         pf.PSarea_cm2 = self.PSarea_cm2 / spatial_zoom**2
-        ratio_potency = np.sum(pf.slip1) * pf.PSarea_cm2 / (np.sum(self.slip1) * self.PSarea_cm2)
+        ratio_potency = (
+            np.sum(pf.slip1) * pf.PSarea_cm2 / (np.sum(self.slip1) * self.PSarea_cm2)
+        )
         print(f"seismic potency ratio (upscaled over initial): {ratio_potency}")
 
         if use_Yoffe:
             allarr = np.array([self.rise_time, self.tacc])
-            pf.rise_time, pf.tacc = upsample_quantities(allarr, spatial_order, spatial_zoom, padding="edge")
+            pf.rise_time, pf.tacc = upsample_quantities(
+                allarr, spatial_order, spatial_zoom, padding="edge"
+            )
             pf.rise_time = np.maximum(pf.rise_time, np.amin(self.rise_time))
             pf.tacc = np.maximum(pf.tacc, np.amin(self.tacc))
             # see comment above explaining why the 1.27 factor
@@ -893,11 +1053,18 @@ class FaultPlane:
             for j in range(pf.ny):
                 for i in range(pf.nx):
                     for k, tk in enumerate(pf.myt):
-                        pf.aSR[j, i, k] = pf.slip1[j, i] * regularizedYoffe(tk, ts[j, i], tr[j, i])
+                        pf.aSR[j, i, k] = pf.slip1[j, i] * regularizedYoffe(
+                            tk, ts[j, i], tr[j, i]
+                        )
         else:
             aSRa = np.zeros((pf.ny, pf.nx, self.ndt))
             for k in range(self.ndt):
-                aSRa[:, :, k] = upsample_quantities(np.array([self.aSR[:, :, k]]), spatial_order, spatial_zoom, padding="constant")
+                aSRa[:, :, k] = upsample_quantities(
+                    np.array([self.aSR[:, :, k]]),
+                    spatial_order,
+                    spatial_zoom,
+                    padding="constant",
+                )
 
             # interpolate temporally the AST
             for j in range(pf.ny):
@@ -909,7 +1076,11 @@ class FaultPlane:
                     f = interpolate.interp1d(self.myt, aSRa[j, i, :], kind="linear")
                     pf.aSR[j, i, :] = f(pf.myt)
                     tapper = cosine_taper(pf.ndt, self.dt / (pf.ndt * pf.dt))
-                    pf.aSR[j, i, :] = tapper * ndimage.gaussian_filter1d(pf.aSR[j, i, :], time_smoothing_kernel_as_dt_fraction * self.dt / pf.dt, mode="constant")
+                    pf.aSR[j, i, :] = tapper * ndimage.gaussian_filter1d(
+                        pf.aSR[j, i, :],
+                        time_smoothing_kernel_as_dt_fraction * self.dt / pf.dt,
+                        mode="constant",
+                    )
                     # With a cubic interpolation, the interpolated slip1 may be negative which does not make sense.
                     if pf.slip1[j, i] < 0:
                         pf.aSR[j, i, :] = 0
@@ -917,7 +1088,9 @@ class FaultPlane:
                     # should be the SR
                     integral_STF = np.trapz(np.abs(pf.aSR[j, i, :]), dx=pf.dt)
                     if abs(integral_STF) > 0:
-                        pf.aSR[j, i, :] = pf.slip1[j, i] * pf.aSR[j, i, :] / integral_STF
+                        pf.aSR[j, i, :] = (
+                            pf.slip1[j, i] * pf.aSR[j, i, :] / integral_STF
+                        )
         return pf
 
     def compute_corrected_slip_for_differing_area(self, proj):
@@ -973,8 +1146,8 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         dy1 = np.linalg.norm(center_col, axis=0)
 
         # with this convention the first data point is in local coordinate (0,0)
-        xb = np.insert(np.cumsum(dx1), 0 ,0)
-        yb = np.insert(np.cumsum(dy1), 0 ,0)
+        xb = np.insert(np.cumsum(dx1), 0, 0)
+        yb = np.insert(np.cumsum(dy1), 0, 0)
 
         self.xb = np.pad(xb, ((1), (1)), "reflect", reflect_type="odd")
         self.yb = np.pad(yb, ((1), (1)), "reflect", reflect_type="odd")
@@ -983,8 +1156,12 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         # With this strategy We will cover a bit more than that, but it is probably not a big deal
 
         ncrop = spatial_zoom - 1
-        self.x_up = scipy.ndimage.zoom(self.xb, spatial_zoom, order=1, mode="grid-constant", grid_mode=True)[ncrop:-ncrop]
-        self.y_up = scipy.ndimage.zoom(self.yb, spatial_zoom, order=1, mode="grid-constant", grid_mode=True)[ncrop:-ncrop]
+        self.x_up = scipy.ndimage.zoom(
+            self.xb, spatial_zoom, order=1, mode="grid-constant", grid_mode=True
+        )[ncrop:-ncrop]
+        self.y_up = scipy.ndimage.zoom(
+            self.yb, spatial_zoom, order=1, mode="grid-constant", grid_mode=True
+        )[ncrop:-ncrop]
 
         # used for the interpolation
         yg, xg = np.meshgrid(self.y_up, self.x_up)
@@ -999,7 +1176,11 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         else:
             padded_arr = np.pad(arr, ((1, 1), (1, 1)), "edge")
         interp = RegularGridInterpolator([self.yb, self.xb], padded_arr)
-        return interp(self.yx, method=method).reshape(self.x_up.shape[0], self.y_up.shape[0]).T
+        return (
+            interp(self.yx, method=method)
+            .reshape(self.x_up.shape[0], self.y_up.shape[0])
+            .T
+        )
 
     def upsample_quantity_RGInterpolator(self, arr, method, is_slip=False):
         my_array = self.upsample_quantity_RGInterpolator_core(arr, method, is_slip)
@@ -1018,7 +1199,9 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             # (given the misfit) that inital after 2-3 iterations
             niter = 3
             for i in range(niter):
-                block_average = compute_block_mean(my_array[1:-1, 1:-1], self.spatial_zoom)
+                block_average = compute_block_mean(
+                    my_array[1:-1, 1:-1], self.spatial_zoom
+                )
                 print(arr.shape, block_average.shape)
                 correction = arr / block_average
                 # having a misfit as misfit = np.linalg.norm(correction) does not makes sense as for almost 0 slip, correction can be large
@@ -1030,12 +1213,16 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                         print(f"misfit improved at iter {i}: {misfit}")
                     best_misfit = misfit
                     best = np.copy(my_array)
-                my_array = self.upsample_quantity_RGInterpolator_core(correction * arr, method, is_slip)
+                my_array = self.upsample_quantity_RGInterpolator_core(
+                    correction * arr, method, is_slip
+                )
                 my_array = np.maximum(0, my_array)
             my_array = best
         return my_array
 
-    def generate_netcdf_fl33(self, prefix, method, spatial_zoom, proj, write_paraview, slip_cutoff):
+    def generate_netcdf_fl33(
+        self, prefix, method, spatial_zoom, proj, write_paraview, slip_cutoff
+    ):
         "generate netcdf files to be used with SeisSol friction law 33"
 
         if not os.path.exists("ASAGI_files"):
@@ -1053,8 +1240,8 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         upsampled_arrays = []
 
         slip = self.upsample_quantity_RGInterpolator(cslip, method, is_slip=True)
-        slip[slip<slip_cutoff] = 0.0
-        self.rake = np.unwrap(np.unwrap(self.rake,axis=0), axis=1)
+        slip[slip < slip_cutoff] = 0.0
+        self.rake = np.unwrap(np.unwrap(self.rake, axis=0), axis=1)
         for arr in [self.t0, self.rake, self.rise_time, self.tacc]:
             upsampled_arrays.append(self.upsample_quantity_RGInterpolator(arr, method))
 
@@ -1127,8 +1314,16 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                     [lgridded_myData[i]],
                     paraview_readable=True,
                 )
-            writeNetcdf(f"ASAGI_files/{prefix2}_slip", [self.x_up, self.y_up], ["slip"], [slip * cm2m], paraview_readable=True)
-        writeNetcdf(f"ASAGI_files/{prefix2}", [self.x_up, self.y_up], ldataName, lgridded_myData)
+            writeNetcdf(
+                f"ASAGI_files/{prefix2}_slip",
+                [self.x_up, self.y_up],
+                ["slip"],
+                [slip * cm2m],
+                paraview_readable=True,
+            )
+        writeNetcdf(
+            f"ASAGI_files/{prefix2}", [self.x_up, self.y_up], ldataName, lgridded_myData
+        )
 
     def compute_affine_vector_map(self):
         """compute the 2d vectors hh and hw and the offsets defining the 2d affine map (parametric coordinates)"""
@@ -1137,9 +1332,19 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         km2m = 1e3
         nx, ny = self.nx, self.ny
         p0 = np.array([self.x[0, 0], self.y[0, 0], -km2m * self.depth[0, 0]])
-        p1 = np.array([self.x[ny - 1, 0], self.y[ny - 1, 0], -km2m * self.depth[ny - 1, 0]])
-        p2 = np.array([self.x[0, nx - 1], self.y[0, nx - 1], -km2m * self.depth[0, nx - 1]])
-        p3 = np.array([self.x[ny - 1, nx - 1], self.y[ny - 1, nx - 1], -km2m * self.depth[ny - 1, nx - 1]])
+        p1 = np.array(
+            [self.x[ny - 1, 0], self.y[ny - 1, 0], -km2m * self.depth[ny - 1, 0]]
+        )
+        p2 = np.array(
+            [self.x[0, nx - 1], self.y[0, nx - 1], -km2m * self.depth[0, nx - 1]]
+        )
+        p3 = np.array(
+            [
+                self.x[ny - 1, nx - 1],
+                self.y[ny - 1, nx - 1],
+                -km2m * self.depth[ny - 1, nx - 1],
+            ]
+        )
 
         hw = p1 - p0
         dx2 = np.linalg.norm(hw) / (ny - 1)
@@ -1167,9 +1372,19 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         nx, ny = self.nx, self.ny
 
         p0 = np.array([self.x[0, 0], self.y[0, 0], -km2m * self.depth[0, 0]])
-        p1 = np.array([self.x[ny - 1, 0], self.y[ny - 1, 0], -km2m * self.depth[ny - 1, 0]])
-        p2 = np.array([self.x[0, nx - 1], self.y[0, nx - 1], -km2m * self.depth[0, nx - 1]])
-        p3 = np.array([self.x[ny - 1, nx - 1], self.y[ny - 1, nx - 1], -km2m * self.depth[ny - 1, nx - 1]])
+        p1 = np.array(
+            [self.x[ny - 1, 0], self.y[ny - 1, 0], -km2m * self.depth[ny - 1, 0]]
+        )
+        p2 = np.array(
+            [self.x[0, nx - 1], self.y[0, nx - 1], -km2m * self.depth[0, nx - 1]]
+        )
+        p3 = np.array(
+            [
+                self.x[ny - 1, nx - 1],
+                self.y[ny - 1, nx - 1],
+                -km2m * self.depth[ny - 1, nx - 1],
+            ]
+        )
 
         hh = self.affine_map["hh"]
         hw = self.affine_map["hw"]
@@ -1187,12 +1402,20 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         connect[1, :] = [1, 3, 4]
         fname = f"tmp/{prefix}_fault.ts"
         with open(fname, "w") as fout:
-            fout.write("GOCAD TSURF 1\nHEADER {\nname:%s\nborder: true\nmesh: false\n*border*bstone: true\n}\nTFACE\n" % (fname))
+            fout.write(
+                "GOCAD TSURF 1\nHEADER {\nname:%s\nborder: true\nmesh: false\n*border*bstone: true\n}\nTFACE\n"
+                % (fname)
+            )
             for ivx in range(1, 5):
-                fout.write("VRTX %s %s %s %s\n" % (ivx, vertex[ivx - 1, 0], vertex[ivx - 1, 1], vertex[ivx - 1, 2]))
+                fout.write(
+                    "VRTX %s %s %s %s\n"
+                    % (ivx, vertex[ivx - 1, 0], vertex[ivx - 1, 1], vertex[ivx - 1, 2])
+                )
 
             for i in range(2):
-                fout.write("TRGL %d %d %d\n" % (connect[i, 0], connect[i, 1], connect[i, 2]))
+                fout.write(
+                    "TRGL %d %d %d\n" % (connect[i, 0], connect[i, 1], connect[i, 2])
+                )
             fout.write("END\n")
         print(f"done writing {fname}")
 
@@ -1230,7 +1453,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                 fp1.ndt = self.ndt
                 fp1.myt = self.myt
                 fp1.init_aSR()
-                fp1.aSR[:,:,:] = self.aSR[j0 : j1 + 1, i0 : i1 + 1,:]
+                fp1.aSR[:, :, :] = self.aSR[j0 : j1 + 1, i0 : i1 + 1, :]
             return fp1
         else:
             return self
@@ -1239,7 +1462,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         fp1 = FaultPlane()
         fp1.dx = self.dx
         fp1.dy = self.dy
-        fp1.init_spatial_arrays(self.nx, self.ny+1)
+        fp1.init_spatial_arrays(self.nx, self.ny + 1)
         fp_attrs = [
             "lon",
             "lat",
@@ -1256,16 +1479,16 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         for attr in fp_attrs:
             modified_data = np.zeros_like(fp1.lon)
             modified_data[:ny, :nx] = getattr(self, attr)
-            modified_data[ny, :] = 2* getattr(self, attr)[ny-1,:] - getattr(self, attr)[ny-2,:] 
+            modified_data[ny, :] = (
+                2 * getattr(self, attr)[ny - 1, :] - getattr(self, attr)[ny - 2, :]
+            )
             setattr(fp1, attr, modified_data)
-        fp1.slip1[ny,:] = 0
+        fp1.slip1[ny, :] = 0
         fp1.PSarea_cm2 = self.dx * self.dy * 1e10
         if self.ndt:
             fp1.dt = self.dt
             fp1.ndt = self.ndt
             fp1.myt = self.myt
             fp1.init_aSR()
-            fp1.aSR[:ny,:nx,:] = self.aSR[:,:,:]
+            fp1.aSR[:ny, :nx, :] = self.aSR[:, :, :]
         return fp1
-
-

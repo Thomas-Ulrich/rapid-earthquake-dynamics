@@ -10,6 +10,7 @@ import os
 from typing import List, Tuple, Optional
 import argparse
 
+
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
     def ReadFaultTags(self) -> np.ndarray:
         """Read fault tag array"""
