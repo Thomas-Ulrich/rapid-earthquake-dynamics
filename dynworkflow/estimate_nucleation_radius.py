@@ -6,6 +6,7 @@ import easi
 import seissolxdmf
 from tqdm import tqdm
 import os
+import time
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
@@ -120,6 +121,7 @@ def compute_fmin_interp():
 def compute_critical_nucleation_one_file(
     centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml
 ):
+    start_time = time.time()
     bn_fault_yaml = os.path.basename(fault_yaml)
     out = easi.evaluate_model(
         centers,
@@ -127,6 +129,7 @@ def compute_critical_nucleation_one_file(
         ["d_c", "static_strength", "dynamic_strength", "tau_0"],
         fault_yaml,
     )
+    easi_runtime = time.time() - start_time
 
     Dc, static_strength, dynamic_strength, tau_0 = (
         out["d_c"],
@@ -155,7 +158,8 @@ def compute_critical_nucleation_one_file(
     area_crit = np.maximum(area_crit, A2_Gallis)
     L = np.sqrt(area_crit / np.pi)
 
-    radius = np.arange(0.5e3, 15.0e3, 0.25e3)
+    maxnucRadius = np.sqrt((0.15 / np.pi) * slip_area)
+    radius = np.arange(0.5e3, maxnucRadius, 0.25e3)
 
     nucRadius = False
     for rad in radius:
@@ -169,8 +173,9 @@ def compute_critical_nucleation_one_file(
             ratio_slip_area = 100 * np.pi * nucRadius**2 / slip_area
         else:
             nucRadius = rad
+    runtime = time.time() - start_time
     print(
-        f"{bn_fault_yaml}: {rad:.0f} {estimatedR:.0f} {ratio_slip_area:.1f} {np.std(L[ids]):.0f}"
+        f"{bn_fault_yaml}: {rad:.0f} {estimatedR:.0f} {ratio_slip_area:.1f} {np.std(L[ids])} ({runtime} s, easi {easi_runtime}s)"
     )
     return nucRadius
 
@@ -191,7 +196,8 @@ def compute_critical_nucleation(
     slip_area = compute_slip_area(centers, sx, slip_yaml)
 
     center = np.array(hypo_coords)
-    ids = points_in_sphere(centers, center, 15e3)
+    maxnucRadius = np.sqrt((0.15 / np.pi) * slip_area)
+    ids = points_in_sphere(centers, center, maxnucRadius)
     centers = centers[ids]
 
     G, CG = compute_G_and_CG(centers, ids, sx, mat_yaml)
@@ -202,9 +208,17 @@ def compute_critical_nucleation(
     ]
     from multiprocessing import Pool
 
-    print(f"using {os.cpu_count()} CPUs")
+    def get_num_threads():
+        omp_num_threads = os.environ.get("OMP_NUM_THREADS")
+        if omp_num_threads:
+            return int(omp_num_threads)  # Use the defined value
+        return cpu_count()  # Fall back to the number of CPUs
+
+    num_threads = get_num_threads()
+
+    print(f"using {num_threads} threads")
     print("fault_yaml: selected_r estimated_r ratio_slip_area std")
-    with Pool() as pool:
+    with Pool(processes=num_threads) as pool:
         async_result = pool.map_async(compute_nucleation, args_list)
         results = async_result.get()
     return results
