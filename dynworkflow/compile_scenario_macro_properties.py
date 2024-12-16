@@ -112,8 +112,8 @@ def generate_XY_panel(
     ax.pcolor(X, Y, mask_invalid, hatch="/", alpha=0)
     if name_col in ["Mw"]:
         im.set_clim(result_df[name_col].min(), result_df[name_col].max())
-    else:
-        im.set_clim(0, result_df[name_col].max())
+    # else:
+    #    im.set_clim(0, result_df[name_col].max())
 
     ax.set_xlabel(name_arr1)
     ax.set_ylabel(name_arr2)
@@ -157,10 +157,10 @@ def generate_BCR_plots(B, C, R):
         row = k % nrow
         col = k // nrow * n_div
         generate_XY_panel(
-            "B", B, "C", C, "R0", Rk, "ccmax", axarr[row, col], cm.cmaps["acton"]
+            "B", B, "C", C, "R0", Rk, "ccmax", axarr[row, col], cm.cmaps["acton_r"]
         )
         generate_XY_panel(
-            "B", B, "C", C, "R0", Rk, "M0mis", axarr[row, col + 1], cm.cmaps["oslo"]
+            "B", B, "C", C, "R0", Rk, "M0mis", axarr[row, col + 1], cm.cmaps["oslo_r"]
         )
     fname = "plots/parameter_space_BC_constant_R.pdf"
     plt.savefig(fname)
@@ -191,7 +191,7 @@ def generate_BCR_plots(B, C, R):
             Bk,
             "combined_M0_cc_gof",
             axarr[row, col],
-            cm.cmaps["acton"],
+            cm.cmaps["acton_r"],
         )
         if "gof_wf" in result_df:
             generate_XY_panel(
@@ -203,7 +203,7 @@ def generate_BCR_plots(B, C, R):
                 Bk,
                 "gof_wf",
                 axarr[row, col + 1],
-                cm.cmaps["oslo"],
+                cm.cmaps["acton_r"],
             )
             generate_XY_panel(
                 "R0",
@@ -215,7 +215,7 @@ def generate_BCR_plots(B, C, R):
                 # "combined_M0_cc_gof",
                 "combined_gof",
                 axarr[row, col + 2],
-                cm.cmaps["batlowW"],
+                cm.cmaps["batlowW_r"],
             )
 
     fname = "plots/parameter_space_R0C_constant_B.pdf"
@@ -440,7 +440,10 @@ if __name__ == "__main__":
     gofa = gofa[["gof_slip", "sim_id"]]
     result_df = pd.merge(result_df, gofa, on="sim_id")
     result_df["combined_M0_cc_gof"] = np.sqrt(
-        result_df["M0mis"] * result_df["ccmax"] * result_df["Tgof"]*result_df["gof_slip"]
+        result_df["M0mis"]
+        * result_df["ccmax"]
+        * result_df["Tgof"]
+        * result_df["gof_slip"]
     )
 
     result_df = result_df.sort_values(
@@ -577,13 +580,8 @@ if __name__ == "__main__":
     print(f"done writing {fname}")
 
     col = 1 if one_model_shown else 2
-    ax.legend(
-        frameon=False,
-        loc="upper right",
-        ncol=col,
-        fontsize=ps,
-        bbox_to_anchor=(1.0, 1.25),
-    )
+    kargs = {bbox_to_anchor: (1.0, 1.25)} if one_model_shown else {}
+    ax.legend(frameon=False, loc="upper right", ncol=col, fontsize=ps, *kargs)
     ax.set_ylim(bottom=0)
     ax.set_xlim(left=0)
 
