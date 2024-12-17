@@ -31,8 +31,10 @@ def compute(filename, yaml_filename, projection, dt=0.5):
     fp = mfp.fault_planes[0]
     has_STF = fp.ndt > 0
     if has_STF:
+        print(f"STF described by time series in {filename}")
         time = fp.myt
     else:
+        print(f"a Gaussian STF will be used for {filename}")
         time = np.arange(0, duration, dt)
     moment_rate = np.zeros_like(time)
 
@@ -65,7 +67,9 @@ def compute(filename, yaml_filename, projection, dt=0.5):
 
     if not os.path.exists("tmp"):
         os.makedirs("tmp")
-    fname = "tmp/moment_rate_from_finite_source_file.txt"
+
+    suffix = "_usgs" if ext in [".param", ".fsp"] else ""
+    fname = f"tmp/moment_rate_from_finite_source_file{suffix}.txt"
     with open(fname, "w") as f:
         np.savetxt(f, np.column_stack((time, moment_rate)), fmt="%g")
     print(f"done writing {fname}")
@@ -98,4 +102,4 @@ if __name__ == "__main__":
         required=True,
     )
     args = parser.parse_args()
-    compute(args.filename, args.yaml_file, args.dt[0], args.proj[0])
+    compute(args.filename, args.yaml_filename, args.proj[0], args.dt[0])
