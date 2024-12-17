@@ -39,7 +39,9 @@
           coh0 = cohn * xi + (1-xi) * coh0
         end
 
-        T_n = math.min(-10^6, 0.15*2700*9.8*x['z'])
+        -- T_n constant at -40 MPa below ~4km depth (e.g. Suppe, 2014)
+        T_n = math.min(-10^6, math.max(-40e6, 0.4*2700*9.8*x['z']))
+        -- T_n = math.min(-10^6, 0.15*2700*9.8*x['z'])
         sigma_n = math.abs(T_n)
 
         depthIncreasingCohesion = 6000.0
