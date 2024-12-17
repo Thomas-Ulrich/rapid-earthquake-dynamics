@@ -93,7 +93,16 @@ def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix, use_usgs_finite_fault=
             args.usgs_id_or_dtgeo_npy, min_magnitude
         )
     else:
-        usgs_id = usgs_id_or_dtgeo_npy
+        splited_code = usgs_id_or_dtgeo_npy.split("_")
+        if len(splited_code) == 2:
+            usgs_id = splited_code[0]
+            finite_fault_code = usgs_id_or_dtgeo_npy
+            print(f"given code {finite_fault_code }describes a usgs finite fault model")
+        elif len(splited_code) == 1:
+            usgs_id = splited_code[0]
+            finite_fault_code = None
+        else:
+            raise ValueError("unexpected structure of usgs_code")
 
     url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&&minmagnitude={min_magnitude}&eventid={usgs_id}"
     fn_json = f"{usgs_id}.json"
@@ -110,7 +119,19 @@ def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix, use_usgs_finite_fault=
     descr = "_".join(place.split(",")[-1].split())
 
     if use_usgs_finite_fault:
-        finite_fault = get_value_from_usgs_data(jsondata, "finite-fault")[0]
+        finite_faults = get_value_from_usgs_data(jsondata, "finite-fault")
+        if finite_fault_code:
+            availables = [finite_fault["code"] for finite_fault in finite_faults]
+            if not finite_fault_code in availables:
+                raise ValueError(f"{finite_fault_code} not found in {availables}")
+            else:
+                ff_id = availables.index(finite_fault_code)
+        else:
+            # if not specified we use the most recently updated
+            update_times = [ff["updateTime"] for ff in finite_faults]
+            ff_id = update_times.index(max(update_times))
+
+        finite_fault = finite_faults[ff_id]
         code_finite_fault = finite_fault["code"]
         update_time = finite_fault["updateTime"]
         hypocenter_x = finite_fault["properties"]["longitude"]
