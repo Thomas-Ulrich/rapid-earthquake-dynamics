@@ -13,7 +13,7 @@ from cmcrameri import cm
 import pickle
 
 pd.set_option("display.max_rows", None)
-# pd.set_option('display.max_columns', None)
+pd.set_option("display.max_columns", None)
 
 
 def infer_duration(time, moment_rate):
@@ -431,25 +431,20 @@ if __name__ == "__main__":
         duration_gof = min(1, 1 - abs(duration - inferred_duration) / inferred_duration)
         results["Tgof"].append(duration_gof)
     result_df = pd.DataFrame(results)
-    result_df["combined_M0_cc_gof"] = np.sqrt(
-        result_df["M0mis"] * result_df["ccmax"] * result_df["Tgof"]
-    )
+    result_df["combined_M0_cc_gof"] = np.sqrt(result_df["M0mis"] * result_df["ccmax"])
 
     gofa = pickle.load(open("gof_slip.pkl", "rb"))
     gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")
     gofa = gofa[["gof_slip", "sim_id"]]
     result_df = pd.merge(result_df, gofa, on="sim_id")
     result_df["combined_M0_cc_gof"] = np.sqrt(
-        result_df["M0mis"]
-        * result_df["ccmax"]
-        * result_df["Tgof"]
-        * result_df["gof_slip"]
+        result_df["M0mis"] * result_df["ccmax"] * result_df["gof_slip"]
     )
 
     result_df = result_df.sort_values(
         by="combined_M0_cc_gof", ascending=False
     ).reset_index(drop=True)
-    print(result_df)
+    print(result_df.to_string())
 
     if os.path.exists("gof_average.pkl"):
         print("gof_average.pkl detected: merging with results dataframe")
@@ -464,7 +459,7 @@ if __name__ == "__main__":
             result_df["combined_M0_cc_gof"] * result_df["gof_wf"]
         )
 
-    print(result_df)
+    print(result_df.to_string())
 
     coh = result_df["coh"].values
     B = result_df["B"].values
@@ -568,7 +563,7 @@ if __name__ == "__main__":
     selected_rows = selected_rows.sort_values(
         by="combined_M0_cc_gof", ascending=False
     ).reset_index(drop=True)
-    print(selected_rows)
+    print(selected_rows.to_string())
 
     fname = "tmp/selected_output.txt"
     with open(fname, "w") as fid:
