@@ -132,7 +132,10 @@ def generate(mode, dic_values):
     hypo[2] *= -1e3
     hypo[0], hypo[1] = transformer.transform(hypo[0], hypo[1])
 
-    moment_rate = np.loadtxt("tmp/moment_rate_from_finite_source_file.txt")
+    fn_mr = "tmp/moment_rate_from_finite_source_file.txt"
+    if os.path.exists("tmp/moment_rate_from_finite_source_file_usgs.txt"):
+        fn_mr = "tmp/moment_rate_from_finite_source_file_usgs.txt"
+    moment_rate = np.loadtxt(fn_mr)
     usgs_duration = infer_duration(moment_rate[:, 0], moment_rate[:, 1])
 
     def compute_fault_sampling(usgs_duration):
