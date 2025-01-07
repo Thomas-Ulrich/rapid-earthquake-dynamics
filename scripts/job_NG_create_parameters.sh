@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job Name and Files (also --job-name)
-#SBATCH -J 2015_1.1
+#SBATCH -J gen_dr_input
 #Output and error (also --output, --error):
 #SBATCH -o ./%j.%x.out
 #SBATCH -e ./%j.%x.out
@@ -18,7 +18,7 @@
 #EAR may impact code performance
 #SBATCH --ear=off
 ##SBATCH --nodes=20 --partition=general --time=02:30:00
-#SBATCH --nodes=1 --partition=test --time=00:30:00 
+#SBATCH --nodes=1 --partition=test --time=00:30:00  --exclude="i01r01c01s01"
 source /etc/profile.d/modules.sh
 
 module load slurm_setup
