@@ -907,6 +907,21 @@ class FaultPlane:
                     fout.write("\n")
         print("done writing", fname)
 
+    def write_linslip_sources_file(self, fname, rake):
+        "write kinematic model to the linslip format"
+        " here is an example: https://github.com/fgallovic/LinSlipInv/blob/master/examples/LAquila-realdata/3D_GFs_topo_3D_GPS/sources.dat "
+        sources_dat = ""
+        for j in range(self.ny):
+            for i in range(self.nx):
+                k = i + self.nx * j
+                wrake = rake[0] if rake else self.rake[j, i]
+                sources_dat += f"{k+1} {self.lat[j,i]} {self.lon[j,i]} {self.depth[j,i]} {self.strike[j,i]} {self.dip[j,i]} {wrake}\n"
+
+        with open(fname, "w") as fout:
+            fout.write(sources_dat)
+
+        print("done writing", fname)
+
     def assess_STF_parameters(self, threshold):
         "compute rise_time (slip duration) and t_acc (peak SR) from SR time histories"
         assert threshold >= 0.0 and threshold < 1
