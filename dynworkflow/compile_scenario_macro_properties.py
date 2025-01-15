@@ -303,7 +303,6 @@ if __name__ == "__main__":
     plt.rcParams["font.family"] = "sans"
     matplotlib.rc("xtick", labelsize=ps)
     matplotlib.rc("ytick", labelsize=ps)
-    matplotlib.rcParams["lines.linewidth"] = 1.0
 
     if not os.path.exists("plots"):
         os.makedirs("plots")
@@ -318,9 +317,10 @@ if __name__ == "__main__":
     # remove fl33
     energy_files = [s for s in energy_files if "fl33" not in s]
     one_model_shown = args.nmax[0] == 1
+    matplotlib.rcParams["lines.linewidth"] = 0.5 if one_model_shown else 1.0
 
     centimeter = 1 / 2.54
-    figsize = (6.5 * centimeter, 3.5 * centimeter) if one_model_shown else (8, 4)
+    figsize = (7.5 * centimeter, 4.0 * centimeter) if one_model_shown else (8, 4)
     fig = plt.figure(figsize=figsize, dpi=80)
     ax = fig.add_subplot(111)
 
@@ -433,13 +433,16 @@ if __name__ == "__main__":
     result_df = pd.DataFrame(results)
     result_df["combined_M0_cc_gof"] = np.sqrt(result_df["M0mis"] * result_df["ccmax"])
 
-    gofa = pickle.load(open("gof_slip.pkl", "rb"))
-    gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")
-    gofa = gofa[["gof_slip", "sim_id"]]
-    result_df = pd.merge(result_df, gofa, on="sim_id")
-    result_df["combined_M0_cc_gof"] = np.sqrt(
-        result_df["M0mis"] * result_df["ccmax"] * result_df["gof_slip"]
-    )
+    if os.path.exists("gof_slip.pkl"):
+        gofa = pickle.load(open("gof_slip.pkl", "rb"))
+        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")
+        gofa = gofa[["gof_slip", "sim_id"]]
+        result_df = pd.merge(result_df, gofa, on="sim_id")
+        result_df["combined_M0_cc_gof"] = np.sqrt(
+            result_df["M0mis"] * result_df["ccmax"] * result_df["gof_slip"]
+        )
+    else:
+        print("gof_slip.pkl could not be found")
 
     result_df = result_df.sort_values(
         by="combined_M0_cc_gof", ascending=False
@@ -575,8 +578,8 @@ if __name__ == "__main__":
     print(f"done writing {fname}")
 
     col = 1 if one_model_shown else 2
-    kargs = {bbox_to_anchor: (1.0, 1.25)} if one_model_shown else {}
-    ax.legend(frameon=False, loc="upper right", ncol=col, fontsize=ps, *kargs)
+    kargs = {"bbox_to_anchor": (1.0, 1.25)} if one_model_shown else {}
+    ax.legend(frameon=False, loc="upper right", ncol=col, fontsize=ps, **kargs)
     ax.set_ylim(bottom=0)
     ax.set_xlim(left=0)
 

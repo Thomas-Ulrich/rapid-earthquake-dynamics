@@ -17,12 +17,10 @@
 #SBATCH --ntasks-per-node=2
 #EAR may impact code performance
 #SBATCH --ear=off
-#SBATCH --nodes=40 --partition=general --time=00:40:00
-##SBATCH --nodes=16 --partition=test --time=00:30:00
+##SBATCH --nodes=20 --partition=general --time=01:00:00
+#SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
-# use a number of nodes multiple of 4!
-ndivide=$(( $SLURM_JOB_NUM_NODES / 4 ))
 
 #Run the program:
 export MP_SINGLE_THREAD=no
@@ -46,38 +44,15 @@ echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
 module load seissol/master-intel23-o4-elas-dunav-single-impi
-#module load seissol/master2-intel23-o4-elas-dunav-single-impi
+part_file=$1
 
-nodes_per_job=$(( $SLURM_JOB_NUM_NODES / $ndivide ))
-tasks_per_job=$(( $nodes_per_job * 2 ))
+mapfile -t filenames < "$part_file"
 
-
-# Create an indexed list of files
-files=(parameters_dyn_*.par)
-num_files=${#files[@]}
-echo "Found $num_files files to process."
-
-# Process files in parallel
-counter=0
-for filename in "${files[@]}"; do
-    echo "Processing file: $filename"
-    modulo=$(( $counter % $ndivide ))
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$modulo.out SeisSol_Release_sskx_4_elastic $filename&
- 
-    # Increment counter
-    counter=$((counter + 1))
-    
-    # Wait after every SLURM_NTASKS tasks
-    if (( $counter % $ndivide == 0 )); then
-        echo "Waiting for batch of $ndivide tasks to finish..."
-        wait
-    fi
-done
-
-wait
-counter=0
 # Iterate over the array of filenames
-for filename in "${files[@]}"; do
+for filename in "${filenames[@]}"; do
+    echo "Processing file: $filename"
+    srun SeisSol_Release_sskx_4_elastic $filename
+
     # Extract the core part of the filename by removing 'parameters_' and '.par'
     core_name=$(basename "$filename" .par)
     core_name=${core_name#parameters_}
@@ -89,17 +64,6 @@ for filename in "${files[@]}"; do
     # If the output file does not exist, process the file
     if [ ! -f "$output_file" ]; then
         echo "something went wrong? trying rerun seissol with file: $filename"
-        modulo=$(( $counter % $ndivide ))
-        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$modulo.out SeisSol_Release_sskx_4_elastic $filename&
-        counter=$((counter + 1))
+        srun SeisSol_Release_sskx_4_elastic $filename
     fi
-
-    # Wait after every SLURM_NTASKS tasks
-    if (( $counter % $ndivide == 0 && $counter != 0 )); then
-        echo "Waiting for batch of $ndivide tasks to finish..."
-        wait
-    fi
-
 done
-
-

@@ -37,7 +37,7 @@ export OMP_PLACES="cores(48)"
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
-module load seissol/before1168-intel23-o4-elas-dunav-single-impi
+module load seissol/master-intel23-o4-elas-dunav-single-impi
 
 
 srun -u python ../rapid-earthquake-dynamics/step2_generate_dr_input_files.py

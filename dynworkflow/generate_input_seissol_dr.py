@@ -266,7 +266,7 @@ def generate(mode, dic_values):
         [f for f in os.listdir(".") if f.startswith("parameters_dyn")]
     )
     nfiles = len(parameter_files)
-    n = 3
+    n = 1
     parts = np.array_split(np.arange(nfiles), n)
     split_files = [list(np.array(parameter_files)[part]) for part in parts]
     for i, part in enumerate(split_files):
