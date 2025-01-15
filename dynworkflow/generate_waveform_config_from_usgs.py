@@ -20,7 +20,7 @@ def generate_waveform_config_file(ignore_source_files=False):
     dyfi = get_value_from_usgs_data(jsondata, "dyfi")[0]
     eventtime = dyfi["properties"]["eventtime"]
 
-    code = get_value_from_usgs_data(jsondata, "code")[0]
+    code = get_value_from_usgs_data(jsondata, "code")
     hypocenter_x = dyfi["properties"]["longitude"]
     hypocenter_y = dyfi["properties"]["latitude"]
     hypocenter_z = dyfi["properties"]["depth"]
