@@ -87,6 +87,13 @@ def run_step1():
     if finite_fault_model != "usgs":
         finite_fault_model = os.path.abspath(finite_fault_model)
         suffix, _ = os.path.splitext(os.path.basename(finite_fault_model))
+        if is_slipnear_file(finite_fault_model) and vel_model == "auto":
+            vel_model = "slipnear"
+        elif vel_model == "auto":
+            vel_model = "usgs"
+    else:
+        if vel_model == "auto":
+            vel_model = "usgs"
 
     folder_name = get_usgs_finite_fault_data.get_data(
         args.usgs_id_or_dtgeo_npy,
@@ -131,17 +138,16 @@ def run_step1():
         f"yaml_files/FL33_34_fault.yaml"
     )
 
-    if vel_model == "auto" and is_slipnear_file(finite_fault_fn):
+    if vel_model == "slipnear":
         print("using slipnear 1D velocity model")
         prepare_velocity_model_files.generate_arbitrary_velocity_files()
-    elif vel_model in ["auto", "usgs"]:
+    elif vel_model == "usgs":
         print("using USGS 1D velocity model")
         prepare_velocity_model_files.generate_usgs_velocity_files()
     else:
         print("using user-defined velocity model 1D velocity model")
         shutil.copy(vel_model, "tmp")
         prepare_velocity_model_files.generate_arbitrary_velocity_files(vel_model)
-
 
     generate_mesh.generate(h_domain=20e3, h_fault=fault_mesh_size, interactive=False)
 
