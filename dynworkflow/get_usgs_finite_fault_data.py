@@ -87,7 +87,13 @@ def retrieve_usgs_id_from_dtgeo_dict(fname, min_mag):
     return usgs_id
 
 
-def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix, use_usgs_finite_fault=True):
+def get_data(
+    usgs_id_or_dtgeo_npy,
+    min_magnitude,
+    suffix,
+    use_usgs_finite_fault=True,
+    download_usgs_fsp=False,
+):
     if usgs_id_or_dtgeo_npy[-3:] == "npy":
         usgs_id = retrieve_usgs_id_from_dtgeo_dict(
             args.usgs_id_or_dtgeo_npy, min_magnitude
@@ -118,7 +124,7 @@ def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix, use_usgs_finite_fault=
     day = eventtime.split("T")[0]
     descr = "_".join(place.split(",")[-1].split())
 
-    if use_usgs_finite_fault:
+    if use_usgs_finite_fault or download_usgs_fsp:
         finite_faults = get_value_from_usgs_data(jsondata, "finite-fault")
         if finite_fault_code:
             availables = [finite_fault["code"] for finite_fault in finite_faults]
@@ -158,6 +164,11 @@ def get_data(usgs_id_or_dtgeo_npy, min_magnitude, suffix, use_usgs_finite_fault=
             jsondata = f.write(f"{hypocenter_x} {hypocenter_y} {hypocenter_z}\n")
 
         for fn in ["moment_rate.mr", "basic_inversion.param", "complete_inversion.fsp"]:
+            url = f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}/us/{update_time}/{fn}"
+            wget_overwrite(url, f"{folder_name}/tmp/{fn}")
+
+    elif download_usgs_fsp:
+        for fn in ["complete_inversion.fsp"]:
             url = f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}/us/{update_time}/{fn}"
             wget_overwrite(url, f"{folder_name}/tmp/{fn}")
 

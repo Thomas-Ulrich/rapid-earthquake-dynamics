@@ -17,12 +17,12 @@ import sys
 import glob
 import subprocess
 
-# Append kinematic_models and external folders to path
+# Append finite_fault_models and external folders to path
 # Get the directory of the current script
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
 relative_paths = [
-    "dynworkflow/kinematic_models",
+    "dynworkflow/finite_fault_models",
     "external",
 ]
 for relative_path in relative_paths:
@@ -36,6 +36,12 @@ import compute_moment_rate_from_finite_fault_file
 import generate_fault_output_from_fl33_input_files
 import project_fault_tractions_onto_asagi_grid
 import vizualizeBoundaryConditions
+
+
+def is_slipnear_file(fn):
+    with open(fn, "r") as file:
+        first_line = file.readline().strip()
+        return "RECTANGULAR DISLOCATION MODEL" in first_line
 
 
 def run_step1():
@@ -53,54 +59,50 @@ def run_step1():
         help="usgs earthquake code or event dictionnary (dtgeo workflow)",
     )
     parser.add_argument(
-        "--user_defined_kinematic_model",
+        "--finite_fault_model",
         nargs=1,
         help="input filename of alternative model to usgs (e.g. Slipnear)",
         type=str,
+        default=["usgs"],
     )
+
     parser.add_argument(
         "--velocity_model",
         nargs=1,
-        help="input 1D velocity model in axitra format",
+        help="""Specify the velocity model:
+        - auto: same as option usgs, but use the Slipnear velocity model for a Slipnear kinematic model.
+        - usgs: Read the velocity model from the usgs finite fault model FSP file.
+        - Alternatively, provide a velocity model in Axitra format.""",
         type=str,
+        default=["auto"],
     )
 
     args = parser.parse_args()
+    vel_model = args.velocity_model[0]
+    if vel_model not in ["auto", "usgs"]:
+        vel_model = os.path.abspath(vel_model)
+    finite_fault_model = args.finite_fault_model[0]
 
     suffix = ""
-    if args.user_defined_kinematic_model:
-        finite_fault_fn = args.user_defined_kinematic_model[0]
-        suffix, ext = os.path.splitext(os.path.basename(finite_fault_fn))
+    if finite_fault_model != "usgs":
+        finite_fault_model = os.path.abspath(finite_fault_model)
+        suffix, _ = os.path.splitext(os.path.basename(finite_fault_model))
 
     folder_name = get_usgs_finite_fault_data.get_data(
         args.usgs_id_or_dtgeo_npy,
-        min_magnitude=7,
+        min_magnitude=6,
         suffix=suffix,
-        use_usgs_finite_fault=not args.user_defined_kinematic_model,
+        use_usgs_finite_fault=(finite_fault_model == "usgs"),
+        download_usgs_fsp=(vel_model == "usgs"),
     )
     os.chdir(folder_name)
 
     with open("tmp/projection.txt", "r") as fid:
         projection = fid.read()
 
-    if args.user_defined_kinematic_model:
-        if os.path.exists(finite_fault_fn):
-            # absolute path given
-            shutil.copy(finite_fault_fn, "tmp")
-        else:
-            shutil.copy(f"../{finite_fault_fn}", "tmp")
-            finite_fault_fn = f"tmp/{finite_fault_fn}"
-
-    if args.velocity_model:
-        vel_model = args.velocity_model[0]
-        if os.path.exists(vel_model):
-            # absolute path given
-            shutil.copy(vel_model, "tmp")
-        else:
-            shutil.copy(f"../{vel_model}", "tmp")
-            vel_model = f"tmp/{vel_model}"
-
-    if not args.user_defined_kinematic_model:
+    if finite_fault_model != "usgs":
+        finite_fault_fn = shutil.copy(finite_fault_model, "tmp")
+    else:
         finite_fault_fn = f"tmp/basic_inversion.param"
 
     (
@@ -124,25 +126,23 @@ def run_step1():
         write_paraview=False,
         PSRthreshold=0.0,
     )
-    suffix, ext = os.path.splitext(os.path.basename(finite_fault_fn))
-    if not ext == ".txt":
-        if args.velocity_model:
-            print("using user-defined velocity model 1D velocity model")
-            with open(vel_model, "r") as fid:
-                file_contents = fid.read()
-            prepare_velocity_model_files.generate_arbitrary_velocity_files(
-                file_contents
-            )
-        else:
-            print("using USGS 1D velocity model")
-            prepare_velocity_model_files.generate_usgs_velocity_files()
-    else:
-        print("using slipnear 1D velocity model")
-        prepare_velocity_model_files.generate_arbitrary_velocity_files()
 
     modify_FL33_34_fault_instantaneous_slip.update_file(
         f"yaml_files/FL33_34_fault.yaml"
     )
+
+    if vel_model == "auto" and is_slipnear_file(finite_fault_fn):
+        print("using slipnear 1D velocity model")
+        prepare_velocity_model_files.generate_arbitrary_velocity_files()
+    elif vel_model in ["auto", "usgs"]:
+        print("using USGS 1D velocity model")
+        prepare_velocity_model_files.generate_usgs_velocity_files()
+    else:
+        print("using user-defined velocity model 1D velocity model")
+        shutil.copy(vel_model, "tmp")
+        prepare_velocity_model_files.generate_arbitrary_velocity_files(vel_model)
+
+
     generate_mesh.generate(h_domain=20e3, h_fault=fault_mesh_size, interactive=False)
 
     result = os.system("pumgen -s msh4 tmp/mesh.msh")

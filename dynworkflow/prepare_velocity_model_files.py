@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import pandas as pd
 import io
+import os
 
 
 def write_yaml_material_file(df):
@@ -68,7 +69,13 @@ vel_model_slipnear = """H P_VEL S_VEL DENS QP QS
 
 
 def generate_arbitrary_velocity_files(vel_model=vel_model_slipnear):
-    df = pd.read_csv(io.StringIO(vel_model), sep=" ")
+    if os.path.isfile(vel_model):
+        with open(vel_model, "r") as file:
+            vel_model_content = file.read()
+    else:
+        vel_model_content = vel_model
+
+    df = pd.read_csv(io.StringIO(vel_model_content), sep=" ")
     df["rho"] = 1000.0 * df["DENS"]
     df["mu"] = 1e6 * df["rho"] * df["S_VEL"] ** 2
     df["lambda"] = 1e6 * df["rho"] * (df["P_VEL"] ** 2 - 2.0 * df["S_VEL"] ** 2)
@@ -123,7 +130,7 @@ def read_velocity_model_from_fsp_file(fname):
     df["rho"] = 1000.0 * df["DENS"]
     df["mu"] = 1e6 * df["rho"] * df["S_VEL"] ** 2
     df["lambda"] = 1e6 * df["rho"] * (df["P_VEL"] ** 2 - 2.0 * df["S_VEL"] ** 2)
-    df["H"] = 10000
+    df["H"] = 10000.0
 
     df.at[0, "DEPTH"] = 0
     # in this file, DEPTH is the top layer depth
@@ -131,7 +138,7 @@ def read_velocity_model_from_fsp_file(fname):
         if index < len(df) - 1:
             df.loc[index, "H"] = df["DEPTH"].iloc[index + 1] - df["DEPTH"].iloc[index]
 
-    df.at[0, "DEPTH"] = -10
+    df.at[0, "DEPTH"] = -10.0
     print(df)
     return df
 
