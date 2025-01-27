@@ -336,7 +336,6 @@ if __name__ == "__main__":
         "M0mis": [],
         "Tgof": [],
         "faultfn": [],
-        "shift_syn_ref_sec": [],
     }
 
     def read_usgs_moment_rate():
@@ -423,7 +422,7 @@ if __name__ == "__main__":
         )
         cc = correlate(s1, s2, shift=max_shift)
         shift, ccmax = xcorr_max(cc, abs_max=False)
-        results["shift_syn_ref_sec"].append(shift * dt)
+        # results["shift_syn_ref_sec"].append(shift * dt)
         results["ccmax"].append(ccmax)
         # allow 15% variation on the misfit
         M0_gof = min(1, 1.15 - abs(M0 - M0ref) / M0ref)
@@ -443,6 +442,15 @@ if __name__ == "__main__":
         )
     else:
         print("gof_slip.pkl could not be found")
+
+    pkl_file = "percentage_supershear.pkl"
+    if os.path.exists(pkl_file):
+        gofa = pickle.load(open(pkl_file, "rb"))
+        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")
+        gofa = gofa[["supershear", "sim_id"]]
+        result_df = pd.merge(result_df, gofa, on="sim_id")
+    else:
+        print(f"{pkl_file} could not be found")
 
     result_df = result_df.sort_values(
         by="combined_M0_cc_gof", ascending=False

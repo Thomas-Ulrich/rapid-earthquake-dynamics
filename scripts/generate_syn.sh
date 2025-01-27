@@ -35,7 +35,8 @@ export OMP_NUM_THREADS=46
 
 
 script_dir=../rapid-earthquake-dynamics/
-$script_dir/rapid-earthquake-dynamics/dynworkflow/compute_gof_fault_slip.py extracted_output/dyn_ output/dyn-kinmod-fault.xdmf
+$script_dir/dynworkflow/compute_gof_fault_slip.py extracted_output/dyn_ extracted_output/dyn-kinmod_extracted-fault.xdmf
+$script_dir/dynworkflow/compute_percentage_supershear.py extracted_output/dyn_ tmp/axitra_velocity_model.txt
 $script_dir/dynworkflow/add_source_files_to_waveform_config.py
 export OMP_NUM_THREADS=$(grep -c ^processor /proc/cpuinfo)
 $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_sources.ini
