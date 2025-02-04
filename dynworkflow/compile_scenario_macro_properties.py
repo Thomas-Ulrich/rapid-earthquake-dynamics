@@ -338,8 +338,8 @@ if __name__ == "__main__":
         "faultfn": [],
     }
 
-    def read_usgs_moment_rate():
-        mr_ref = np.loadtxt("tmp/moment_rate.mr", skiprows=2)
+    def read_usgs_moment_rate(fname):
+        mr_ref = np.loadtxt(fname, skiprows=2)
         # Conversion factor from dyne-cm/sec to Nm/sec (for older usgs files)
         scaling_factor = 1.0 if np.amax(mr_ref[:, 1]) < 1e23 else 1e-7
         mr_ref[:, 1] *= scaling_factor
@@ -356,7 +356,7 @@ if __name__ == "__main__":
     if refMRFfile == "tmp/moment_rate_from_finite_source_file.txt":
         mr_ref = np.loadtxt("tmp/moment_rate_from_finite_source_file.txt")
     else:
-        mr_ref = read_usgs_moment_rate()
+        mr_ref = read_usgs_moment_rate(refMRFfile)
 
     mr_ref = trim_trailing_zero(mr_ref)
 

@@ -16,6 +16,7 @@ import shutil
 import sys
 import glob
 import subprocess
+import numpy as np
 
 # Append finite_fault_models and external folders to path
 # Get the directory of the current script
@@ -91,6 +92,9 @@ def run_step1():
     vel_model = args.velocity_model[0]
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
+    refMRF = args.reference_moment_rate_function[0]
+    if refMRF not in ["auto"]:
+        refMRF = os.path.abspath(refMRF)
     finite_fault_model = args.finite_fault_model[0]
 
     suffix = ""
@@ -114,22 +118,20 @@ def run_step1():
     )
     os.chdir(folder_name)
 
-    refMRF = args.reference_moment_rate_function
     refMRFfile = ""
+    print(refMRF)
     if refMRF == "auto":
         if finite_fault_model == "usgs":
             refMRFfile = "tmp/moment_rate.mr"
         else:
             refMRFfile = "tmp/moment_rate_from_finite_source_file.txt"
-    elif os.path.exists(args.reference_moment_rate_function):
+    elif os.path.exists(refMRF):
         # test loading
-        mr_ref = np.loadtxt(args.reference_moment_rate_function, skiprows=2)
-        refMRFfile = os.path.join(tmp, args.reference_moment_rate_function)
-        finite_fault_fn = shutil.copy(args.reference_moment_rate_function, "tmp")
+        mr_ref = np.loadtxt(refMRF, skiprows=2)
+        refMRFfile = os.path.join("tmp", refMRF)
+        refMRFfile = shutil.copy(refMRF, "tmp")
     else:
-        raise FileNotFoundError(
-            f"{args.reference_moment_rate_function} does not exists"
-        )
+        raise FileNotFoundError(f"{refMRF} does not exists")
 
     with open(f"tmp/reference_STF.txt", "w") as f:
         f.write(refMRFfile)
