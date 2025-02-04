@@ -349,8 +349,17 @@ if __name__ == "__main__":
         last_index_non_zero = np.nonzero(mr_ref[:, 1])[0][-1]
         return mr_ref[:last_index_non_zero, :]
 
-    with open(f"tmp/reference_STF.txt", "r") as fid:
-        refMRFfile = fid.read()
+    fn = "tmp/reference_STF.txt"
+    if os.path.exists(fn):
+        with open("tmp/reference_STF.txt", "r") as fid:
+            refMRFfile = fid.read()
+    else:
+        # for backwards compatibility
+        print(f"{fn} does not exists!")
+        if os.path.exists("tmp/moment_rate_from_finite_source_file_usgs.txt"):
+            refMRFfile = "tmp/moment_rate.mr"
+        else:
+            refMRFfile = "tmp/moment_rate_from_finite_source_file.txt"
 
     ref_name = "finite-source model"
     if refMRFfile == "tmp/moment_rate_from_finite_source_file.txt":
