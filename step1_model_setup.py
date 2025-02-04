@@ -67,6 +67,16 @@ def run_step1():
     )
 
     parser.add_argument(
+        "--reference_moment_rate_function",
+        nargs=1,
+        help=""" Specify a reference moment rate function (for DR model ranking)
+        - auto: if usgs, will download and use the STF, else moment rate inferred from the finite fault model file.
+        - Alternatively, provide a STF in usgs format (2 lines of header).""",
+        type=str,
+        default=["auto"],
+    )
+
+    parser.add_argument(
         "--velocity_model",
         nargs=1,
         help="""Specify the velocity model:
@@ -103,6 +113,26 @@ def run_step1():
         download_usgs_fsp=(vel_model == "usgs"),
     )
     os.chdir(folder_name)
+
+    refMRF = args.reference_moment_rate_function
+    refMRFfile = ""
+    if refMRF == "auto":
+        if finite_fault_model == "usgs":
+            refMRFfile = "tmp/moment_rate.mr"
+        else:
+            refMRFfile = "tmp/moment_rate_from_finite_source_file.txt"
+    elif os.path.exists(args.reference_moment_rate_function):
+        # test loading
+        mr_ref = np.loadtxt(args.reference_moment_rate_function, skiprows=2)
+        refMRFfile = os.path.join(tmp, args.reference_moment_rate_function)
+        finite_fault_fn = shutil.copy(args.reference_moment_rate_function, "tmp")
+    else:
+        raise FileNotFoundError(
+            f"{args.reference_moment_rate_function} does not exists"
+        )
+
+    with open(f"tmp/reference_STF.txt", "w") as f:
+        f.write(refMRFfile)
 
     with open("tmp/projection.txt", "r") as fid:
         projection = fid.read()

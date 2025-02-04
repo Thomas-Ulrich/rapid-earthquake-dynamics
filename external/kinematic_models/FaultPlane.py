@@ -440,6 +440,7 @@ class MultiFaultPlane:
             ).all(), (
                 "AssertionError: Not all rupture time are greater than or equal to 0."
             )
+            t0min = 1e99
             for j in range(fp.ny):
                 for i in range(fp.nx):
                     k = j * fp.nx + i
@@ -454,10 +455,16 @@ class MultiFaultPlane:
                     fp.t0[j, i] = df["t_rup"][k]
                     fp.tacc[j, i] = df["t_ris"][k]
                     fp.rise_time[j, i] = df["t_ris"][k] + df["t_fal"][k]
+
+            if np.amin(fp.t0[:, :]) < t0min:
+                t0min = np.amin(fp.t0[:, :])
+                ids = np.where(fp.t0[:, :] == t0min)
+                hypocenter = [*fp.lon[ids], *fp.lat[ids], *fp.depth[ids]]
+
         if nseg == 1:
             fault_planes[0] = fp.trim()
 
-        return cls(fault_planes)
+        return cls(fault_planes, hypocenter)
 
     @classmethod
     def from_slipnear_param_file(cls, fname):

@@ -340,7 +340,6 @@ if __name__ == "__main__":
 
     def read_usgs_moment_rate():
         mr_ref = np.loadtxt("tmp/moment_rate.mr", skiprows=2)
-        ref_name = "usgs"
         # Conversion factor from dyne-cm/sec to Nm/sec (for older usgs files)
         scaling_factor = 1.0 if np.amax(mr_ref[:, 1]) < 1e23 else 1e-7
         mr_ref[:, 1] *= scaling_factor
@@ -350,13 +349,14 @@ if __name__ == "__main__":
         last_index_non_zero = np.nonzero(mr_ref[:, 1])[0][-1]
         return mr_ref[:last_index_non_zero, :]
 
-    if os.path.exists("tmp/moment_rate_from_finite_source_file.txt"):
-        print("loading slipnear moment rate")
+    with open(f"tmp/reference_STF.txt", "r") as fid:
+        refMRFfile = fid.read()
+
+    ref_name = "finite-source model"
+    if refMRFfile == "tmp/moment_rate_from_finite_source_file.txt":
         mr_ref = np.loadtxt("tmp/moment_rate_from_finite_source_file.txt")
-        ref_name = "finite-source model"
     else:
         mr_ref = read_usgs_moment_rate()
-        ref_name = "usgs"
 
     mr_ref = trim_trailing_zero(mr_ref)
 

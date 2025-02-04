@@ -52,34 +52,34 @@ def compute_supershear_percentile(folder, velocity_model):
 
     df = pd.read_csv(
         velocity_model,
-        sep='\s+',
+        sep="\s+",
         comment="#",
         header=None,
         names=["layer_width", "Vp", "Vs", "rho", "Qp", "Qs"],
     )
     df.loc[df.index[-1], "layer_width"] = 1e10
-    df['depth'] = df['layer_width'].cumsum()
+    df["depth"] = df["layer_width"].cumsum()
 
     # Function to find the appropriate value in Mui for any z
     def find_last_value(zi, Vsi, z):
-        idx = np.searchsorted(zi, z, side='right')
+        idx = np.searchsorted(zi, z, side="right")
         return Vsi[idx]
 
     for fo in tqdm.tqdm(fault_output_files):
         if "dyn-kinmod" in fo:
-          supershear_percentile = np.nan
+            supershear_percentile = np.nan
         else:
-          sx = seissolxdmfExtended(fo)
-          areas = sx.compute_areas()
-          id_pos = sx.asl > 0.05
-          Vs = find_last_value(df['depth'], df['Vs'], sx.depthz)
-          Vp = find_last_value(df['depth'], df['Vp'], sx.depthz)
-          # these 10% acknowledge the fact that the supershear calculation can be imprecise
-          supershear = sx.vr > Vs + 0.1 *(Vp-Vs)
-          
-          total_area = areas[id_pos].sum()
-          supershear_area = areas[id_pos & supershear].sum()
-          supershear_percentile = (supershear_area / total_area) * 100
+            sx = seissolxdmfExtended(fo)
+            areas = sx.compute_areas()
+            id_pos = sx.asl > 0.05
+            Vs = find_last_value(df["depth"], df["Vs"], sx.depthz)
+            Vp = find_last_value(df["depth"], df["Vp"], sx.depthz)
+            # these 10% acknowledge the fact that the supershear calculation can be imprecise
+            supershear = sx.vr > Vs + 0.1 * (Vp - Vs)
+
+            total_area = areas[id_pos].sum()
+            supershear_area = areas[id_pos & supershear].sum()
+            supershear_percentile = (supershear_area / total_area) * 100
         results["faultfn"].append(fo)
         results["supershear"].append(supershear_percentile)
     df = pd.DataFrame(results)

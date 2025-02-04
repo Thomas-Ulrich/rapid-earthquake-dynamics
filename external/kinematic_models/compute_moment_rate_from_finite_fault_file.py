@@ -68,8 +68,7 @@ def compute(filename, yaml_filename, projection, dt=0.5):
     if not os.path.exists("tmp"):
         os.makedirs("tmp")
 
-    suffix = "_usgs" if ext in [".param", ".fsp"] else ""
-    fname = f"tmp/moment_rate_from_finite_source_file{suffix}.txt"
+    fname = f"tmp/moment_rate_from_finite_source_file.txt"
     with open(fname, "w") as f:
         np.savetxt(f, np.column_stack((time, moment_rate)), fmt="%g")
     print(f"done writing {fname}")

@@ -29,10 +29,10 @@ def generate(mode, dic_values):
             ASl = sx0.ReadData("ASl", ndt - 2)
         return ASl.max()
 
-    usgs_fn = "output/dyn-kinmod-fault.xdmf"
-    if not os.path.exists(usgs_fn):
-        usgs_fn = "extracted_output/dyn-kinmod_extracted-fault.xdmf"
-    max_slip = compute_max_slip(usgs_fn)
+    kinmod_fn = "output/dyn-kinmod-fault.xdmf"
+    if not os.path.exists(kinmod_fn):
+        kinmod_fn = "extracted_output/dyn-kinmod_extracted-fault.xdmf"
+    max_slip = compute_max_slip(kinmod_fn)
     assert max_slip > 0
 
     # Get the directory of the script
@@ -133,24 +133,22 @@ def generate(mode, dic_values):
     hypo[0], hypo[1] = transformer.transform(hypo[0], hypo[1])
 
     fn_mr = "tmp/moment_rate_from_finite_source_file.txt"
-    if os.path.exists("tmp/moment_rate_from_finite_source_file_usgs.txt"):
-        fn_mr = "tmp/moment_rate_from_finite_source_file_usgs.txt"
     moment_rate = np.loadtxt(fn_mr)
-    usgs_duration = infer_duration(moment_rate[:, 0], moment_rate[:, 1])
+    kinmod_duration = infer_duration(moment_rate[:, 0], moment_rate[:, 1])
 
-    def compute_fault_sampling(usgs_duration):
-        if usgs_duration < 15:
+    def compute_fault_sampling(kinmod_duration):
+        if kinmod_duration < 15:
             return 0.25
-        elif usgs_duration < 30:
+        elif kinmod_duration < 30:
             return 0.5
-        elif usgs_duration < 60:
+        elif kinmod_duration < 60:
             return 1.0
-        elif usgs_duration < 200:
+        elif kinmod_duration < 200:
             return 2.5
         else:
             return 5.0
 
-    fault_sampling = compute_fault_sampling(usgs_duration)
+    fault_sampling = compute_fault_sampling(kinmod_duration)
 
     def generate_R_yaml_block(Rvalues):
         if len(Rvalues) == 1:
@@ -203,7 +201,7 @@ def generate(mode, dic_values):
         else:
             template_par["terminatorMomentRateThreshold"] = 5e17
             template_par["surface_output_interval"] = 5.0
-        template_par["end_time"] = usgs_duration + max(20.0, 0.25 * usgs_duration)
+        template_par["end_time"] = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
         template_par["fault_fname"] = fn_fault
         template_par["output_file"] = f"output/dyn_{code}"
         template_par["material_fname"] = "yaml_files/material.yaml"
