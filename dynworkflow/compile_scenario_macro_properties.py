@@ -65,8 +65,8 @@ def extract_params_from_prefix(fname: str) -> dict:
         out["R"] = R_value
 
     patterns = [
-        r"dyn[/_-]([^_]+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
-        r"dyn[/_-]([^_]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)-energy.csv",
+        r"dyn[/_-]([^_]+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)(?:_[^_]+)?-energy.csv",
+        r"dyn[/_-]([^_]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)(?:_[^_]+)?energy.csv",
     ]
 
     for i in range(2):
@@ -352,7 +352,7 @@ if __name__ == "__main__":
     fn = "tmp/reference_STF.txt"
     if os.path.exists(fn):
         with open("tmp/reference_STF.txt", "r") as fid:
-            refMRFfile = fid.read()
+            refMRFfile = fid.read().strip()
     else:
         # for backwards compatibility
         print(f"{fn} does not exists!")
@@ -568,7 +568,7 @@ if __name__ == "__main__":
         color="black",
     )
     if ref_name != "usgs" and os.path.exists("tmp/moment_rate.mr"):
-        mr_usgs = read_usgs_moment_rate()
+        mr_usgs = read_usgs_moment_rate("tmp/moment_rate.mr")
         mr_usgs = trim_trailing_zero(mr_usgs)
         M0usgs, Mwusgs = computeMw("usgs", mr_usgs[:, 0], mr_usgs[:, 1])
         ax.plot(

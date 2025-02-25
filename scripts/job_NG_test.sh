@@ -62,8 +62,8 @@ for filename in "${filenames[@]}"; do
 
     # Check if the output file exists
     # If the output file does not exist, process the file
-    if [ ! -f "$output_file" ]; then
-        echo "something went wrong? trying rerun seissol with file: $filename"
-        srun SeisSol_Release_sskx_4_elastic $filename
-    fi
+    #if [ ! -f "$output_file" ]; then
+    #    echo "something went wrong? trying rerun seissol with file: $filename"
+    #    srun SeisSol_Release_sskx_4_elastic $filename
+    #fi
 done
