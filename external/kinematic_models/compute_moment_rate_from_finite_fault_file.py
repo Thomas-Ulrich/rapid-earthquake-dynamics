@@ -11,19 +11,7 @@ from FaultPlane import FaultPlane, MultiFaultPlane
 def compute(filename, yaml_filename, projection, dt=0.5):
     prefix, ext = os.path.splitext(filename)
     prefix = os.path.basename(prefix)
-
-    if ext == ".srf":
-        mfp = MultiFaultPlane.from_srf(filename)
-    elif ext == ".param":
-        mfp = MultiFaultPlane.from_usgs_param_file(filename)
-    elif ext == ".param2":
-        mfp = MultiFaultPlane.from_usgs_param_file_alternative(filename)
-    elif ext == ".fsp":
-        mfp = MultiFaultPlane.from_usgs_fsp_file(filename)
-    elif ext == ".txt":
-        mfp = MultiFaultPlane.from_slipnear_param_file(filename)
-    else:
-        raise NotImplementedError(f" unknown extension: {ext}")
+    mfp = MultiFaultPlane.from_file(filename)
 
     duration = 0
     for p, fp in enumerate(mfp.fault_planes):

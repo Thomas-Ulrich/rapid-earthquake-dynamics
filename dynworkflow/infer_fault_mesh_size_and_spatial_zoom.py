@@ -20,19 +20,7 @@ from FaultPlane import FaultPlane, MultiFaultPlane
 def infer_quantities(filename, proj, mesh_size=None):
     prefix, ext = os.path.splitext(filename)
     prefix = os.path.basename(prefix)
-
-    if ext == ".srf":
-        mfp = MultiFaultPlane.from_srf(filename)
-    elif ext == ".param":
-        mfp = MultiFaultPlane.from_usgs_param_file(filename)
-    elif ext == ".param2":
-        mfp = MultiFaultPlane.from_usgs_param_file_alternative(filename)
-    elif ext == ".fsp":
-        mfp = MultiFaultPlane.from_usgs_fsp_file(filename)
-    elif ext == ".txt":
-        mfp = MultiFaultPlane.from_slipnear_param_file(filename)
-    else:
-        raise NotImplementedError(f" unknown extension: {ext}")
+    mfp = MultiFaultPlane.from_file(filename)
 
     dx = float("inf")
     dy = float("inf")

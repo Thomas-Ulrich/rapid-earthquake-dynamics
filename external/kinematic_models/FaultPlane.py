@@ -235,6 +235,24 @@ class MultiFaultPlane:
             self.max_slip = max(self.max_slip, np.amax(fp.slip1))
 
     @classmethod
+    def from_file(cls, filename):
+        """Load a MultiFaultPlane from a file based on its extension."""
+        ext = os.path.splitext(filename)[1].lower()  # Ensure lowercase extensions
+
+        if ext == ".srf":
+            return cls.from_srf(filename)
+        elif ext == ".param":
+            return cls.from_usgs_param_file(filename)
+        elif ext == ".param2":
+            return cls.from_usgs_param_file_alternative(filename)
+        elif ext == ".fsp":
+            return cls.from_usgs_fsp_file(filename)
+        elif ext == ".txt":
+            return cls.from_slipnear_param_file(filename)
+        else:
+            raise NotImplementedError(f"Unknown extension: {ext}")
+
+    @classmethod
     def from_usgs_fsp_file(cls, fname):
         import re
         import pandas as pd
@@ -736,6 +754,13 @@ class MultiFaultPlane:
                                 )
                                 break
             return cls(fault_planes)
+
+    def temporal_crop(self, tmax):
+        """remove fault slip for t_rupt> tmax (slip fitting waveform noise?) """
+        for p, fp in enumerate(self.fault_planes):
+            ids = np.where(fp.t0 > tmax)[0]
+            if ids.size > 0:
+                fp.slip1[ids] = 0.0
 
     def generate_fault_ts_yaml_fl33(self, prefix, method, spatial_zoom, proj):
         """Generate yaml file initializing FL33 arrays and ts file describing the planar fault geometry."""
