@@ -5,7 +5,7 @@ import argparse
 import os.path
 import numpy as np
 from stf import gaussianSTF, smoothStep
-from FaultPlane import FaultPlane, MultiFaultPlane
+from multi_fault_plane import MultiFaultPlane
 
 
 def compute(filename, yaml_filename, projection, dt=0.5):

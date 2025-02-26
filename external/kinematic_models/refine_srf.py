@@ -1,6 +1,6 @@
 import os
 import argparse
-from FaultPlane import FaultPlane
+from fault_plane import FaultPlane
 
 
 def refine(

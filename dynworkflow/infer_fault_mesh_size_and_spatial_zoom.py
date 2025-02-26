@@ -14,7 +14,7 @@ absolute_path = os.path.join(current_script_dir, relative_path)
 if absolute_path not in sys.path:
     sys.path.append(absolute_path)
 
-from FaultPlane import FaultPlane, MultiFaultPlane
+from multi_fault_plane import MultiFaultPlane
 
 
 def infer_quantities(filename, proj, mesh_size=None):
