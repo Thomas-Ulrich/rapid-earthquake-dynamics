@@ -15,7 +15,7 @@ FL = 16                                        ! Friction law
 ModelFileName = '{{ fault_fname }}'
 
 !reference vector for defining strike and dip direction
-XRef = 0.0 
+XRef = -0.1 
 YRef = 0.0
 ZRef = -1.0
 refPointMethod = 1

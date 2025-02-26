@@ -29,10 +29,11 @@ unset KMP_AFFINITY
 export OMP_NUM_THREADS=48
 export OMP_PLACES="cores(48)"
 
-#export MP_SINGLE_THREAD=no
-#export OMP_NUM_THREADS=1
+export MP_SINGLE_THREAD=no
+export OMP_NUM_THREADS=1
 #export MP_TASK_AFFINITY=core:$OMP_NUM_THREADS
 
+export SLURM_EAR_LOAD_MPI_VERSION="intel"
 
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152

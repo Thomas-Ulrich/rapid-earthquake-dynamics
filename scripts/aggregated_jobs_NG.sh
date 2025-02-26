@@ -62,15 +62,14 @@ counter=0
 for filename in "${files[@]}"; do
     echo "Processing file: $filename"
     modulo=$(( $counter % $ndivide ))
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$modulo.out SeisSol_Release_sskx_4_elastic $filename&
+    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter.out SeisSol_Release_sskx_4_elastic $filename&
  
     # Increment counter
     counter=$((counter + 1))
     
-    # Wait after every SLURM_NTASKS tasks
-    if (( $counter % $ndivide == 0 )); then
-        echo "Waiting for batch of $ndivide tasks to finish..."
-        wait
+    # Ensure we don’t exceed max concurrent jobs
+    if (( $counter >= $ndivide )); then
+        wait -n  # Wait for the first finished job before launching a new one
     fi
 done
 
@@ -90,16 +89,14 @@ for filename in "${files[@]}"; do
     if [ ! -f "$output_file" ]; then
         echo "something went wrong? trying rerun seissol with file: $filename"
         modulo=$(( $counter % $ndivide ))
-        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$modulo.out SeisSol_Release_sskx_4_elastic $filename&
+        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.b.$counter.out SeisSol_Release_sskx_4_elastic $filename&
         counter=$((counter + 1))
     fi
 
-    # Wait after every SLURM_NTASKS tasks
-    if (( $counter % $ndivide == 0 && $counter != 0 )); then
-        echo "Waiting for batch of $ndivide tasks to finish..."
-        wait
+    # Ensure we don’t exceed max concurrent jobs
+    if (( $counter >= $ndivide )); then
+        wait -n  # Wait for the first finished job before launching a new one
     fi
-
 done
 
 

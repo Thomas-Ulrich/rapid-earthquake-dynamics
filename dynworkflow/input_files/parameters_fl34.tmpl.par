@@ -15,7 +15,7 @@ FL = 34                                        ! Friction law
 ModelFileName = 'yaml_files/FL33_34_fault_inst.yaml'
 
 !reference vector for defining strike and dip direction
-XRef = 0.0 
+XRef = -0.1 
 YRef = 0.0
 ZRef = -1.0
 refPointMethod = 1

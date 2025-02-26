@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job Name and Files (also --job-name)
-#SBATCH -J 2015_1.1
+#SBATCH -J gen_syn
 #Output and error (also --output, --error):
 #SBATCH -o ./%j.%x.out
 #SBATCH -e ./%j.%x.out
@@ -18,7 +18,7 @@
 #EAR may impact code performance
 #SBATCH --ear=off
 ##SBATCH --nodes=20 --partition=general --time=02:30:00
-#SBATCH --nodes=1 --partition=test --time=00:30:00  --exclude="i01r01c01s[01-07]"
+#SBATCH --nodes=1 --partition=test --time=00:30:00  --exclude="i01r01c01s[01-08]"
 
 #SBATCH --mem=80G
 
@@ -31,7 +31,7 @@ ulimit -Ss 2097152
 
 export MP_SINGLE_THREAD=no
 unset KMP_AFFINITY
-export OMP_NUM_THREADS=46
+export OMP_NUM_THREADS=48
 
 
 script_dir=../rapid-earthquake-dynamics/
