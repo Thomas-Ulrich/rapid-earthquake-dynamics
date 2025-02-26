@@ -69,7 +69,7 @@ def run_step1():
     parser.add_argument(
         "--tmax",
         nargs=1,
-        help="remove fault slip for t_rupt> tmax"
+        help="remove fault slip for t_rupt> tmax",
         type=float,
         default=[None],
     )

@@ -679,6 +679,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         def compute_rake_interp_low_slip(strike_slip, dip_slip, slip_threshold=0.1):
             "compute rake with, with interpolation is slip is too small"
             slip = np.sqrt(strike_slip**2 + dip_slip**2)
+            slip_threshold = min(slip_threshold, 0.1*np.amax(slip))
             rake = np.arctan2(dip_slip, strike_slip)
             rake[slip < slip_threshold] = np.nan
             nan_indices = np.isnan(rake)

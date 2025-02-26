@@ -8,7 +8,7 @@ from stf import gaussianSTF, smoothStep
 from multi_fault_plane import MultiFaultPlane
 
 
-def compute(filename, yaml_filename, projection, dt=0.5):
+def compute(filename, yaml_filename, projection, dt=0.5, tmax=None):
     prefix, ext = os.path.splitext(filename)
     prefix = os.path.basename(prefix)
     mfp = MultiFaultPlane.from_file(filename)

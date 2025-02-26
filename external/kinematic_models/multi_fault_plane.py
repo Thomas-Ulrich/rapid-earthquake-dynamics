@@ -1,4 +1,6 @@
 from fault_plane import FaultPlane
+import os
+import numpy as np
 
 class MultiFaultPlane:
     def __init__(self, fault_planes, hypocenter=None):
@@ -14,17 +16,20 @@ class MultiFaultPlane:
         ext = os.path.splitext(filename)[1].lower()  # Ensure lowercase extensions
 
         if ext == ".srf":
-            return cls.from_srf(filename)
+            mfp = cls.from_srf(filename)
         elif ext == ".param":
-            return cls.from_usgs_param_file(filename)
+            mfp = cls.from_usgs_param_file(filename)
         elif ext == ".param2":
-            return cls.from_usgs_param_file_alternative(filename)
+            mfp = cls.from_usgs_param_file_alternative(filename)
         elif ext == ".fsp":
-            return cls.from_usgs_fsp_file(filename)
+            mfp =  cls.from_usgs_fsp_file(filename)
         elif ext == ".txt":
-            return cls.from_slipnear_param_file(filename)
+            mfp = cls.from_slipnear_param_file(filename)
         else:
             raise NotImplementedError(f"Unknown extension: {ext}")
+        if mfp.is_static_solution():
+            mfp.hypocenter = None
+        return mfp
 
     @classmethod
     def from_usgs_fsp_file(cls, fname):
@@ -180,7 +185,14 @@ class MultiFaultPlane:
             if np.amin(fp.t0[:, :]) < t0min:
                 t0min = np.amin(fp.t0[:, :])
                 ids = np.where(fp.t0[:, :] == t0min)
-                hypocenter = [*fp.lon[ids], *fp.lat[ids], *fp.depth[ids]]
+                if len(ids[0])>1:
+                    print(ids)
+                    raise ValueError("more than one hypocenter?")
+                else:
+                    hypocenter = [*fp.lon[ids], *fp.lat[ids], *fp.depth[ids]]
+ 
+
+
         return cls(fault_planes, hypocenter)
 
     @classmethod
@@ -533,9 +545,17 @@ class MultiFaultPlane:
         """remove fault slip for t_rupt> tmax (slip fitting waveform noise?) """
         print(f"croping finite fault model, removing slip at t>{tmax}")
         for p, fp in enumerate(self.fault_planes):
-            ids = np.where(fp.t0 > tmax)[0]
-            if ids.size > 0:
-                fp.slip1[ids] = 0.0
+            ids = np.where(fp.t0 > tmax)
+            if len(ids) > 0:
+                fp.slip1[ids] = 0.01
+
+    def is_static_solution(self):
+        """check if t0==0 for all sources"""
+        static_solution=False
+        t0max = 0.0
+        for p, fp in enumerate(self.fault_planes):
+            t0max  = max(t0max, np.amax(fp.t0[:, :]))
+        return t0max == 0.0
 
     def generate_fault_ts_yaml_fl33(self, prefix, method, spatial_zoom, proj):
         """Generate yaml file initializing FL33 arrays and ts file describing the planar fault geometry."""
