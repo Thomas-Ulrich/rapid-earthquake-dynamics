@@ -12,6 +12,8 @@ def compute(filename, yaml_filename, projection, dt=0.5):
     prefix, ext = os.path.splitext(filename)
     prefix = os.path.basename(prefix)
     mfp = MultiFaultPlane.from_file(filename)
+    if tmax:
+        mfp.temporal_crop(tmax)
 
     duration = 0
     for p, fp in enumerate(mfp.fault_planes):

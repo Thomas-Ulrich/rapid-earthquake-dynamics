@@ -12,10 +12,13 @@ def main(
     projection,
     write_paraview,
     PSRthreshold,
+    tmax=None,
 ):
     prefix, ext = os.path.splitext(filename)
     prefix = os.path.basename(prefix)
     mfp = MultiFaultPlane.from_file(filename)
+    if tmax:
+        mfp.temporal_crop(tmax)
 
     for p, p1 in enumerate(mfp.fault_planes):
         p1.compute_time_array()

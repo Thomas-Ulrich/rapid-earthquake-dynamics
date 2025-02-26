@@ -66,6 +66,13 @@ def run_step1():
         type=str,
         default=["usgs"],
     )
+    parser.add_argument(
+        "--tmax",
+        nargs=1,
+        help="remove fault slip for t_rupt> tmax"
+        type=float,
+        default=[None],
+    )
 
     parser.add_argument(
         "--reference_moment_rate_function",
@@ -164,6 +171,7 @@ def run_step1():
         projection,
         write_paraview=False,
         PSRthreshold=0.0,
+        tmax=args.tmax[0]
     )
 
     modify_FL33_34_fault_instantaneous_slip.update_file(
@@ -189,7 +197,7 @@ def run_step1():
 
     generate_input_seissol_fl33.generate()
     compute_moment_rate_from_finite_fault_file.compute(
-        finite_fault_fn, "yaml_files/material.yaml", projection
+        finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax[0]
     )
     if not os.path.exists("output"):
         os.makedirs("output")
