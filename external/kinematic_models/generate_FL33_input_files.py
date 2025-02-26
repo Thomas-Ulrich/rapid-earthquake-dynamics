@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import argparse
-from FaultPlane import FaultPlane, MultiFaultPlane
+from multi_fault_plane import MultiFaultPlane
 import os.path
 
 
