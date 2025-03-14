@@ -9,8 +9,9 @@ import os
 
 def generate(h_domain, h_fault, interactive):
     # domain dimensions
-    length_added = 120e3
+    length_added = 170e3
     z0, z1 = -length_added, 0
+    # z0, z1 = -length_added, 5e3
 
     gmsh.initialize()
     gmsh.model.add("finite-fault")
@@ -163,10 +164,12 @@ def generate(h_domain, h_fault, interactive):
 
     gmsh.model.addPhysicalGroup(3, [1], 1)
     gmsh.option.setNumber("Mesh.Algorithm3D", 10)
-    gmsh.model.mesh.generate(3)
+    gmsh.model.mesh.generate(2)
 
     if not os.path.exists("tmp"):
         os.makedirs("tmp")
+    gmsh.write("tmp/mesh2d.stl")
+    gmsh.model.mesh.generate(3)
     gmsh.write("tmp/mesh.msh")
 
     if interactive:
