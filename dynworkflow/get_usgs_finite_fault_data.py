@@ -6,6 +6,7 @@ import argparse
 import shutil
 import numpy as np
 from obspy import UTCDateTime
+from datetime import datetime, timezone
 
 
 def find_key_recursive(data, target_key, current_path=None):
@@ -119,9 +120,11 @@ def get_data(
 
     mag = get_value_from_usgs_data(jsondata, "mag")
     place = get_value_from_usgs_data(jsondata, "place")
-    dyfi = get_value_from_usgs_data(jsondata, "dyfi")[0]
-    eventtime = dyfi["properties"]["eventtime"]
-    day = eventtime.split("T")[0]
+
+    # Convert to timestamp in milliseconds seconds
+    eventtime = float(get_value_from_usgs_data(jsondata, "time")) / 1000.0
+    day = datetime.fromtimestamp(eventtime, tz=timezone.utc).strftime("%Y-%m-%d")
+
     descr = "_".join(place.split(",")[-1].split())
 
     if use_usgs_finite_fault or download_usgs_fsp:
@@ -153,8 +156,15 @@ def get_data(
     if not os.path.exists(f"{folder_name}/tmp"):
         os.makedirs(f"{folder_name}/tmp")
 
-    lon = float(dyfi["properties"]["longitude"])
-    lat = float(dyfi["properties"]["latitude"])
+    # we use the first released hypoccenter for the projection, to avoid having change
+    # in the projection if there is an update
+    origin = get_value_from_usgs_data(jsondata, "origin")
+    first_released_index = min(
+        range(len(origin)), key=lambda i: origin[i]["updateTime"]
+    )
+    lon = float(origin[0]["properties"]["longitude"])
+    lat = float(origin[0]["properties"]["latitude"])
+
     projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon:.2f} +lat_0={lat:.2f}"
     with open(f"{folder_name}/tmp/projection.txt", "w") as f:
         f.write(projection)

@@ -17,13 +17,13 @@ def generate_waveform_config_file(ignore_source_files=False):
     with open(fn_json) as f:
         jsondata = json.load(f)
 
-    dyfi = get_value_from_usgs_data(jsondata, "dyfi")[0]
-    eventtime = dyfi["properties"]["eventtime"]
-
     code = get_value_from_usgs_data(jsondata, "code")
-    hypocenter_x = dyfi["properties"]["longitude"]
-    hypocenter_y = dyfi["properties"]["latitude"]
-    hypocenter_z = dyfi["properties"]["depth"]
+    origin = get_value_from_usgs_data(jsondata, "origin")
+    preferred = max(range(len(origin)), key=lambda k: origin[k]["preferredWeight"])
+    hypocenter_x = float(origin[preferred]["properties"]["longitude"])
+    hypocenter_y = float(origin[preferred]["properties"]["latitude"])
+    hypocenter_z = float(origin[preferred]["properties"]["depth"])
+    eventtime = origin[preferred]["properties"]["eventtime"]
 
     moment_tensor = get_value_from_usgs_data(jsondata, "moment-tensor")[0]
     duration = moment_tensor["properties"]["sourcetime-duration"]
