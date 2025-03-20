@@ -94,6 +94,15 @@ def run_step1():
         type=str,
         default=["auto"],
     )
+    parser.add_argument(
+        "--projection",
+        nargs=1,
+        help="""Specify the projection:
+        - auto: custom transverse mercator centered roughly on the hypocenter.
+        - Alternatively, provide a projection in proj4 format""",
+        type=str,
+        default=["auto"],
+    )
 
     args = parser.parse_args()
     vel_model = args.velocity_model[0]
@@ -143,8 +152,13 @@ def run_step1():
     with open(f"tmp/reference_STF.txt", "w") as f:
         f.write(refMRFfile)
 
-    with open("tmp/projection.txt", "r") as fid:
-        projection = fid.read()
+    projection = args.projection[0]
+    if projection == "auto":
+        with open("tmp/projection.txt", "r") as fid:
+            projection = fid.read()
+    else:
+        with open("tmp/projection.txt", "w") as f:
+            f.write(projection)
 
     if finite_fault_model != "usgs":
         finite_fault_fn = shutil.copy(finite_fault_model, "tmp")
@@ -171,7 +185,7 @@ def run_step1():
         projection,
         write_paraview=False,
         PSRthreshold=0.0,
-        tmax=args.tmax[0]
+        tmax=args.tmax[0],
     )
 
     modify_FL33_34_fault_instantaneous_slip.update_file(
