@@ -62,7 +62,8 @@ counter=0
 for filename in "${files[@]}"; do
     echo "Processing file: $filename"
     modulo=$(( $counter % $ndivide ))
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter.out SeisSol_Release_sskx_4_elastic $filename&
+    counter0=$(printf "%05d" "$counter")
+    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter0.out SeisSol_Release_sskx_4_elastic $filename&
  
     # Increment counter
     counter=$((counter + 1))
@@ -89,7 +90,8 @@ for filename in "${files[@]}"; do
     if [ ! -f "$output_file" ]; then
         echo "something went wrong? trying rerun seissol with file: $filename"
         modulo=$(( $counter % $ndivide ))
-        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.b.$counter.out SeisSol_Release_sskx_4_elastic $filename&
+        counter0=$(printf "%05d" "$counter")
+        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_4_elastic $filename&
         counter=$((counter + 1))
     fi
 
