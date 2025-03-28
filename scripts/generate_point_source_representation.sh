@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job Name and Files
-#SBATCH -J 2015_1.1
+#SBATCH -J PSrep
 #SBATCH -o ./%j.%x.out
 #SBATCH -e ./%j.%x.out
 #SBATCH --chdir=./

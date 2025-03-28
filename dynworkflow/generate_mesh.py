@@ -9,7 +9,7 @@ import os
 
 def generate(h_domain, h_fault, interactive):
     # domain dimensions
-    length_added = 170e3
+    length_added = 200e3
     z0, z1 = -length_added, 0
     # z0, z1 = -length_added, 5e3
 
@@ -24,7 +24,7 @@ def generate(h_domain, h_fault, interactive):
     allv = []
     faults = []
     ts_files = sorted(glob.glob(f"tmp/*.ts"))
-
+    print("generating mesh based on the following ts_files", ts_files)
     for i, fn in enumerate(ts_files):
         vertices = []
         with open(fn, "r") as file:

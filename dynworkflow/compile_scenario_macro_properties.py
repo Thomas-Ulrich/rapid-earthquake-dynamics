@@ -585,6 +585,11 @@ if __name__ == "__main__":
     ).reset_index(drop=True)
     print(selected_rows.to_string())
 
+    selected_rows = selected_rows.sort_values(
+        by="combined_gof", ascending=False
+    ).reset_index(drop=True)
+    print(selected_rows.to_string())
+
     fname = "tmp/selected_output.txt"
     with open(fname, "w") as fid:
         for index, row in selected_rows.iterrows():
