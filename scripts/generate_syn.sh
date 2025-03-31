@@ -33,13 +33,13 @@ export MP_SINGLE_THREAD=no
 unset KMP_AFFINITY
 export OMP_NUM_THREADS=48
 
-
+output_dir=extracted_output
 script_dir=../rapid-earthquake-dynamics/
-$script_dir/dynworkflow/compute_gof_fault_slip.py extracted_output/dyn_ extracted_output/dyn-kinmod_extracted-fault.xdmf
-$script_dir/dynworkflow/compute_percentage_supershear.py extracted_output/dyn_ tmp/axitra_velocity_model.txt
+$script_dir/dynworkflow/compute_gof_fault_slip.py $output_dir/dyn_ $output_dir/dyn-kinmod_extracted-fault.xdmf
+$script_dir/dynworkflow/compute_percentage_supershear.py $output_dir/dyn_ tmp/axitra_velocity_model.txt
 $script_dir/dynworkflow/add_source_files_to_waveform_config.py
 export OMP_NUM_THREADS=$(grep -c ^processor /proc/cpuinfo)
 $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_sources.ini
-$script_dir/dynworkflow/compile_scenario_macro_properties.py extracted_output
+$script_dir/dynworkflow/compile_scenario_macro_properties.py $output_dir
 
 
