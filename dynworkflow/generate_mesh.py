@@ -21,12 +21,35 @@ def generate(h_domain, h_fault, interactive):
 
     # Regular expression patterns to match vertex lines
     vertex_pattern = re.compile(r"VRTX (\d+) ([\d.-]+) ([\d.-]+) ([\d.-]+)")
+
+    # Dictionary to store all unique vertices: {(x,y,z): gmsh_point_id}
+    vertex_dict = {}
+    # List to keep track of all vertices for later use
     allv = []
     faults = []
+
+    # Function to find nearest point or add a new one
+    def get_point_id(x, y, z, tolerance=500):
+        # Check if a nearby point exists
+        for (ex, ey, ez), point_id in vertex_dict.items():
+            dist2 = (x - ex) ** 2 + (y - ey) ** 2 + (z - ez) ** 2
+            if dist2 < tolerance**2:
+                print(
+                    f"Found an almost duplicated vertex at ({x},{y},{z}), merging with ({ex},{ey},{ez})"
+                )
+                return point_id, (ex, ey, ez)
+
+        # If no duplicate found, create a new point
+        new_point_id = gmsh.model.occ.addPoint(x, y, z)
+        vertex_dict[(x, y, z)] = new_point_id
+        return new_point_id, (x, y, z)
+
     ts_files = sorted(glob.glob(f"tmp/*.ts"))
     print("generating mesh based on the following ts_files", ts_files)
+
+    other_triangle = {}
     for i, fn in enumerate(ts_files):
-        vertices = []
+        file_vertices = []
         with open(fn, "r") as file:
             for line in file:
                 match = vertex_pattern.match(line)
@@ -34,37 +57,50 @@ def generate(h_domain, h_fault, interactive):
                     vertex_id, x, y, z = map(float, match.groups())
                     if z > -h_fault:
                         z = 0.0
-                    for vert in allv:
-                        dist2_to_v = (
-                            (x - vert[0]) ** 2 + (y - vert[1]) ** 2 + (z - vert[2]) ** 2
-                        )
-                        if dist2_to_v < 100**2:
-                            x, y, z = vert
-                            print("found an almost duplicated vertex, merging...")
-                            break
-                    vertices.append([x, y, z])
-        allv.extend(vertices)
-        vertices = np.array(vertices)
-        # Define the points
-        point1 = gmsh.model.occ.addPoint(*vertices[0, :])
-        point2 = gmsh.model.occ.addPoint(*vertices[1, :])
-        # Define the B-spline curve
-        curve = gmsh.model.occ.addBSpline([point1, point2])
-        # Extrude the curve
-        extrude_dir = vertices[2, :] - vertices[1, :]
-        extrusion_results = gmsh.model.occ.extrude([(1, curve)], *extrude_dir)
-        # Extract the tuple with 2 as the first item
-        fault = next((t for t in extrusion_results if t[0] == 2), None)
-        faults.append(fault)
+
+                    # Get or create the point ID and get the actual coordinates used
+                    point_id, coords = get_point_id(x, y, z)
+                    file_vertices.append(coords)
+
+        # Add unique vertices to allv
+        allv.extend(file_vertices)
+
+        vertices = np.array(file_vertices)
+
+        if len(vertices) >= 4:  # Assuming we need at least 4 points for a surface
+            # Get the Gmsh point IDs for our vertices
+            point1 = vertex_dict[tuple(vertices[0])]
+            point2 = vertex_dict[tuple(vertices[1])]
+            point3 = vertex_dict[tuple(vertices[2])]
+            point4 = vertex_dict[tuple(vertices[3])]
+
+            # Create lines for triangle 1: (point1, point2, point3)
+            line1 = gmsh.model.occ.addLine(point1, point2)
+            line2 = gmsh.model.occ.addLine(point2, point3)
+            line3 = gmsh.model.occ.addLine(point3, point1)
+            curve_loop1 = gmsh.model.occ.addCurveLoop([line1, line2, line3])
+            triangle1 = gmsh.model.occ.addPlaneSurface([curve_loop1])
+
+            # Create lines for triangle 2: (point1, point3, point4)
+            # Reuse line3 (point3 -> point1) in reverse
+            line4 = gmsh.model.occ.addLine(point3, point4)
+            line5 = gmsh.model.occ.addLine(point4, point1)
+            curve_loop2 = gmsh.model.occ.addCurveLoop([line4, line5, -line3])
+            triangle2 = gmsh.model.occ.addPlaneSurface([curve_loop2])
+
+            # # Store both triangles as the fault
+            faults.append((2, triangle1))
+            faults.append((2, triangle2))
 
     # compute fault normals
     gmsh.model.occ.synchronize()
 
     fault_normals = []
-    for i, fn in enumerate(ts_files):
+    for i, fault in enumerate(faults):
         fault_normal = gmsh.model.getNormal(fault[1], [0.5, 0.5])
         fault_normals.append(fault_normal)
 
+    # Convert allv to numpy array for further processing
     allv = np.array(allv)
     min_x, max_x = np.min(allv[:, 0]), np.max(allv[:, 0])
     min_y, max_y = np.min(allv[:, 1]), np.max(allv[:, 1])
@@ -81,7 +117,6 @@ def generate(h_domain, h_fault, interactive):
     gmsh.model.occ.synchronize()
 
     # now retrieves which surface is where
-
     all_points = gmsh.model.getEntities(dim=0)
     coords = np.zeros((len(all_points), 3))
     pt2vertexid = {}
@@ -112,7 +147,7 @@ def generate(h_domain, h_fault, interactive):
         surf_coords = coords[list(vids), :]
         zmin = np.min(surf_coords[:, 2])
         stag = surface[1]
-        # print('s',stag, pts)
+        # print('s',tag, pts)
         if zmin > -0.01:
             # free surface
             tags[1].append(stag)
@@ -125,13 +160,16 @@ def generate(h_domain, h_fault, interactive):
                 fault_id = 3 if i == 0 else 64 + i
                 j = i * 4
                 nb_match = 0
+                num_vertices = len(pts)
+
                 for k in range(4):
-                    v1 = allv[j + k, :]
-                    dist = np.min(np.linalg.norm(surf_coords - v1, axis=1))
-                    # print(i,k, dist)
-                    if dist < 200:
-                        nb_match += 1
-                if nb_match > 1:
+                    if j + k < len(allv):  # Ensure index is in bounds
+                        v1 = allv[j + k, :]
+                        dist = np.min(np.linalg.norm(surf_coords - v1, axis=1))
+                        # print(i,k, dist)
+                        if dist < 500:
+                            nb_match += 1
+                if nb_match == num_vertices:
                     tags[fault_id].append(stag)
                     tagged = True
                     break
