@@ -217,6 +217,7 @@ class MultiFaultPlane:
 
         istart = 1
         fault_planes = []
+        t0min = 1e99
         for i_seg in range(nseg):
             fault_planes.append(FaultPlane())
             fp = fault_planes[i_seg]
@@ -243,7 +244,6 @@ class MultiFaultPlane:
             ).all(), (
                 "AssertionError: Not all rupture time are greater than or equal to 0."
             )
-            t0min = 1e99
             for j in range(fp.ny):
                 for i in range(fp.nx):
                     k = j * fp.nx + i

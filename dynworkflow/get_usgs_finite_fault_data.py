@@ -126,8 +126,8 @@ def get_data(
     day = datetime.fromtimestamp(eventtime, tz=timezone.utc).strftime("%Y-%m-%d")
 
     descr = "_".join(place.split(",")[-1].split())
-    #remove parenthesis in descr
-    descr = descr.replace('(', '').replace(')', '')
+    # remove parenthesis in descr
+    descr = descr.replace("(", "").replace(")", "")
 
     if use_usgs_finite_fault or download_usgs_fsp:
         finite_faults = get_value_from_usgs_data(jsondata, "finite-fault")
