@@ -343,6 +343,10 @@ if __name__ == "__main__":
     dic_values["cohesion"] = semicolon_separated_string_to_list_of_tuples(
         args.cohesionvalues[0]
     )
+    with open("config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
+
     dic_values["nsamples"] = args.nsamples[0]
     print(dic_values)
     generate(args.mode, dic_values)

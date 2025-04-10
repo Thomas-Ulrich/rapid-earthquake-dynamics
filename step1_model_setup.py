@@ -81,6 +81,13 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--mu_delta_min",
+        type=float,
+        default=0.01,
+        help="minimum allowed mu_s - mu_d",
+    )
+
+    parser.add_argument(
         "--tmax",
         type=float,
         default=None,

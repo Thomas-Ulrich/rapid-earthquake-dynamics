@@ -57,7 +57,7 @@
           T_d = T_d * Tau0_max/Tau0
           Tau0 =  math.sqrt(T_s^2 + T_d^2)
         end
-        mu_s =  x['mu_d'] + math.max(0.01, (Tau0/sigma_n - x['mu_d'])/R + cohesion/sigma_n)
+        mu_s =  x['mu_d'] + math.max({{ mu_delta_min }}, (Tau0/sigma_n - x['mu_d'])/R + cohesion/sigma_n)
         mu_d = x['mu_d']
         return {
           T_s = T_s,
