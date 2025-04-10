@@ -143,13 +143,13 @@ def run_step1():
             refMRFfile = "tmp/moment_rate_from_finite_source_file.txt"
     elif os.path.exists(refMRF):
         # test loading
-        mr_ref = np.loadtxt(refMRF, skiprows=2)
+        np.loadtxt(refMRF, skiprows=2)
         refMRFfile = os.path.join("tmp", refMRF)
         refMRFfile = shutil.copy(refMRF, "tmp")
     else:
         raise FileNotFoundError(f"{refMRF} does not exists")
 
-    with open(f"tmp/reference_STF.txt", "w") as f:
+    with open("tmp/reference_STF.txt", "w") as f:
         f.write(refMRFfile)
 
     projection = args.projection[0]
@@ -163,7 +163,7 @@ def run_step1():
     if finite_fault_model != "usgs":
         finite_fault_fn = shutil.copy(finite_fault_model, "tmp")
     else:
-        finite_fault_fn = f"tmp/basic_inversion.param"
+        finite_fault_fn = "tmp/basic_inversion.param"
 
     (
         spatial_zoom,
@@ -172,10 +172,10 @@ def run_step1():
         finite_fault_fn, projection
     )
 
-    with open(f"tmp/inferred_spatial_zoom.txt", "w") as f:
+    with open("tmp/inferred_spatial_zoom.txt", "w") as f:
         f.write(str(spatial_zoom))
 
-    with open(f"tmp/inferred_fault_mesh_size.txt", "w") as f:
+    with open("tmp/inferred_fault_mesh_size.txt", "w") as f:
         f.write(str(fault_mesh_size))
 
     generate_FL33_input_files.main(
@@ -188,9 +188,7 @@ def run_step1():
         tmax=args.tmax[0],
     )
 
-    modify_FL33_34_fault_instantaneous_slip.update_file(
-        f"yaml_files/FL33_34_fault.yaml"
-    )
+    modify_FL33_34_fault_instantaneous_slip.update_file("yaml_files/FL33_34_fault.yaml")
 
     if vel_model == "slipnear":
         print("using slipnear 1D velocity model")

@@ -382,10 +382,10 @@ class FaultPlane:
         misfits_Yoffe = np.array(misfits_Yoffe)
         misfits_Gaussian = np.array(misfits_Gaussian)
         print(
-            f"misfit Yoffe (10-50-90%): {np.percentile(misfits_Yoffe,10):.2f} {np.percentile(misfits_Yoffe,50):.2f} {np.percentile(misfits_Yoffe,90):.2f}"
+            f"misfit Yoffe (10-50-90%): {np.percentile(misfits_Yoffe, 10):.2f} {np.percentile(misfits_Yoffe, 50):.2f} {np.percentile(misfits_Yoffe, 90):.2f}"
         )
         print(
-            f"misfit Gaussian (10-50-90%): {np.percentile(misfits_Gaussian,10):.2f} {np.percentile(misfits_Gaussian,50):.2f} {np.percentile(misfits_Gaussian,90):.2f}"
+            f"misfit Gaussian (10-50-90%): {np.percentile(misfits_Gaussian, 10):.2f} {np.percentile(misfits_Gaussian, 50):.2f} {np.percentile(misfits_Gaussian, 90):.2f}"
         )
 
         self.rise_time = interpolate_nan_from_neighbors(self.rise_time)
@@ -647,7 +647,6 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             os.makedirs("ASAGI_files")
 
         cm2m = 0.01
-        km2m = 1e3
         # a kinematic model defines the fault quantities at the subfault center
         # a netcdf file defines the quantities at the nodes
         # therefore the extra_padding_layer=True, and the added di below
@@ -711,7 +710,6 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
 
         rake = compute_rake_interp_low_slip(strike_slip, dip_slip)
 
-        dx = np.sqrt(self.PSarea_cm2 * cm2m * cm2m)
         ldataName = [
             "strike_slip",
             "dip_slip",
@@ -757,14 +755,6 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         p2 = np.array(
             [self.x[0, nx - 1], self.y[0, nx - 1], -km2m * self.depth[0, nx - 1]]
         )
-        p3 = np.array(
-            [
-                self.x[ny - 1, nx - 1],
-                self.y[ny - 1, nx - 1],
-                -km2m * self.depth[ny - 1, nx - 1],
-            ]
-        )
-
         hw = p1 - p0
         dx2 = np.linalg.norm(hw) / (ny - 1)
         self.affine_map["hw"] = hw / np.linalg.norm(hw)

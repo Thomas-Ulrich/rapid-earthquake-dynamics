@@ -15,7 +15,7 @@ import generate_fault_output_from_fl33_input_files
 import project_fault_tractions_onto_asagi_grid
 
 if __name__ == "__main__":
-    with open(f"tmp/inferred_fault_mesh_size.txt", "r") as f:
+    with open("tmp/inferred_fault_mesh_size.txt", "r") as f:
         inferred_fault_mesh_size = float(f.read())
 
     fl33_file = "output/fl33-fault.xdmf"
