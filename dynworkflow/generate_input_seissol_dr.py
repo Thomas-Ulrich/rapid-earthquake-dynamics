@@ -14,6 +14,7 @@ import argparse
 from pyproj import Transformer
 import yaml
 
+
 def generate(mode, dic_values):
     if not os.path.exists("yaml_files"):
         os.makedirs("yaml_files")
