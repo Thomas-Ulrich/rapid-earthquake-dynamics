@@ -12,7 +12,7 @@ from dynworkflow.compile_scenario_macro_properties import infer_duration
 import seissolxdmf as sx
 import argparse
 from pyproj import Transformer
-
+import yaml
 
 def generate(mode, dic_values):
     if not os.path.exists("yaml_files"):
