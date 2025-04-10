@@ -56,7 +56,7 @@ def run_step1():
         description="automatically setup a dynamic rupture model from a kinematic model"
     )
     parser.add_argument(
-        "usgs_id_or_dtgeo_npy",
+        "event_id",
         help="usgs earthquake code or event dictionnary (dtgeo workflow)",
     )
     parser.add_argument(
@@ -126,7 +126,7 @@ def run_step1():
             vel_model = "usgs"
 
     folder_name = get_usgs_finite_fault_data.get_data(
-        args.usgs_id_or_dtgeo_npy,
+        args.event_id,
         min_magnitude=6,
         suffix=suffix,
         use_usgs_finite_fault=(finite_fault_model == "usgs"),
