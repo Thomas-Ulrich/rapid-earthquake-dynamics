@@ -33,6 +33,13 @@ if __name__ == "__main__":
     # mode = 'latin_hypercube'
     # mode = "picked_models"
     dic_values = {}
+    with open("config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    mesh_file = dic_values["mesh"]
+    mesh_file = "tmp/mesh.puml.h5" if mesh_file == "auto"
+    dic_values["mesh_file"] = mesh_file
+    dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
+
     if mode == "picked_models":
         dic_values["B"] = [0.9, 1.0, 1.2]
         dic_values["C"] = [0.3 for i in range(3)]
@@ -47,8 +54,5 @@ if __name__ == "__main__":
         dic_values["cohesion"] = [(0.25, 1)]
         # only relevant for Latin Hypercube
         dic_values["nsamples"] = 50
-        with open("config.yaml", "r") as f:
-            config_dict = yaml.safe_load(f)
-        dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
 
         generate_input_seissol_dr.generate(mode, dic_values)

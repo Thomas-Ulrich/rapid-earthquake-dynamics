@@ -81,6 +81,13 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--mesh",
+        type=str,
+        default="auto",
+        help="Path to an alternative mesh file",
+    )
+
+    parser.add_argument(
         "--mu_delta_min",
         type=float,
         default=0.01,
@@ -270,11 +277,14 @@ def run_step1():
         shutil.copy(vel_model, "tmp")
         prepare_velocity_model_files.generate_arbitrary_velocity_files(vel_model)
 
-    generate_mesh.generate(h_domain=20e3, h_fault=fault_mesh_size, interactive=False)
+    if args.mesh == "auto":
+        generate_mesh.generate(
+            h_domain=20e3, h_fault=fault_mesh_size, interactive=False
+        )
 
-    result = os.system("pumgen -s msh4 tmp/mesh.msh")
-    if result != 0:
-        sys.exit(1)
+        result = os.system("pumgen -s msh4 tmp/mesh.msh")
+        if result != 0:
+            sys.exit(1)
 
     generate_input_seissol_fl33.generate()
     compute_moment_rate_from_finite_fault_file.compute(
