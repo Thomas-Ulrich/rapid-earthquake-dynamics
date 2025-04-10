@@ -6,7 +6,6 @@ from dynworkflow import (
     generate_mesh,
     generate_input_seissol_fl33,
     prepare_velocity_model_files,
-    generate_input_seissol_dr,
     generate_waveform_config_from_usgs,
 )
 
@@ -35,7 +34,6 @@ for relative_path in relative_paths:
 import generate_FL33_input_files
 import compute_moment_rate_from_finite_fault_file
 import generate_fault_output_from_fl33_input_files
-import project_fault_tractions_onto_asagi_grid
 import vizualizeBoundaryConditions
 
 
@@ -56,7 +54,7 @@ def run_step1():
         description="automatically setup a dynamic rupture model from a kinematic model"
     )
     parser.add_argument(
-        "usgs_id_or_dtgeo_npy",
+        "event_id",
         help="usgs earthquake code or event dictionnary (dtgeo workflow)",
     )
     parser.add_argument(
@@ -77,9 +75,12 @@ def run_step1():
     parser.add_argument(
         "--reference_moment_rate_function",
         nargs=1,
-        help=""" Specify a reference moment rate function (for DR model ranking)
-        - auto: if usgs, will download and use the STF, else moment rate inferred from the finite fault model file.
-        - Alternatively, provide a STF in usgs format (2 lines of header).""",
+        help=(
+            "Specify a reference moment rate function (for DR model ranking). "
+            "- auto: if usgs, will download and use the STF, else moment rate "
+            "inferred from the finite fault model file. "
+            "Alternatively, provide a STF in usgs format (2 lines of header)."
+        ),
         type=str,
         default=["auto"],
     )
@@ -87,13 +88,17 @@ def run_step1():
     parser.add_argument(
         "--velocity_model",
         nargs=1,
-        help="""Specify the velocity model:
-        - auto: same as option usgs, but use the Slipnear velocity model for a Slipnear kinematic model.
-        - usgs: Read the velocity model from the usgs finite fault model FSP file.
-        - Alternatively, provide a velocity model in Axitra format.""",
+        help=(
+            "Specify the velocity model: "
+            "- auto: same as option usgs, but use the Slipnear velocity model for a "
+            "Slipnear kinematic model. "
+            "- usgs: Read the velocity model from the usgs finite fault model FSP file."
+            "Alternatively, provide a velocity model in Axitra format."
+        ),
         type=str,
         default=["auto"],
     )
+
     parser.add_argument(
         "--projection",
         nargs=1,
@@ -126,7 +131,7 @@ def run_step1():
             vel_model = "usgs"
 
     folder_name = get_usgs_finite_fault_data.get_data(
-        args.usgs_id_or_dtgeo_npy,
+        args.event_id,
         min_magnitude=6,
         suffix=suffix,
         use_usgs_finite_fault=(finite_fault_model == "usgs"),
@@ -143,13 +148,13 @@ def run_step1():
             refMRFfile = "tmp/moment_rate_from_finite_source_file.txt"
     elif os.path.exists(refMRF):
         # test loading
-        mr_ref = np.loadtxt(refMRF, skiprows=2)
+        np.loadtxt(refMRF, skiprows=2)
         refMRFfile = os.path.join("tmp", refMRF)
         refMRFfile = shutil.copy(refMRF, "tmp")
     else:
         raise FileNotFoundError(f"{refMRF} does not exists")
 
-    with open(f"tmp/reference_STF.txt", "w") as f:
+    with open("tmp/reference_STF.txt", "w") as f:
         f.write(refMRFfile)
 
     projection = args.projection[0]
@@ -163,7 +168,7 @@ def run_step1():
     if finite_fault_model != "usgs":
         finite_fault_fn = shutil.copy(finite_fault_model, "tmp")
     else:
-        finite_fault_fn = f"tmp/basic_inversion.param"
+        finite_fault_fn = "tmp/basic_inversion.param"
 
     (
         spatial_zoom,
@@ -172,10 +177,10 @@ def run_step1():
         finite_fault_fn, projection
     )
 
-    with open(f"tmp/inferred_spatial_zoom.txt", "w") as f:
+    with open("tmp/inferred_spatial_zoom.txt", "w") as f:
         f.write(str(spatial_zoom))
 
-    with open(f"tmp/inferred_fault_mesh_size.txt", "w") as f:
+    with open("tmp/inferred_fault_mesh_size.txt", "w") as f:
         f.write(str(fault_mesh_size))
 
     generate_FL33_input_files.main(
@@ -188,9 +193,7 @@ def run_step1():
         tmax=args.tmax[0],
     )
 
-    modify_FL33_34_fault_instantaneous_slip.update_file(
-        f"yaml_files/FL33_34_fault.yaml"
-    )
+    modify_FL33_34_fault_instantaneous_slip.update_file("yaml_files/FL33_34_fault.yaml")
 
     if vel_model == "slipnear":
         print("using slipnear 1D velocity model")
@@ -248,7 +251,8 @@ def select_station_and_download_waveforms():
     ]
     subprocess.run(command, check=True)
     print(
-        "done selecting stations. If you are not satisfied, change waveforms_config.ini and rerun:"
+        "Done selecting stations. If you are not satisfied, change "
+        "waveforms_config.ini and rerun:"
     )
     scommand = " ".join(command)
     print(f"{scommand}")

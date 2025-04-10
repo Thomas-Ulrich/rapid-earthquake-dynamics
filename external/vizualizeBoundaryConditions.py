@@ -135,7 +135,10 @@ def custom_choice(value):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Read a PUML mesh and create a xdmf/h5 file containing the surface boundary mesh"
+        description=(
+            "Read a PUML mesh and create a xdmf/h5 file containing the surface boundary"
+            " mesh"
+        )
     )
     parser.add_argument(
         "filename",
@@ -144,9 +147,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "BC",
         type=custom_choice,
-        help="boundary condition can be 'all', 'free-surface', 'faults', 'absorbing' or an integer.",
+        help=(
+            "Boundary condition can be 'all', 'free-surface', 'faults', 'absorbing' or "
+            "an integer."
+        ),
     )
-
     args = parser.parse_args()
-
     generate_boundary_file(args.filename, args.BC)

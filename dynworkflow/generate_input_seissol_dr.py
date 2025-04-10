@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 import numpy as np
 import glob
-import re
 import os
 import jinja2
-from sklearn.decomposition import PCA
 import shutil
 from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
 from scipy.stats import qmc
 import random
 import itertools
 from dynworkflow.compile_scenario_macro_properties import infer_duration
-import warnings
 import seissolxdmf as sx
 import argparse
 from pyproj import Transformer
@@ -41,7 +38,7 @@ def generate(mode, dic_values):
     input_file_dir = f"{script_directory}/input_files"
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
-    number_of_segments = len(glob.glob(f"tmp/*.ts"))
+    number_of_segments = len(glob.glob("tmp/*.ts"))
     print(f"found {number_of_segments} segments")
 
     assert mode in ["latin_hypercube", "grid_search", "picked_models"]
@@ -119,13 +116,12 @@ def generate(mode, dic_values):
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)
         outputText = template.render(template_par)
-        fn_tractions = out_fname
         with open(out_fname, "w") as fid:
             fid.write(outputText)
         if verbose:
             print(f"done creating {out_fname}")
 
-    with open(f"tmp/projection.txt", "r") as f:
+    with open("tmp/projection.txt", "r") as f:
         projection = f.read()
     transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
     hypo = np.loadtxt("tmp/hypocenter.txt")
@@ -219,7 +215,8 @@ def generate(mode, dic_values):
         fl33_file = "extracted_output/fl33_extracted-fault.xdmf"
     else:
         raise FileNotFoundError(
-            f"The files output/fl33-fault.xdmf or extracted_output/fl33_extracted-fault.xdmf were not found."
+            "The files output/fl33-fault.xdmf or "
+            "extracted_output/fl33_extracted-fault.xdmf were not found."
         )
 
     list_nucleation_size = compute_critical_nucleation(
@@ -268,7 +265,7 @@ def generate(mode, dic_values):
     parts = np.array_split(np.arange(nfiles), n)
     split_files = [list(np.array(parameter_files)[part]) for part in parts]
     for i, part in enumerate(split_files):
-        part_filename = f"part_{i+1}.txt"
+        part_filename = f"part_{i + 1}.txt"
         with open(part_filename, "w") as f:
             for par_file in part:
                 f.write(par_file + "\n")
@@ -282,14 +279,18 @@ if __name__ == "__main__":
     paramC = [0.1, 0.2, 0.3, 0.4, 0.5]
     paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
     paramCoh = [(0.25, 1)]
-    list_to_semicolon_separated_string = lambda li: ";".join([str(v) for v in li])
-    semicolon_separated_string_to_list = lambda li: [float(v) for v in li.split(";")]
-    list_of_tuples_to_semicolon_separated_string = lambda li: ";".join(
-        [f"{v[0]} {v[1]}" for v in li]
-    )
-    semicolon_separated_string_to_list_of_tuples = lambda s: [
-        tuple(map(float, w.split())) for w in s.split(";")
-    ]
+
+    def list_to_semicolon_separated_string(li):
+        return ";".join(str(v) for v in li)
+
+    def semicolon_separated_string_to_list(li):
+        return [float(v) for v in li.split(";")]
+
+    def list_of_tuples_to_semicolon_separated_string(li):
+        return ";".join(f"{v[0]} {v[1]}" for v in li)
+
+    def semicolon_separated_string_to_list_of_tuples(s):
+        return [tuple(map(float, w.split())) for w in s.split(";")]
 
     parser = argparse.ArgumentParser(
         description="automatically generate input files for dynamic rupture models"
@@ -321,7 +322,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cohesionvalues",
         nargs=1,
-        help="fault cohesion (c0 + c1*sigma_zz) values, 2 value per parameter set, separated by';'",
+        help=(
+            "fault cohesion (c0 + c1*sigma_zz) values, "
+            "2 value per parameter set, separated by';'"
+        ),
         default=list_of_tuples_to_semicolon_separated_string(paramCoh),
     )
     parser.add_argument(

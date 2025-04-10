@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import pandas as pd
-import numpy as np
 import matplotlib.pylab as plt
+import numpy as np
 import argparse
 import matplotlib
 import os
 import glob
 import re
-from obspy.signal.cross_correlation import correlate, correlate_template, xcorr_max
+from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
 from cmcrameri import cm
 import pickle
@@ -65,7 +65,8 @@ def extract_params_from_prefix(fname: str) -> dict:
         out["R"] = R_value
 
     patterns = [
-        r"dyn[/_-]([^_]+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)(?:_[^_]+)?-energy.csv",
+        r"dyn[/_-]([^_]+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)"
+        r"(?:_[^_]+)?-energy.csv",
         r"dyn[/_-]([^_]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)(?:_[^_]+)?energy.csv",
     ]
 
@@ -470,7 +471,7 @@ if __name__ == "__main__":
         print("gof_average.pkl detected: merging with results dataframe")
         gofa = pickle.load(open("gof_average.pkl", "rb"))
         gofa["sim_id"] = gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")
-        gofa = gofa[gofa["gofa_name"].str.contains("surface_waves_ENZ\d+")]
+        gofa = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
         gofa = gofa[["gofa", "sim_id"]]
         # merge the two DataFrames by sim_id
         result_df = pd.merge(result_df, gofa, on="sim_id")
@@ -535,7 +536,7 @@ if __name__ == "__main__":
         df["seismic_moment_rate"] = np.gradient(df["seismic_moment"], dt)
 
         if one_model_shown:
-            label = f"simulation"
+            label = "simulation"
         else:
             label = ""
             names = ["coh", "B", "C", "R"]

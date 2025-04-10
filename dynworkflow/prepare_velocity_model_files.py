@@ -17,9 +17,9 @@ parameters: [rho, mu, lambda, Qp, Qs]
 nodes:\n"""
     for index, row in df.iterrows():
         to_write += (
-            f"   {-1e3*row['DEPTH']}:"
+            f"   {-1e3 * row['DEPTH']}:"
             f" [{row['rho']},{row['mu']:.10e},{row['lambda']:.10e}, {row['QP']},"
-            f" {row ['QS']}]"
+            f" {row['QS']}]"
         )
         to_write += f" #[{row['P_VEL']}, {row['S_VEL']}]\n"
 
@@ -32,13 +32,12 @@ nodes:\n"""
 def write_z_rigidity_to_txt(df):
     """to be used in the teleseismic routines"""
     to_write = ""
-    first_index = True
     G_prev = False
     eps = 1e-5
     for index, row in df.iterrows():
         if G_prev:
-            to_write += f"{-1e3*row['DEPTH']-eps} {G_prev:.10e}\n"
-        to_write += f"{-1e3*row['DEPTH']} {row['mu']:.10e}\n"
+            to_write += f"{-1e3 * row['DEPTH'] - eps} {G_prev:.10e}\n"
+        to_write += f"{-1e3 * row['DEPTH']} {row['mu']:.10e}\n"
         G_prev = row["mu"]
     to_write += f"-1e10 {G_prev:.10e}\n"
     fname = "tmp/depth_vs_rigidity.txt"
@@ -52,7 +51,11 @@ def write_axitra_velocity_file(df):
     to_write = "# layer_width Vp Vs rho Qp Qs\n"
     for index, row in df.iterrows():
         h = row["H"] if row["H"] < 1e4 else 0
-        to_write += f"{1000*h:.18e} {1000*row['P_VEL']:.18e} {1000*row['S_VEL']:.18e} {1000*row['DENS']:.18e} {row['QP']:.18e} {row['QS']:.18e}\n"
+        to_write += (
+            f"{1000 * h:.18e} {1000 * row['P_VEL']:.18e} "
+            f"{1000 * row['S_VEL']:.18e} {1000 * row['DENS']:.18e} "
+            f"{row['QP']:.18e} {row['QS']:.18e}\n"
+        )
     fname = "tmp/axitra_velocity_model.txt"
     print(to_write)
     with open(fname, "w") as fid:
@@ -91,7 +94,6 @@ def generate_arbitrary_velocity_files(vel_model=vel_model_slipnear):
 
 
 def read_velocity_model_from_fsp_file(fname):
-    import re
     import pandas as pd
     from io import StringIO
 
@@ -117,7 +119,7 @@ def read_velocity_model_from_fsp_file(fname):
     nlayers = read_param(lines[1], "layers")
     text_file = StringIO("\n".join(lines[3 : 5 + nlayers]))
 
-    df = pd.read_csv(text_file, sep="\s+").drop([0])
+    df = pd.read_csv(text_file, sep=r"\s+").drop([0])
     df = df.apply(pd.to_numeric, errors="coerce")
     rows_to_remove = df[df["DEPTH"] == 0]
     print("removing row\n", rows_to_remove)

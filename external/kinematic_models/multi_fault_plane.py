@@ -34,7 +34,6 @@ class MultiFaultPlane:
 
     @classmethod
     def from_usgs_fsp_file(cls, fname):
-        import re
         import pandas as pd
         from io import StringIO
 
@@ -70,7 +69,7 @@ class MultiFaultPlane:
         lines = get_to_first_line_starting_with(lines, "% VELOCITY-DENSITY")
         nlayers = read_param(lines[1], "layers")
         text_file = StringIO("\n".join(lines[3 : 5 + nlayers]))
-        velocity_model_df = pd.read_csv(text_file, sep="\s+").drop(0)
+        velocity_model_df = pd.read_csv(text_file, sep=r"\s+").drop(0)
         print(velocity_model_df)
 
         fault_planes = []
@@ -96,7 +95,7 @@ class MultiFaultPlane:
             lines = get_to_first_line_starting_with(lines, "% LAT LON")
             column_names = lines[0][1:].split()
             text_file = StringIO("\n".join(lines[2 : 2 + nsbfs]))
-            df = pd.read_csv(text_file, sep="\s+", header=None, names=column_names)
+            df = pd.read_csv(text_file, sep=r"\s+", header=None, names=column_names)
 
             assert (
                 df["TRUP"] >= 0
@@ -115,7 +114,8 @@ class MultiFaultPlane:
                     fp.dip[j, i] = dip
                     fp.PSarea_cm2 = dx * dy * 1e10
                     fp.t0[j, i] = df["TRUP"][k]
-                    # t_fal in not specified in this file (compared with the *.param file)
+                    # t_fal in not specified in this file
+                    # (compared with the *.param file)
                     fp.tacc[j, i] = 0.5 * df["RISE"][k]
                     fp.rise_time[j, i] = df["RISE"][k]
         return cls(fault_planes)
@@ -131,14 +131,14 @@ class MultiFaultPlane:
         with open(fname, "r") as fid:
             lines = fid.readlines()
 
-        nseg_line = [l for l in lines if "#Total number of rectangular" in l]
+        nseg_line = [line for line in lines if "#Total number of rectangular" in line]
         if len(nseg_line) != 1:
             raise ValueError("Not a valid USGS2 param file.")
 
         nseg = int(nseg_line[0].split()[-1])  # number of fault segments
         print(f"No. of fault segments in param file: {nseg}")
 
-        fault_seg_line = [l for l in lines if "#NX= " in l]
+        fault_seg_line = [line for line in lines if "#NX= " in line]
         assert (
             len(fault_seg_line) == nseg
         ), f"No. of segments are wrong. {len(fault_seg_line)} {nseg}"
@@ -162,7 +162,7 @@ class MultiFaultPlane:
             line2 = line1 + nx * ny
             istart = line1 + nx * ny
             text_file = StringIO("\n".join([header, *lines[line1:line2]]))
-            df = pd.read_csv(text_file, sep="\s+")
+            df = pd.read_csv(text_file, sep=r"\s+")
 
             assert (
                 df["t_rup"] >= 0
@@ -204,13 +204,13 @@ class MultiFaultPlane:
         with open(fname, "r") as fid:
             lines = fid.readlines()
 
-        if not "#Total number of fault_segments" in lines[0]:
+        if "#Total number of fault_segments" not in lines[0]:
             raise ValueError("Not a valid USGS param file.")
 
         nseg = int(lines[0].split()[-1])  # number of fault segments
         print(f"No. of fault segments in param file: {nseg}")
 
-        fault_seg_line = [l for l in lines if "#Fault_segment " in l]
+        fault_seg_line = [line for line in lines if "#Fault_segment " in line]
         assert (
             len(fault_seg_line) == nseg
         ), f"No. of segments are wrong. {len(fault_seg_line)} {nseg}"
@@ -237,7 +237,7 @@ class MultiFaultPlane:
             istart = line1 + nx * ny
 
             text_file = StringIO("\n".join([header, *lines[line1:line2]]))
-            df = pd.read_csv(text_file, sep="\s+")
+            df = pd.read_csv(text_file, sep=r"\s+")
 
             assert (
                 df["t_rup"] >= 0
@@ -335,7 +335,7 @@ class MultiFaultPlane:
             fname, " ================================================"
         )
 
-        df = pd.read_csv(fname, sep="\s+", skiprows=line_sep + 2, comment=":")
+        df = pd.read_csv(fname, sep=r"\s+", skiprows=line_sep + 2, comment=":")
         df = df.sort_values(
             by=["depth(km)", "Lat", "Lon"], ascending=[True, True, True]
         ).reset_index()
@@ -394,12 +394,12 @@ class MultiFaultPlane:
                         fp.dt = dt
                         fp.init_aSR()
                         fp.myt = np.linspace(0, fp.ndt - 1, fp.ndt) * fp.dt
-                    lSTF = []
                     if ndt1 == 0:
                         continue
                     if ndt1 > fp.ndt:
                         print(
-                            f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array..."
+                            f"a larger ndt ({ndt1}> {fp.ndt}) was found for point "
+                            f"source (i,j) = ({i}, {j}) extending aSR array..."
                         )
                         fp.extend_aSR(fp.ndt, ndt1)
                         fp.myt = np.linspace(0, fp.ndt - 1, fp.ndt) * fp.dt
@@ -412,7 +412,8 @@ class MultiFaultPlane:
                             0,
                         )
 
-                    # Generate the resulting signal as a sum of multiple triangle functions
+                    # Generate the resulting signal as a sum of
+                    # multiple triangle functions
                     def sum_of_triangles(t, triangles):
                         signal = np.zeros_like(t)
                         for center, half_width, amplitude in triangles:
@@ -427,14 +428,15 @@ class MultiFaultPlane:
                             [
                                 fp.t0[j, i] + (itr + 1) * tacc,
                                 tacc,
-                                df[f"amp{itr+1}(dyne.cm/s)"][k],
+                                df[f"amp{itr + 1}(dyne.cm/s)"][k],
                             ]
                         )
                     fp.aSR[j, i, :] = sum_of_triangles(fp.myt, triangles)
                     integral = np.trapz(fp.aSR[j, i, :], dx=fp.dt)
                     if integral:
                         fp.aSR[j, i, :] /= integral
-        # we scale down the model to have the expected magnitude (see comment above on 25GPa)
+        # we scale down the model to have the expected magnitude
+        # (see comment above on 25GPa)
         fp.slip1 *= Gslip25 / Gslip
         fault_planes[0] = fp.trim()
         fault_planes[0] = fault_planes[0].add_one_zero_slip_row_at_depth()
@@ -474,7 +476,7 @@ class MultiFaultPlane:
                 line_el = fid.readline().split()
                 if line_el[0] != "POINTS":
                     raise ValueError(
-                        f"error parsing {fname}: line does not start with POINTS : {line}"
+                        f"error parsing {fname}: does not begin with POINTS : {line}"
                     )
                 # check that the plane data are consistent with the number of points
                 assert int(line_el[1]) == fp.nx * fp.ny
@@ -521,12 +523,13 @@ class MultiFaultPlane:
                             continue
                         if ndt1 > fp.ndt:
                             print(
-                                f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array..."
+                                f"a larger ndt ({ndt1}> {fp.ndt}) was found for point "
+                                f"source (i,j) = ({i}, {j}) extending aSR array..."
                             )
                             fp.extend_aSR(fp.ndt, ndt1)
                         if abs(dt - fp.dt) > 1e-6:
                             raise NotImplementedError(
-                                "this script assumes that dt is the same for all sources",
+                                "this script assumes the same dt for all sources",
                                 dt,
                                 fp.dt,
                             )
@@ -550,22 +553,30 @@ class MultiFaultPlane:
 
     def is_static_solution(self):
         """check if t0==0 for all sources"""
-        static_solution = False
         t0max = 0.0
         for p, fp in enumerate(self.fault_planes):
             t0max = max(t0max, np.amax(fp.t0[:, :]))
         return t0max == 0.0
 
     def generate_fault_ts_yaml_fl33(self, prefix, method, spatial_zoom, proj):
-        """Generate yaml file initializing FL33 arrays and ts file describing the planar fault geometry."""
+        "Generate yaml file initializing FL33 arrays and ts file describing"
+        "the planar fault geometry."
 
         if not os.path.exists("yaml_files"):
             os.makedirs("yaml_files")
         # Generate yaml file loading ASAGI file
-        nplanes = len(self.fault_planes)
+        variable_list_1 = (
+            "strike_slip, dip_slip, rupture_onset, tau_S, tau_R, "
+            "rupture_rise_time, rake_interp_low_slip"
+        )
+        variable_list_2 = (
+            "strike_slip, dip_slip, rupture_onset, effective_rise_time, "
+            "acc_time, rake_interp_low_slip"
+        )
         template_yaml = f"""!Switch
-[strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time, rake_interp_low_slip]: !EvalModel
-    parameters: [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]
+[{variable_list_1}]: !EvalModel
+    parameters:
+      [{variable_list_2}]
     model: !Any
      components:
 """
@@ -590,8 +601,9 @@ class MultiFaultPlane:
                 ub: {t2}
               components: !Any
                 - !ASAGI
-                    file: ASAGI_files/{prefix}{p+1}_{spatial_zoom}_{method}.nc
-                    parameters: [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]
+                    file: ASAGI_files/{prefix}{p + 1}_{spatial_zoom}_{method}.nc
+                    parameters:
+                      [{variable_list_2}]
                     var: data
                     interpolation: linear
                 - !ConstantMap
@@ -603,11 +615,12 @@ class MultiFaultPlane:
                     effective_rise_time:  2e100
                     rake_interp_low_slip: 0.0
 """
-        template_yaml += """    components: !LuaMap
-      returns: [strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time, rake_interp_low_slip]
-      function: |
+        template_yaml += f"""    components: !LuaMap
+      returns: [{variable_list_1}]\n"""
+        template_yaml += """      function: |
         function f (x)
-          -- Note the minus on strike_slip to acknowledge the different convention of SeisSol (T_s>0 means right-lateral)
+          -- Note the minus on strike_slip to acknowledge the different
+          -- convention of SeisSol (T_s>0 means right-lateral)
           -- same for the math.pi factor on rake
           return {
           strike_slip = -x["strike_slip"],
@@ -628,7 +641,7 @@ class MultiFaultPlane:
         if self.hypocenter:
             if not os.path.exists("tmp"):
                 os.makedirs("tmp")
-            with open(f"tmp/hypocenter.txt", "w") as f:
-                jsondata = f.write(
+            with open("tmp/hypocenter.txt", "w") as f:
+                f.write(
                     f"{self.hypocenter[0]} {self.hypocenter[1]} {self.hypocenter[2]}\n"
                 )

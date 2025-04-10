@@ -6,7 +6,6 @@ import argparse
 import numpy as np
 from stf import regularizedYoffe, gaussianSTF, smoothStep, asymmetric_cosine
 from tqdm import tqdm
-import argparse
 
 
 class seissolxdmfExtended(seissolxdmf.seissolxdmf):

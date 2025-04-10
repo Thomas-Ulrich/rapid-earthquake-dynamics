@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 import glob
-import h5py
 import numpy as np
 import argparse
 import os
 import seissolxdmf as sx
-import seissolxdmfwriter as sw
 import pandas as pd
 import tqdm
 
 
 def fuzzysort(arr, idx, dim=0, tol=1e-6):
     """
-    return indexes of sorted points robust to small perturbations of individual components.
-    https://stackoverflow.com/questions/19072110/numpy-np-lexsort-with-fuzzy-tolerant-comparisons
-    note that I added dim<arr.shape[0]-1 in some if statement (else it will crash sometimes)
+    Return indexes of sorted points robust to small perturbations of individual
+    components.
+    Reference: https://stackoverflow.com/questions/19072110/
+    numpy-np-lexsort-with-fuzzy-tolerant-comparisons
+    Note: I added dim < arr.shape[0] - 1 in some if statement
+    (else it will crash sometimes).
     """
     arrd = arr[dim]
     srtdidx = sorted(idx, key=arrd.__getitem__)
@@ -96,10 +97,6 @@ def multidim_intersect(arr1, arr2):
     arr1_view = arr1.view([("", arr1.dtype)] * arr1.shape[1])
     arr2_view = arr2.view([("", arr2.dtype)] * arr2.shape[1])
     intersected, ind1, ind2 = np.intersect1d(arr1_view, arr2_view, return_indices=True)
-    # ni, n1, n2 = intersected.shape[0], arr1.shape[0], arr2.shape[0]
-    # print(
-    #    f"{ni} faces in common, n faces connect 1:{n1}, 2:{n2} (diff: {n1-ni}, {n2-ni})"
-    # )
     return ind1, ind2
 
 
@@ -144,7 +141,7 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="""compute fault slip difference between between models from an 
+        description="""compute fault slip difference between between models from an
         ensemble of DR models and a reference model, all on the same mesh.
         partitionning may differ though"""
     )

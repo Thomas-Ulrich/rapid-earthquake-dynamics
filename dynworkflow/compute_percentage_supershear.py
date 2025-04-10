@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import glob
-import h5py
 import numpy as np
 import argparse
 import os
 import seissolxdmf as sx
-import seissolxdmfwriter as sw
 import pandas as pd
 import tqdm
 
@@ -52,7 +50,7 @@ def compute_supershear_percentile(folder, velocity_model):
 
     df = pd.read_csv(
         velocity_model,
-        sep="\s+",
+        sep=r"\s+",
         comment="#",
         header=None,
         names=["layer_width", "Vp", "Vs", "rho", "Qp", "Qs"],
@@ -74,7 +72,8 @@ def compute_supershear_percentile(folder, velocity_model):
             id_pos = sx.asl > 0.05
             Vs = find_last_value(df["depth"], df["Vs"], sx.depthz)
             Vp = find_last_value(df["depth"], df["Vp"], sx.depthz)
-            # these 10% acknowledge the fact that the supershear calculation can be imprecise
+            # these 10% acknowledge the fact that
+            # the supershear calculation can be imprecise
             supershear = sx.vr > Vs + 0.1 * (Vp - Vs)
 
             total_area = areas[id_pos].sum()
@@ -90,7 +89,7 @@ def compute_supershear_percentile(folder, velocity_model):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="""compute percentage of supershear in slip area for an 
+        description="""compute percentage of supershear in slip area for am
         ensemble of DR models. all on the same mesh.
         partitionning may differ though"""
     )

@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 import json
 import os
-import argparse
 import glob
 import jinja2
 from dynworkflow.get_usgs_finite_fault_data import (
-    find_key_recursive,
-    get_value_by_key,
     get_value_from_usgs_data,
 )
 
@@ -28,7 +25,7 @@ def generate_waveform_config_file(ignore_source_files=False):
     moment_tensor = get_value_from_usgs_data(jsondata, "moment-tensor")[0]
     duration = moment_tensor["properties"]["sourcetime-duration"]
 
-    with open(f"tmp/projection.txt", "r") as f:
+    with open("tmp/projection.txt", "r") as f:
         proj = f.read()
 
     # Get the directory of the script
@@ -54,14 +51,13 @@ def generate_waveform_config_file(ignore_source_files=False):
         point_source_files = ",".join(sorted(glob.glob("tmp/PointSou*.h5")))
         template_par["source_files"] = point_source_files
     else:
-        template_par[
-            "source_files"
-        ] = "{{ source_files | default('{{ source_files }}', true) }}"
+        template_par["source_files"] = (
+            "{{ source_files | default('{{ source_files }}', true) }}"
+        )
 
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)
         outputText = template.render(template_par)
-        fn_tractions = out_fname
         with open(out_fname, "w") as fid:
             fid.write(outputText)
         if verbose:

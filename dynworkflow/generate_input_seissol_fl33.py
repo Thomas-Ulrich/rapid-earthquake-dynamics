@@ -19,8 +19,7 @@ def generate():
     # Regular expression patterns to match vertex lines
     vertex_pattern = re.compile(r"VRTX (\d+) ([\d.-]+) ([\d.-]+) ([\d.-]+)")
     allv = []
-    faults = []
-    ts_files = sorted(glob.glob(f"tmp/*.ts"))
+    ts_files = sorted(glob.glob("tmp/*.ts"))
 
     for i, fn in enumerate(ts_files):
         vertices = []
@@ -44,7 +43,7 @@ def generate():
     template_par["end_time"] = max(25.0, 0.6 * end_time)
     template_par["material_fname"] = "yaml_files/material.yaml"
 
-    template = templateEnv.get_template(f"parameters_fl34.tmpl.par")
+    template = templateEnv.get_template("parameters_fl34.tmpl.par")
     outputText = template.render(template_par)
     fname = "parameters_fl33.par"
     with open(fname, "w") as fid:

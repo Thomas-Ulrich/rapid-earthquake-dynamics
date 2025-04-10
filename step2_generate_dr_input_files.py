@@ -11,11 +11,10 @@ absolute_path = os.path.join(current_script_dir, relative_path)
 if absolute_path not in sys.path:
     sys.path.append(absolute_path)
 
-import generate_fault_output_from_fl33_input_files
 import project_fault_tractions_onto_asagi_grid
 
 if __name__ == "__main__":
-    with open(f"tmp/inferred_fault_mesh_size.txt", "r") as f:
+    with open("tmp/inferred_fault_mesh_size.txt", "r") as f:
         inferred_fault_mesh_size = float(f.read())
 
     fl33_file = "output/fl33-fault.xdmf"
@@ -43,7 +42,7 @@ if __name__ == "__main__":
         dic_values["B"] = [0.9, 1.0, 1.1, 1.2]
         dic_values["C"] = [0.1, 0.2, 0.3, 0.4, 0.5]
         dic_values["R"] = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-        #dic_values["cohesion"] = [(0.25, 0)]
+        # dic_values["cohesion"] = [(0.25, 0)]
         dic_values["cohesion"] = [(0.25, 1)]
         # only relevant for Latin Hypercube
         dic_values["nsamples"] = 50
