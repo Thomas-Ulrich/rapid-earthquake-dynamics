@@ -44,15 +44,10 @@ def is_slipnear_file(fn):
         return "RECTANGULAR DISLOCATION MODEL" in first_line
 
 
-import argparse
-import yaml
-import sys
-
-
 def get_parser():
     parser = argparse.ArgumentParser(
         description="""
-        Automatically set up an ensemble of dynamic rupture models from a kinematic 
+        Automatically set up an ensemble of dynamic rupture models from a kinematic
         finite fault model.
 
         You can either:
@@ -125,7 +120,7 @@ def get_parser():
         help="""
         Map projection specification.
         - 'auto': transverse Mercator centered on the hypocenter.
-        - OR: custom projection string in Proj4 format 
+        - OR: custom projection string in Proj4 format
         (e.g., '+proj=utm +zone=33 +datum=WGS84').
         """,
     )
