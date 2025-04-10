@@ -43,7 +43,7 @@ if __name__ == "__main__":
         dic_values["B"] = [0.9, 1.0, 1.1, 1.2]
         dic_values["C"] = [0.1, 0.2, 0.3, 0.4, 0.5]
         dic_values["R"] = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-        #dic_values["cohesion"] = [(0.25, 0)]
+        # dic_values["cohesion"] = [(0.25, 0)]
         dic_values["cohesion"] = [(0.25, 1)]
         # only relevant for Latin Hypercube
         dic_values["nsamples"] = 50

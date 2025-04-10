@@ -54,9 +54,9 @@ def generate_waveform_config_file(ignore_source_files=False):
         point_source_files = ",".join(sorted(glob.glob("tmp/PointSou*.h5")))
         template_par["source_files"] = point_source_files
     else:
-        template_par[
-            "source_files"
-        ] = "{{ source_files | default('{{ source_files }}', true) }}"
+        template_par["source_files"] = (
+            "{{ source_files | default('{{ source_files }}', true) }}"
+        )
 
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)
