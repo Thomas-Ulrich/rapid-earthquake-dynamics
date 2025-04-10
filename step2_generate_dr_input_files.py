@@ -36,8 +36,11 @@ if __name__ == "__main__":
     with open("config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     mesh_file = dic_values["mesh"]
-    mesh_file = "tmp/mesh.puml.h5" if mesh_file == "auto"
-    dic_values["mesh_file"] = mesh_file
+    if mesh_file == "auto":
+        mesh_file = "tmp/mesh.puml.h5"
+    else:
+        mesh_file = "tmp/" + os.path.basename(mesh_file)
+
     dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
 
     if mode == "picked_models":

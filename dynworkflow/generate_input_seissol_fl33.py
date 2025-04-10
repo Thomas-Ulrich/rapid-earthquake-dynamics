@@ -6,6 +6,7 @@ import os
 import jinja2
 import shutil
 from scipy.spatial.distance import pdist
+import yaml
 
 
 def generate():
@@ -45,8 +46,11 @@ def generate():
 
     with open("config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
-    mesh_file = dic_values["mesh"]
-    mesh_file = "tmp/mesh.puml.h5" if mesh_file == "auto"
+    mesh_file = config_dict["mesh"]
+    if mesh_file == "auto":
+        mesh_file = "tmp/mesh.puml.h5"
+    else:
+        mesh_file = "tmp/" + os.path.basename(mesh_file)
     template_par["mesh_file"] = mesh_file
 
     template = templateEnv.get_template("parameters_fl34.tmpl.par")

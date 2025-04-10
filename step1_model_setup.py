@@ -286,7 +286,9 @@ def run_step1():
         if result != 0:
             sys.exit(1)
     else:
-        shutil.copy(arg.mesh, ".")
+        shutil.copy(args.mesh, "tmp")
+        mesh_xdmf_file = args.mesh.split("puml.h5")[0] + ".xdmf"
+        shutil.copy(mesh_xdmf_file, "tmp")
 
     generate_input_seissol_fl33.generate()
     compute_moment_rate_from_finite_fault_file.compute(
@@ -300,14 +302,25 @@ def run_step1():
 
 
 def select_station_and_download_waveforms():
-    vizualizeBoundaryConditions.generate_boundary_file("tmp/mesh.xdmf", "faults")
+    with open("config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    mesh_file = config_dict["mesh"]
+    if mesh_file == "auto":
+        mesh_xdmf_file = "tmp/mesh.xdmf"
+    else:
+        mesh_file = "tmp/" + os.path.basename(mesh_file)
+        mesh_xdmf_file = mesh_file.split("puml.h5")[0] + ".xdmf"
+
+    mesh_prefix = os.path.basename(mesh_xdmf_file).split(".xdmf")[0]
+
+    vizualizeBoundaryConditions.generate_boundary_file(mesh_xdmf_file, "faults")
     # mv to tmp
-    files = glob.glob("mesh_bc_faults.*")
+    files = glob.glob(f"{mesh_prefix}_bc_faults.*")
     for file in files:
         shutil.move(file, os.path.join("tmp", os.path.basename(file)))
 
     generate_fault_output_from_fl33_input_files.generate(
-        "tmp/mesh_bc_faults.xdmf",
+        f"tmp/{mesh_prefix}_bc_faults.xdmf",
         "yaml_files/FL33_34_fault.yaml",
         "output/dyn-kinmod-fault",
         "Gaussian",
