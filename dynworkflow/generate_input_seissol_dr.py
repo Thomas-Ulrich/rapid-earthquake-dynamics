@@ -182,6 +182,7 @@ def generate(mode, dic_values):
             "hypo_y": hypo[1],
             "hypo_z": hypo[2],
             "r_crit": 3000.0,
+            "mu_delta_min": dic_values["mu_delta_min"],
         }
 
         sR = "_".join(map(str, R))
@@ -248,6 +249,7 @@ def generate(mode, dic_values):
                 "hypo_y": hypo[1],
                 "hypo_z": hypo[2],
                 "r_crit": list_nucleation_size[i],
+                "mu_delta_min": dic_values["mu_delta_min"],
             }
             render_file(template_par, "fault.tmpl.yaml", fn_fault)
         else:

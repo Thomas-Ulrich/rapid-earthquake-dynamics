@@ -2,6 +2,7 @@
 from dynworkflow import generate_input_seissol_dr
 import sys
 import os
+import yaml
 
 # Append kinematic_models folder to path
 # Get the directory of the current script
@@ -46,4 +47,8 @@ if __name__ == "__main__":
         dic_values["cohesion"] = [(0.25, 1)]
         # only relevant for Latin Hypercube
         dic_values["nsamples"] = 50
+        with open("config.yaml", "r") as f:
+            config_dict = yaml.safe_load(f)
+        dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
+
         generate_input_seissol_dr.generate(mode, dic_values)
