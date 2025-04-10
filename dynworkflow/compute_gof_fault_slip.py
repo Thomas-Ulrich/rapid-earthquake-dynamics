@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import glob
-import h5py
 import numpy as np
 import argparse
 import os
 import seissolxdmf as sx
-import seissolxdmfwriter as sw
 import pandas as pd
 import tqdm
 

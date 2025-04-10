@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import subprocess
 import numpy as np
 
 # Step 1: Collect all parameter files
@@ -20,7 +19,7 @@ absolute_path_2_job = os.path.join(current_script_dir, relative_path)
 
 # Step 4: Write each part to a separate file and process it
 for i, part in enumerate(split_files):
-    part_filename = f"part_{i+1}.txt"
+    part_filename = f"part_{i + 1}.txt"
     with open(part_filename, "w") as f:
         for par_file in part:
             f.write(par_file + "\n")

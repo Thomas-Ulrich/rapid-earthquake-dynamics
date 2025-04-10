@@ -4,7 +4,6 @@ import argparse
 from scipy import interpolate
 import easi
 import seissolxdmf
-from tqdm import tqdm
 import os
 import time
 from multiprocessing import cpu_count

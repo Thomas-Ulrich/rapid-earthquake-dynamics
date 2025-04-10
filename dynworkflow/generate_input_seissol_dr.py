@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 import numpy as np
 import glob
-import re
 import os
 import jinja2
-from sklearn.decomposition import PCA
 import shutil
 from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
 from scipy.stats import qmc
 import random
 import itertools
 from dynworkflow.compile_scenario_macro_properties import infer_duration
-import warnings
 import seissolxdmf as sx
 import argparse
 from pyproj import Transformer

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import pandas as pd
-import numpy as np
 import matplotlib.pylab as plt
+import numpy as np
 import argparse
 import matplotlib
 import os
 import glob
 import re
-from obspy.signal.cross_correlation import correlate, correlate_template, xcorr_max
+from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
 from cmcrameri import cm
 import pickle

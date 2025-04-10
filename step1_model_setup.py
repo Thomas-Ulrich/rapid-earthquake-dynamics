@@ -6,7 +6,6 @@ from dynworkflow import (
     generate_mesh,
     generate_input_seissol_fl33,
     prepare_velocity_model_files,
-    generate_input_seissol_dr,
     generate_waveform_config_from_usgs,
 )
 
@@ -35,7 +34,6 @@ for relative_path in relative_paths:
 import generate_FL33_input_files
 import compute_moment_rate_from_finite_fault_file
 import generate_fault_output_from_fl33_input_files
-import project_fault_tractions_onto_asagi_grid
 import vizualizeBoundaryConditions
 
 

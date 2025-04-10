@@ -90,7 +90,6 @@ def generate_arbitrary_velocity_files(vel_model=vel_model_slipnear):
 
 
 def read_velocity_model_from_fsp_file(fname):
-    import re
     import pandas as pd
     from io import StringIO
 

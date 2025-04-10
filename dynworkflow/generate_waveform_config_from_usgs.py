@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 import json
 import os
-import argparse
 import glob
 import jinja2
 from dynworkflow.get_usgs_finite_fault_data import (
-    find_key_recursive,
-    get_value_by_key,
     get_value_from_usgs_data,
 )
 
