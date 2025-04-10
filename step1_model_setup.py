@@ -16,6 +16,7 @@ import sys
 import glob
 import subprocess
 import numpy as np
+import yaml
 
 # Append finite_fault_models and external folders to path
 # Get the directory of the current script
@@ -43,6 +44,126 @@ def is_slipnear_file(fn):
         return "RECTANGULAR DISLOCATION MODEL" in first_line
 
 
+import argparse
+import yaml
+import sys
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(
+        description="""
+        Automatically set up an ensemble of dynamic rupture models from a kinematic 
+        finite fault model.
+
+        You can either:
+        1. Provide all parameters via command-line arguments, or
+        2. Use the --config option to load parameters from a YAML config file.
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to a YAML config file containing all input parameters.",
+    )
+
+    parser.add_argument(
+        "--event_id",
+        type=str,
+        help="""
+        Earthquake event identifier.
+        - If using USGS, this is the event ID (e.g., 'us6000d3zh').
+        - If using a custom model, this can be a local event dictionary name.
+        """,
+    )
+
+    parser.add_argument(
+        "--finite_fault_model",
+        type=str,
+        default="usgs",
+        help="Path to an alternative finite fault model file.",
+    )
+
+    parser.add_argument(
+        "--tmax",
+        type=float,
+        default=None,
+        help="""
+        Maximum rupture time in seconds.
+        Slip contributions with t_rupt > tmax will be ignored.
+        """,
+    )
+
+    parser.add_argument(
+        "--reference_moment_rate_function",
+        type=str,
+        default="auto",
+        help="""
+        Reference moment rate function (used for model ranking).
+        - 'auto': download STF from USGS if available, or infer from finite fault model.
+        - OR: path to a 2-column STF file in USGS format (2 lines header).
+        """,
+    )
+
+    parser.add_argument(
+        "--velocity_model",
+        type=str,
+        default="auto",
+        help="""
+        Velocity model to use.
+        - 'auto': choose based on finite fault model (e.g., Slipnear or USGS).
+        - 'usgs': extract from the USGS FSP file.
+        - OR: provide a velocity model in Axitra format.
+        """,
+    )
+
+    parser.add_argument(
+        "--projection",
+        type=str,
+        default="auto",
+        help="""
+        Map projection specification.
+        - 'auto': transverse Mercator centered on the hypocenter.
+        - OR: custom projection string in Proj4 format 
+        (e.g., '+proj=utm +zone=33 +datum=WGS84').
+        """,
+    )
+
+    return parser
+
+
+def dict_to_namespace(d):
+    return argparse.Namespace(**d)
+
+
+def process_parser():
+    parser = get_parser()
+    args = parser.parse_args()
+
+    if args.config:
+        with open(args.config, "r") as f:
+            args_dict = yaml.safe_load(f)
+        print(f"Loaded config from {args.config}")
+        args_dict["config"] = args.config
+        args = dict_to_namespace(args_dict)
+    else:
+        args_dict = vars(args)
+
+    print("Using parameters:")
+    for k, v in args_dict.items():
+        print(f"  {k}: {v}")
+    return args
+
+
+def save_config(args):
+    args_dict = vars(args)  # Convert Namespace to plain dict
+    config_out = "config.yaml"
+    with open(config_out, "w") as f:
+        yaml.dump(args_dict, f)
+    print(f"Saved config to {config_out}")
+
+
 def run_step1():
     # Check if 'pumgen' is available
     status = os.system("which pumgen > /dev/null 2>&1")
@@ -50,73 +171,14 @@ def run_step1():
         print("pumgen is not available.")
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(
-        description="automatically setup a dynamic rupture model from a kinematic model"
-    )
-    parser.add_argument(
-        "event_id",
-        help="usgs earthquake code or event dictionnary (dtgeo workflow)",
-    )
-    parser.add_argument(
-        "--finite_fault_model",
-        nargs=1,
-        help="input filename of alternative model to usgs (e.g. Slipnear)",
-        type=str,
-        default=["usgs"],
-    )
-    parser.add_argument(
-        "--tmax",
-        nargs=1,
-        help="remove fault slip for t_rupt> tmax",
-        type=float,
-        default=[None],
-    )
-
-    parser.add_argument(
-        "--reference_moment_rate_function",
-        nargs=1,
-        help=(
-            "Specify a reference moment rate function (for DR model ranking). "
-            "- auto: if usgs, will download and use the STF, else moment rate "
-            "inferred from the finite fault model file. "
-            "Alternatively, provide a STF in usgs format (2 lines of header)."
-        ),
-        type=str,
-        default=["auto"],
-    )
-
-    parser.add_argument(
-        "--velocity_model",
-        nargs=1,
-        help=(
-            "Specify the velocity model: "
-            "- auto: same as option usgs, but use the Slipnear velocity model for a "
-            "Slipnear kinematic model. "
-            "- usgs: Read the velocity model from the usgs finite fault model FSP file."
-            "Alternatively, provide a velocity model in Axitra format."
-        ),
-        type=str,
-        default=["auto"],
-    )
-
-    parser.add_argument(
-        "--projection",
-        nargs=1,
-        help="""Specify the projection:
-        - auto: custom transverse mercator centered roughly on the hypocenter.
-        - Alternatively, provide a projection in proj4 format""",
-        type=str,
-        default=["auto"],
-    )
-
-    args = parser.parse_args()
-    vel_model = args.velocity_model[0]
+    args = process_parser()
+    vel_model = args.velocity_model
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
-    refMRF = args.reference_moment_rate_function[0]
+    refMRF = args.reference_moment_rate_function
     if refMRF not in ["auto"]:
         refMRF = os.path.abspath(refMRF)
-    finite_fault_model = args.finite_fault_model[0]
+    finite_fault_model = args.finite_fault_model
 
     suffix = ""
     if finite_fault_model != "usgs":
@@ -129,7 +191,6 @@ def run_step1():
     else:
         if vel_model == "auto":
             vel_model = "usgs"
-
     folder_name = get_usgs_finite_fault_data.get_data(
         args.event_id,
         min_magnitude=6,
@@ -138,6 +199,7 @@ def run_step1():
         download_usgs_fsp=(vel_model == "usgs"),
     )
     os.chdir(folder_name)
+    save_config(args)
 
     refMRFfile = ""
     print(refMRF)
@@ -157,7 +219,7 @@ def run_step1():
     with open("tmp/reference_STF.txt", "w") as f:
         f.write(refMRFfile)
 
-    projection = args.projection[0]
+    projection = args.projection
     if projection == "auto":
         with open("tmp/projection.txt", "r") as fid:
             projection = fid.read()
@@ -190,7 +252,7 @@ def run_step1():
         projection,
         write_paraview=False,
         PSRthreshold=0.0,
-        tmax=args.tmax[0],
+        tmax=args.tmax,
     )
 
     modify_FL33_34_fault_instantaneous_slip.update_file("yaml_files/FL33_34_fault.yaml")
@@ -214,7 +276,7 @@ def run_step1():
 
     generate_input_seissol_fl33.generate()
     compute_moment_rate_from_finite_fault_file.compute(
-        finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax[0]
+        finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax
     )
     if not os.path.exists("output"):
         os.makedirs("output")
