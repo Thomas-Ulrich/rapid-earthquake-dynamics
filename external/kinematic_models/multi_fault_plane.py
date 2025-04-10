@@ -565,12 +565,18 @@ class MultiFaultPlane:
         if not os.path.exists("yaml_files"):
             os.makedirs("yaml_files")
         # Generate yaml file loading ASAGI file
-        template_yaml = """!Switch
-[strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time,
- rake_interp_low_slip]: !EvalModel
+        variable_list_1 = (
+            "strike_slip, dip_slip, rupture_onset, tau_S, tau_R, "
+            "rupture_rise_time, rake_interp_low_slip"
+        )
+        variable_list_2 = (
+            "strike_slip, dip_slip, rupture_onset, effective_rise_time, "
+            "acc_time, rake_interp_low_slip"
+        )
+        template_yaml = f"""!Switch
+[{variable_list_1}]: !EvalModel
     parameters:
-      [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time,
-       rake_interp_low_slip]
+      [{variable_list_2}]
     model: !Any
      components:
 """
@@ -597,8 +603,7 @@ class MultiFaultPlane:
                 - !ASAGI
                     file: ASAGI_files/{prefix}{p + 1}_{spatial_zoom}_{method}.nc
                     parameters:
-                      [strike_slip, dip_slip, rupture_onset, effective_rise_time,
-                       acc_time, rake_interp_low_slip]
+                      [{variable_list_2}]
                     var: data
                     interpolation: linear
                 - !ConstantMap
@@ -610,11 +615,9 @@ class MultiFaultPlane:
                     effective_rise_time:  2e100
                     rake_interp_low_slip: 0.0
 """
-        template_yaml += """    components: !LuaMap
-      returns:
-        [strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time,
-         rake_interp_low_slip]
-      function: |
+        template_yaml += f"""    components: !LuaMap
+      returns: [{variable_list_1}]\n"""
+        template_yaml += """      function: |
         function f (x)
           -- Note the minus on strike_slip to acknowledge the different
           -- convention of SeisSol (T_s>0 means right-lateral)
