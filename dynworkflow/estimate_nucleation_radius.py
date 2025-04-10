@@ -7,6 +7,7 @@ import seissolxdmf
 from tqdm import tqdm
 import os
 import time
+from multiprocessing import cpu_count
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):

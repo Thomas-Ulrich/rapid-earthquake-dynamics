@@ -185,7 +185,7 @@ def generate_input_files(
 
     unique_tags = np.unique(tags)
 
-    template_yaml = f"""!Any
+    template_yaml = """!Any
     components:\n"""
 
     for tag in unique_tags:

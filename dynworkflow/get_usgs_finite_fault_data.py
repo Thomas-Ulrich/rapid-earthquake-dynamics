@@ -52,7 +52,7 @@ def wget_overwrite(url, out_fname=None):
     fn = out_fname if out_fname else os.path.basename(url)
     if os.path.exists(fn):
         os.remove(fn)
-    filename = wget.download(url, out=out_fname, bar=None)
+    wget.download(url, out=out_fname, bar=None)
 
 
 def retrieve_usgs_id_from_dtgeo_dict(fname, min_mag):
@@ -61,11 +61,11 @@ def retrieve_usgs_id_from_dtgeo_dict(fname, min_mag):
     origin_time = UTCDateTime(ev["ot"])
     origin_time_plus_one_day = origin_time + 24 * 3600
 
-    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
+    url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
     url += f"&minmagnitude={min_mag}"
     url += f"&starttime={origin_time}&endtime={origin_time_plus_one_day}"
-    url += f"&minlatitude={ev['lat']-0.5}&maxlatitude={ev['lat']+0.5}"
-    url += f"&minlongitude={ev['lon']-0.5}&maxlongitude={ev['lon']+0.5}"
+    url += f"&minlatitude={ev['lat'] - 0.5}&maxlatitude={ev['lat'] + 0.5}"
+    url += f"&minlongitude={ev['lon'] - 0.5}&maxlongitude={ev['lon'] + 0.5}"
 
     fn_json = "out.json"
     wget_overwrite(url, fn_json)
@@ -104,7 +104,7 @@ def get_data(
         if len(splited_code) == 2:
             usgs_id = splited_code[0]
             finite_fault_code = usgs_id_or_dtgeo_npy
-            print(f"given code {finite_fault_code }describes a usgs finite fault model")
+            print(f"given code {finite_fault_code} describes a usgs finite fault model")
         elif len(splited_code) == 1:
             usgs_id = splited_code[0]
             finite_fault_code = None
@@ -133,7 +133,7 @@ def get_data(
         finite_faults = get_value_from_usgs_data(jsondata, "finite-fault")
         if finite_fault_code:
             availables = [finite_fault["code"] for finite_fault in finite_faults]
-            if not finite_fault_code in availables:
+            if finite_fault_code not in availables:
                 raise ValueError(f"{finite_fault_code} not found in {availables}")
             else:
                 ff_id = availables.index(finite_fault_code)
@@ -164,8 +164,8 @@ def get_data(
     first_released_index = min(
         range(len(origin)), key=lambda i: origin[i]["updateTime"]
     )
-    lon = float(origin[0]["properties"]["longitude"])
-    lat = float(origin[0]["properties"]["latitude"])
+    lon = float(origin[first_released_index]["properties"]["longitude"])
+    lat = float(origin[first_released_index]["properties"]["latitude"])
 
     projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon:.2f} +lat_0={lat:.2f}"
     with open(f"{folder_name}/tmp/projection.txt", "w") as f:

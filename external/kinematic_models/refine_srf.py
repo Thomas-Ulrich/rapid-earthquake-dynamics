@@ -93,7 +93,7 @@ if __name__ == "__main__":
     yoffePSRthreshold = args.use_Yoffe[0]
 
     refine(
-        ags.filename,
+        args.filename,
         args.proj,
         yoffePSRthreshold,
         args.spatial_order[0],

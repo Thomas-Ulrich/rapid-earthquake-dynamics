@@ -144,7 +144,7 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="""compute fault slip difference between between models from an 
+        description="""compute fault slip difference between between models from an
         ensemble of DR models and a reference model, all on the same mesh.
         partitionning may differ though"""
     )

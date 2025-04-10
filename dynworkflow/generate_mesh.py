@@ -44,10 +44,9 @@ def generate(h_domain, h_fault, interactive):
         vertex_dict[(x, y, z)] = new_point_id
         return new_point_id, (x, y, z)
 
-    ts_files = sorted(glob.glob(f"tmp/*.ts"))
+    ts_files = sorted(glob.glob("tmp/*.ts"))
     print("generating mesh based on the following ts_files", ts_files)
 
-    other_triangle = {}
     for i, fn in enumerate(ts_files):
         file_vertices = []
         with open(fn, "r") as file:

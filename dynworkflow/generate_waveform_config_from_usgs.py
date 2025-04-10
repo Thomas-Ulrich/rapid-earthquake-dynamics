@@ -28,7 +28,7 @@ def generate_waveform_config_file(ignore_source_files=False):
     moment_tensor = get_value_from_usgs_data(jsondata, "moment-tensor")[0]
     duration = moment_tensor["properties"]["sourcetime-duration"]
 
-    with open(f"tmp/projection.txt", "r") as f:
+    with open("tmp/projection.txt", "r") as f:
         proj = f.read()
 
     # Get the directory of the script
@@ -61,7 +61,6 @@ def generate_waveform_config_file(ignore_source_files=False):
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)
         outputText = template.render(template_par)
-        fn_tractions = out_fname
         with open(out_fname, "w") as fid:
             fid.write(outputText)
         if verbose:

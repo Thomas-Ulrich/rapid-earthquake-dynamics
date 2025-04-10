@@ -25,7 +25,7 @@ def main(
         if ext == ".srf":
             p1.assess_STF_parameters(PSRthreshold)
         p1.generate_netcdf_fl33(
-            f"{prefix}{p+1}",
+            f"{prefix}{p + 1}",
             method=interpolation_method,
             spatial_zoom=spatial_zoom,
             proj=projection,

@@ -18,7 +18,6 @@ def update_file():
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)
         outputText = template.render(template_par)
-        fn_tractions = out_fname
         with open(out_fname, "w") as fid:
             fid.write(outputText)
         if verbose:
