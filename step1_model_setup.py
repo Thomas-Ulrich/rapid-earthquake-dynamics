@@ -285,6 +285,8 @@ def run_step1():
         result = os.system("pumgen -s msh4 tmp/mesh.msh")
         if result != 0:
             sys.exit(1)
+    else:
+        shutil.copy(arg.mesh, ".")
 
     generate_input_seissol_fl33.generate()
     compute_moment_rate_from_finite_fault_file.compute(
