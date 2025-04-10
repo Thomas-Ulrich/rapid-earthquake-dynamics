@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from sklearn.decomposition import PCA
-from netCDF4 import Dataset
 from scipy.interpolate import griddata
 import seissolxdmf
 import numpy as np
@@ -74,7 +73,8 @@ def gridto2Dlocal(
     taper (Optional[List[float]]): Taper values for clipping data.
 
     Returns:
-    Tuple[Grid2D, List[np.ndarray]]: Gridded 2D local coordinate system and corresponding data.
+    Tuple[Grid2D, List[np.ndarray]]: Gridded 2D local coordinate system and
+    corresponding data.
     """
     xa = np.dot(coords, myAffineMap.ua) + myAffineMap.ta
     xb = np.dot(coords, myAffineMap.ub) + myAffineMap.tb

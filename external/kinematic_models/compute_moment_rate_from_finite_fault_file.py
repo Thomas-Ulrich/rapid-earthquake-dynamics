@@ -4,7 +4,7 @@ import os
 import argparse
 import os.path
 import numpy as np
-from stf import gaussianSTF, smoothStep
+from stf import gaussianSTF
 from multi_fault_plane import MultiFaultPlane
 
 
@@ -67,8 +67,8 @@ def compute(filename, yaml_filename, projection, dt=0.5, tmax=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "compute moment rate release from kinematic model. Assumptions: Gaussian source"
-            " time function, no bimaterial conditions"
+            "compute moment rate release from kinematic model. Assumptions: Gaussian "
+            "source time function, no bimaterial conditions"
         )
     )
     parser.add_argument(

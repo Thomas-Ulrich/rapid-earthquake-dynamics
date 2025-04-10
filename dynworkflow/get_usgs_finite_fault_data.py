@@ -111,7 +111,10 @@ def get_data(
         else:
             raise ValueError("unexpected structure of usgs_code")
 
-    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&&minmagnitude={min_magnitude}&eventid={usgs_id}"
+    url = (
+        "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
+        f"&&minmagnitude={min_magnitude}&eventid={usgs_id}"
+    )
     fn_json = f"{usgs_id}.json"
     wget_overwrite(url, fn_json)
 
@@ -175,13 +178,23 @@ def get_data(
         with open(f"{folder_name}/tmp/hypocenter.txt", "w") as f:
             jsondata = f.write(f"{hypocenter_x} {hypocenter_y} {hypocenter_z}\n")
 
-        for fn in ["moment_rate.mr", "basic_inversion.param", "complete_inversion.fsp"]:
-            url = f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}/us/{update_time}/{fn}"
+        for fn in [
+            "moment_rate.mr",
+            "basic_inversion.param",
+            "complete_inversion.fsp",
+        ]:
+            url = (
+                f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}"
+                f"/us/{update_time}/{fn}"
+            )
             wget_overwrite(url, f"{folder_name}/tmp/{fn}")
 
     elif download_usgs_fsp:
         for fn in ["complete_inversion.fsp"]:
-            url = f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}/us/{update_time}/{fn}"
+            url = (
+                f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}"
+                f"/us/{update_time}/{fn}"
+            )
             wget_overwrite(url, f"{folder_name}/tmp/{fn}")
 
     shutil.move(fn_json, f"{folder_name}/tmp/{fn_json}")

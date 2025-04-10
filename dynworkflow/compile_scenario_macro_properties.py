@@ -65,7 +65,8 @@ def extract_params_from_prefix(fname: str) -> dict:
         out["R"] = R_value
 
     patterns = [
-        r"dyn[/_-]([^_]+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)(?:_[^_]+)?-energy.csv",
+        r"dyn[/_-]([^_]+)_coh([\d.]+)_([\d.]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)"
+        r"(?:_[^_]+)?-energy.csv",
         r"dyn[/_-]([^_]+)_B([\d.]+)_C([\d.]+)_R([\d._]+)(?:_[^_]+)?energy.csv",
     ]
 

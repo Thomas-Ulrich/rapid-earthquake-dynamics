@@ -44,8 +44,9 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "generate yaml and netcdf input to be used with friction law 33/34 based on a"
-            " (here upsampled) kinematic model in the standard rupture format srf file."
+            "generate yaml and netcdf input to be used with friction law 33/34 based "
+            "on a (here upsampled) kinematic model in the standard rupture format srf"
+            " file."
         )
     )
     parser.add_argument("filename", help="filename of the srf file")
@@ -67,7 +68,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--PSRthreshold",
-        help="peak slip rate threshold (0-1) to determine onset time and duration of STF",
+        help="peak slip rate threshold (0-1) to determine STF onset time and duration.",
         nargs=1,
         metavar="PSRthreshold",
         type=float,

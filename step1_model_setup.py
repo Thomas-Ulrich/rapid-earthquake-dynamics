@@ -75,9 +75,12 @@ def run_step1():
     parser.add_argument(
         "--reference_moment_rate_function",
         nargs=1,
-        help=""" Specify a reference moment rate function (for DR model ranking)
-        - auto: if usgs, will download and use the STF, else moment rate inferred from the finite fault model file.
-        - Alternatively, provide a STF in usgs format (2 lines of header).""",
+        help=(
+            "Specify a reference moment rate function (for DR model ranking). "
+            "- auto: if usgs, will download and use the STF, else moment rate "
+            "inferred from the finite fault model file. "
+            "Alternatively, provide a STF in usgs format (2 lines of header)."
+        ),
         type=str,
         default=["auto"],
     )
@@ -85,13 +88,17 @@ def run_step1():
     parser.add_argument(
         "--velocity_model",
         nargs=1,
-        help="""Specify the velocity model:
-        - auto: same as option usgs, but use the Slipnear velocity model for a Slipnear kinematic model.
-        - usgs: Read the velocity model from the usgs finite fault model FSP file.
-        - Alternatively, provide a velocity model in Axitra format.""",
+        help=(
+            "Specify the velocity model: "
+            "- auto: same as option usgs, but use the Slipnear velocity model for a "
+            "Slipnear kinematic model. "
+            "- usgs: Read the velocity model from the usgs finite fault model FSP file."
+            "Alternatively, provide a velocity model in Axitra format."
+        ),
         type=str,
         default=["auto"],
     )
+
     parser.add_argument(
         "--projection",
         nargs=1,
@@ -244,7 +251,8 @@ def select_station_and_download_waveforms():
     ]
     subprocess.run(command, check=True)
     print(
-        "done selecting stations. If you are not satisfied, change waveforms_config.ini and rerun:"
+        "Done selecting stations. If you are not satisfied, change "
+        "waveforms_config.ini and rerun:"
     )
     scommand = " ".join(command)
     print(f"{scommand}")

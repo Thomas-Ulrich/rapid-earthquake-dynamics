@@ -36,51 +36,61 @@ def refine(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="upsample temporally and spatially a kinematic model (should consist of only one segment) in the standard rupture format"
+        description=(
+            "Upsample temporally and spatially a kinematic model (should consist of "
+            "only one segment) in the standard rupture format."
+        )
     )
-    parser.add_argument("filename", help="filename of the srf file")
+    parser.add_argument("filename", help="Filename of the SRF file.")
     parser.add_argument(
         "--proj",
-        help="transform geometry given proj4 string (as it might be better to upsample the geometry in the local coordinate system)",
+        help=(
+            "Transform geometry given a proj4 string (as it might be better to upsample"
+            " the geometry in the local coordinate system)."
+        ),
     )
     parser.add_argument(
         "--spatial_order",
         nargs=1,
-        metavar=("spatial_order"),
-        default=([3]),
-        help="spatial order of the interpolation",
+        metavar="spatial_order",
+        default=[3],
+        help="Spatial order of the interpolation.",
         type=int,
     )
     parser.add_argument(
         "--spatial_zoom",
         nargs=1,
-        metavar=("spatial_zoom"),
+        metavar="spatial_zoom",
         required=True,
-        help="level of spatial upsampling",
+        help="Level of spatial upsampling.",
         type=int,
     )
     parser.add_argument(
         "--temporal_zoom",
         nargs=1,
-        metavar=("temporal_zoom"),
+        metavar="temporal_zoom",
         required=True,
-        help="level of temporal upsampling",
+        help="Level of temporal upsampling.",
         type=int,
     )
-
     parser.add_argument(
         "--time_smoothing_kernel_as_dt_fraction",
         nargs=1,
-        metavar=("alpha_dt"),
-        default=([0.5]),
-        help="sigma, expressed as a portion of dt, of the gaussian kernel used to smooth SR",
+        metavar="alpha_dt",
+        default=[0.5],
+        help=(
+            "Sigma, expressed as a portion of dt, of the Gaussian kernel used to "
+            "smooth SR."
+        ),
         type=float,
     )
-
     parser.add_argument(
         "--use_Yoffe",
-        help="replace the discretized STF with a Yoffe function (e.g. for comparison with FL33).\
-           Requires peak slip rate threshold (0-1) to determine onset time and duration of STF",
+        help=(
+            "Replace the discretized STF with a Yoffe function (e.g. for comparison "
+            "with FL33). Requires peak slip rate threshold (0-1) to determine onset "
+            "time and duration of STF."
+        ),
         dest="use_Yoffe",
         nargs=1,
         metavar=("PSRthreshold"),

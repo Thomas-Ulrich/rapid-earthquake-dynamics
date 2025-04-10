@@ -215,7 +215,8 @@ def generate(mode, dic_values):
         fl33_file = "extracted_output/fl33_extracted-fault.xdmf"
     else:
         raise FileNotFoundError(
-            "The files output/fl33-fault.xdmf or extracted_output/fl33_extracted-fault.xdmf were not found."
+            "The files output/fl33-fault.xdmf or "
+            "extracted_output/fl33_extracted-fault.xdmf were not found."
         )
 
     list_nucleation_size = compute_critical_nucleation(
@@ -321,7 +322,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cohesionvalues",
         nargs=1,
-        help="fault cohesion (c0 + c1*sigma_zz) values, 2 value per parameter set, separated by';'",
+        help=(
+            "fault cohesion (c0 + c1*sigma_zz) values, "
+            "2 value per parameter set, separated by';'"
+        ),
         default=list_of_tuples_to_semicolon_separated_string(paramCoh),
     )
     parser.add_argument(

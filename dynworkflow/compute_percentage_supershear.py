@@ -72,7 +72,8 @@ def compute_supershear_percentile(folder, velocity_model):
             id_pos = sx.asl > 0.05
             Vs = find_last_value(df["depth"], df["Vs"], sx.depthz)
             Vp = find_last_value(df["depth"], df["Vp"], sx.depthz)
-            # these 10% acknowledge the fact that the supershear calculation can be imprecise
+            # these 10% acknowledge the fact that
+            # the supershear calculation can be imprecise
             supershear = sx.vr > Vs + 0.1 * (Vp - Vs)
 
             total_area = areas[id_pos].sum()

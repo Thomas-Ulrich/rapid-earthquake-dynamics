@@ -34,7 +34,6 @@ class MultiFaultPlane:
 
     @classmethod
     def from_usgs_fsp_file(cls, fname):
-        import re
         import pandas as pd
         from io import StringIO
 
@@ -115,7 +114,8 @@ class MultiFaultPlane:
                     fp.dip[j, i] = dip
                     fp.PSarea_cm2 = dx * dy * 1e10
                     fp.t0[j, i] = df["TRUP"][k]
-                    # t_fal in not specified in this file (compared with the *.param file)
+                    # t_fal in not specified in this file
+                    # (compared with the *.param file)
                     fp.tacc[j, i] = 0.5 * df["RISE"][k]
                     fp.rise_time[j, i] = df["RISE"][k]
         return cls(fault_planes)
@@ -398,7 +398,8 @@ class MultiFaultPlane:
                         continue
                     if ndt1 > fp.ndt:
                         print(
-                            f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array..."
+                            f"a larger ndt ({ndt1}> {fp.ndt}) was found for point "
+                            f"source (i,j) = ({i}, {j}) extending aSR array..."
                         )
                         fp.extend_aSR(fp.ndt, ndt1)
                         fp.myt = np.linspace(0, fp.ndt - 1, fp.ndt) * fp.dt
@@ -411,7 +412,8 @@ class MultiFaultPlane:
                             0,
                         )
 
-                    # Generate the resulting signal as a sum of multiple triangle functions
+                    # Generate the resulting signal as a sum of
+                    # multiple triangle functions
                     def sum_of_triangles(t, triangles):
                         signal = np.zeros_like(t)
                         for center, half_width, amplitude in triangles:
@@ -433,7 +435,8 @@ class MultiFaultPlane:
                     integral = np.trapz(fp.aSR[j, i, :], dx=fp.dt)
                     if integral:
                         fp.aSR[j, i, :] /= integral
-        # we scale down the model to have the expected magnitude (see comment above on 25GPa)
+        # we scale down the model to have the expected magnitude
+        # (see comment above on 25GPa)
         fp.slip1 *= Gslip25 / Gslip
         fault_planes[0] = fp.trim()
         fault_planes[0] = fault_planes[0].add_one_zero_slip_row_at_depth()
@@ -473,7 +476,7 @@ class MultiFaultPlane:
                 line_el = fid.readline().split()
                 if line_el[0] != "POINTS":
                     raise ValueError(
-                        f"error parsing {fname}: line does not start with POINTS : {line}"
+                        f"error parsing {fname}: does not begin with POINTS : {line}"
                     )
                 # check that the plane data are consistent with the number of points
                 assert int(line_el[1]) == fp.nx * fp.ny
@@ -520,12 +523,13 @@ class MultiFaultPlane:
                             continue
                         if ndt1 > fp.ndt:
                             print(
-                                f"a larger ndt ({ndt1}> {fp.ndt}) was found for point source (i,j) = ({i}, {j}) extending aSR array..."
+                                f"a larger ndt ({ndt1}> {fp.ndt}) was found for point "
+                                f"source (i,j) = ({i}, {j}) extending aSR array..."
                             )
                             fp.extend_aSR(fp.ndt, ndt1)
                         if abs(dt - fp.dt) > 1e-6:
                             raise NotImplementedError(
-                                "this script assumes that dt is the same for all sources",
+                                "this script assumes the same dt for all sources",
                                 dt,
                                 fp.dt,
                             )
@@ -555,14 +559,18 @@ class MultiFaultPlane:
         return t0max == 0.0
 
     def generate_fault_ts_yaml_fl33(self, prefix, method, spatial_zoom, proj):
-        """Generate yaml file initializing FL33 arrays and ts file describing the planar fault geometry."""
+        "Generate yaml file initializing FL33 arrays and ts file describing"
+        "the planar fault geometry."
 
         if not os.path.exists("yaml_files"):
             os.makedirs("yaml_files")
         # Generate yaml file loading ASAGI file
         template_yaml = """!Switch
-[strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time, rake_interp_low_slip]: !EvalModel
-    parameters: [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]
+[strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time,
+ rake_interp_low_slip]: !EvalModel
+    parameters:
+      [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time,
+       rake_interp_low_slip]
     model: !Any
      components:
 """
@@ -588,7 +596,9 @@ class MultiFaultPlane:
               components: !Any
                 - !ASAGI
                     file: ASAGI_files/{prefix}{p + 1}_{spatial_zoom}_{method}.nc
-                    parameters: [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]
+                    parameters:
+                      [strike_slip, dip_slip, rupture_onset, effective_rise_time,
+                       acc_time, rake_interp_low_slip]
                     var: data
                     interpolation: linear
                 - !ConstantMap
@@ -601,10 +611,13 @@ class MultiFaultPlane:
                     rake_interp_low_slip: 0.0
 """
         template_yaml += """    components: !LuaMap
-      returns: [strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time, rake_interp_low_slip]
+      returns:
+        [strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time,
+         rake_interp_low_slip]
       function: |
         function f (x)
-          -- Note the minus on strike_slip to acknowledge the different convention of SeisSol (T_s>0 means right-lateral)
+          -- Note the minus on strike_slip to acknowledge the different
+          -- convention of SeisSol (T_s>0 means right-lateral)
           -- same for the math.pi factor on rake
           return {
           strike_slip = -x["strike_slip"],

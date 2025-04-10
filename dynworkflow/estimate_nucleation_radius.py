@@ -175,7 +175,8 @@ def compute_critical_nucleation_one_file(
             nucRadius = rad
     runtime = time.time() - start_time
     print(
-        f"{bn_fault_yaml}: {rad:.0f} {estimatedR:.0f} {ratio_slip_area:.1f} {np.std(L[ids])} ({runtime} s, easi {easi_runtime}s)"
+        f"{bn_fault_yaml}: {rad:.0f} {estimatedR:.0f} {ratio_slip_area:.1f} "
+        f"{np.std(L[ids])} ({runtime} s, easi {easi_runtime}s)"
     )
     return nucRadius
 

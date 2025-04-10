@@ -1,15 +1,13 @@
 import numpy as np
-import pyproj
 import scipy.ndimage
 from scipy import interpolate
-from netCDF4 import Dataset
 from scipy import ndimage
 from scipy.interpolate import RegularGridInterpolator
 import xarray as xr
 import os
 from scipy.interpolate import griddata
 from scipy.ndimage import gaussian_filter
-from stf import regularizedYoffe, gaussianSTF, smoothStep, asymmetric_cosine
+from stf import regularizedYoffe, gaussianSTF
 from asagiwriter import writeNetcdf
 
 
@@ -123,7 +121,8 @@ def cosine_taper(npts, p=0.1, freqs=None, flimit=None, halfcosine=True, sactaper
 def interpolate_nan_from_neighbors(array):
     """rise_time and tacc may not be defined where there is no slip (no SR function).
     in this case, we interpolate from neighbors
-    source: https://stackoverflow.com/questions/37662180/interpolate-missing-values-2d-python
+    source:
+    https://stackoverflow.com/questions/37662180/interpolate-missing-values-2d-python
     """
     x = np.arange(0, array.shape[1])
     y = np.arange(0, array.shape[0])
@@ -187,8 +186,10 @@ def upsample_quantities(
         if minimize_block_average_variations:
             # inspired by Tinti et al. (2005) (Appendix A)
             # This is for the specific case of fault slip.
-            # We want to preserve the seismic moment of each subfault after interpolation
-            # the rock rigidity is not know by this script (would require some python binding of easi).
+            # We want to preserve the seismic moment of each subfault after
+            # interpolation
+            # the rock rigidity is not know by this script (would require some python
+            # binding of easi).
             # the subfault area is typically constant over the kinematic model
             # So we just want to perserve subfault average.
             print("trying to perserve subfault average...")
@@ -200,7 +201,8 @@ def upsample_quantities(
             for i in range(niter):
                 block_average = compute_block_mean(my_array, spatial_zoom)
                 correction = my_array0 / block_average
-                # having a misfit as misfit = np.linalg.norm(correction) does not makes sense as for almost 0 slip, correction can be large
+                # having a misfit as misfit = np.linalg.norm(correction) does not
+                # makes sense as for almost 0 slip, correction can be large
                 misfit = np.linalg.norm(my_array0 - block_average) / len(my_array0)
                 if best_misfit > misfit:
                     if i == 0:
@@ -351,9 +353,11 @@ class FaultPlane:
                     self.t0[j, i] += t0_increment
                     # 2 dims: 0: Yoffe 1: Gaussian
                     newSR = np.zeros((self.ndt, 2))
-                    # Ts and Td parameters of the Yoffe function have no direct physical meaning
-                    # Tinti et al. (2005) suggest that Ts can nevertheless be associated with the acceleration time tacc
-                    # Empirically, they find that Ts and Tacc are for most (Ts,Td) parameter sets linearly related
+                    # Ts and Td parameters of the Yoffe function have no direct physical
+                    # meaning
+                    # Tinti et al. (2005) suggest that Ts can nevertheless be associated
+                    # with the acceleration time tacc Empirically, they find that Ts and
+                    # Tacc are for most (Ts,Td) parameter sets linearly related
                     # with the 'magic' number 1.27
                     ts = self.tacc[j, i] / 1.27
                     tr = self.rise_time[j, i] - 2.0 * ts
@@ -382,10 +386,14 @@ class FaultPlane:
         misfits_Yoffe = np.array(misfits_Yoffe)
         misfits_Gaussian = np.array(misfits_Gaussian)
         print(
-            f"misfit Yoffe (10-50-90%): {np.percentile(misfits_Yoffe, 10):.2f} {np.percentile(misfits_Yoffe, 50):.2f} {np.percentile(misfits_Yoffe, 90):.2f}"
+            f"misfit Yoffe (10-50-90%): {np.percentile(misfits_Yoffe, 10):.2f} "
+            f"{np.percentile(misfits_Yoffe, 50):.2f}"
+            f"{np.percentile(misfits_Yoffe, 90):.2f}"
         )
         print(
-            f"misfit Gaussian (10-50-90%): {np.percentile(misfits_Gaussian, 10):.2f} {np.percentile(misfits_Gaussian, 50):.2f} {np.percentile(misfits_Gaussian, 90):.2f}"
+            f"misfit Gaussian (10-50-90%): {np.percentile(misfits_Gaussian, 10):.2f} "
+            f"{np.percentile(misfits_Gaussian, 50):.2f} "
+            f"{np.percentile(misfits_Gaussian, 90):.2f}"
         )
 
         self.rise_time = interpolate_nan_from_neighbors(self.rise_time)
@@ -499,7 +507,8 @@ class FaultPlane:
                         time_smoothing_kernel_as_dt_fraction * self.dt / pf.dt,
                         mode="constant",
                     )
-                    # With a cubic interpolation, the interpolated slip1 may be negative which does not make sense.
+                    # With a cubic interpolation, the interpolated slip1 may be
+                    # negative which does not make sense.
                     if pf.slip1[j, i] < 0:
                         pf.aSR[j, i, :] = 0
                         continue
@@ -571,7 +580,8 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         self.yb = np.pad(yb, ((1), (1)), "reflect", reflect_type="odd")
 
         # we want to cover all the fault, that is up to -dx/2.
-        # With this strategy We will cover a bit more than that, but it is probably not a big deal
+        # With this strategy We will cover a bit more than that,
+        # but it is probably not a big deal
 
         ncrop = spatial_zoom - 1
         self.x_up = scipy.ndimage.zoom(
@@ -606,8 +616,10 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         if minimize_block_average_variations:
             # inspired by Tinti et al. (2005) (Appendix A)
             # This is for the specific case of fault slip.
-            # We want to preserve the seismic moment of each subfault after interpolation
-            # the rock rigidity is not know by this script (would require some python binding of easi).
+            # We want to preserve the seismic moment of each subfault after
+            # interpolation
+            # the rock rigidity is not know by this script
+            # (would require some python binding of easi).
             # the subfault area is typically constant over the kinematic model
             # So we just want to perserve subfault average.
             print("trying to perserve subfault average...")
@@ -622,7 +634,8 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                 )
                 print(arr.shape, block_average.shape)
                 correction = arr / block_average
-                # having a misfit as misfit = np.linalg.norm(correction) does not makes sense as for almost 0 slip, correction can be large
+                # having a misfit as misfit = np.linalg.norm(correction) does not make
+                # sense as for almost 0 slip, correction can be large
                 misfit = np.linalg.norm(arr - block_average) / len(arr)
                 if best_misfit > misfit:
                     if i == 0:
@@ -664,8 +677,8 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
 
         rupttime, rake, rise_time, tacc = upsampled_arrays
 
-        # upsampled duration, rise_time and acc_time may not be smaller than initial values
-        # at least rise_time could lead to a non-causal kinematic model
+        # upsampled duration, rise_time and acc_time may not be smaller than initial
+        # values at least rise_time could lead to a non-causal kinematic model
         rupttime = np.maximum(rupttime, np.amin(self.t0))
         rise_time = np.maximum(rise_time, np.amin(self.rise_time))
         tacc = np.maximum(tacc, np.amin(self.tacc))
@@ -743,7 +756,8 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         )
 
     def compute_affine_vector_map(self):
-        """compute the 2d vectors hh and hw and the offsets defining the 2d affine map (parametric coordinates)"""
+        "compute the 2d vectors hh and hw and the offsets defining the"
+        "2d affine map (parametric coordinates)."
         self.affine_map = {}
         cm2m = 0.01
         km2m = 1e3
@@ -812,8 +826,10 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         fname = f"tmp/{prefix}_fault.ts"
         with open(fname, "w") as fout:
             fout.write(
-                "GOCAD TSURF 1\nHEADER {\nname:%s\nborder: true\nmesh: false\n*border*bstone: true\n}\nTFACE\n"
-                % (fname)
+                "GOCAD TSURF 1\nHEADER {\nname:"
+                + fname
+                + "\nborder: true\n"
+                + "mesh: false\n*border*bstone: true\n}\nTFACE\n"
             )
             for ivx in range(1, 5):
                 fout.write(

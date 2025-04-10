@@ -51,7 +51,11 @@ def write_axitra_velocity_file(df):
     to_write = "# layer_width Vp Vs rho Qp Qs\n"
     for index, row in df.iterrows():
         h = row["H"] if row["H"] < 1e4 else 0
-        to_write += f"{1000 * h:.18e} {1000 * row['P_VEL']:.18e} {1000 * row['S_VEL']:.18e} {1000 * row['DENS']:.18e} {row['QP']:.18e} {row['QS']:.18e}\n"
+        to_write += (
+            f"{1000 * h:.18e} {1000 * row['P_VEL']:.18e} "
+            f"{1000 * row['S_VEL']:.18e} {1000 * row['DENS']:.18e} "
+            f"{row['QP']:.18e} {row['QS']:.18e}\n"
+        )
     fname = "tmp/axitra_velocity_model.txt"
     print(to_write)
     with open(fname, "w") as fid:

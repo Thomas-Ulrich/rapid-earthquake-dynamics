@@ -35,7 +35,8 @@ def generate(h_domain, h_fault, interactive):
             dist2 = (x - ex) ** 2 + (y - ey) ** 2 + (z - ez) ** 2
             if dist2 < tolerance**2:
                 print(
-                    f"Found an almost duplicated vertex at ({x},{y},{z}), merging with ({ex},{ey},{ez})"
+                    f"Found an almost duplicated vertex at ({x},{y},{z}), "
+                    f"merging with ({ex},{ey},{ez})"
                 )
                 return point_id, (ex, ey, ez)
 
