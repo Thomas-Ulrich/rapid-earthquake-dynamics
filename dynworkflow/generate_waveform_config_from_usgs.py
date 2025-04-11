@@ -9,7 +9,7 @@ from dynworkflow.get_usgs_finite_fault_data import (
 )
 
 
-def generate_waveform_config_file(ignore_source_files=False):
+def generate_waveform_config_file(stations="auto", ignore_source_files=False):
     fn_json = glob.glob("tmp/*.json")[0]
 
     with open(fn_json) as f:
@@ -36,10 +36,14 @@ def generate_waveform_config_file(ignore_source_files=False):
     input_file_dir = f"{script_directory}/input_files"
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
+    if stations == "auto":
+        stations_field = "{{ stations }}"
+    else:
+        stations_field = stations
 
     template_par = {
         "setup_name": code,
-        "stations": "{{ stations }}",
+        "stations": stations_field,
         "lon": hypocenter_x,
         "lat": hypocenter_y,
         "depth": hypocenter_z,
@@ -53,9 +57,9 @@ def generate_waveform_config_file(ignore_source_files=False):
         point_source_files = ",".join(sorted(glob.glob("tmp/PointSou*.h5")))
         template_par["source_files"] = point_source_files
     else:
-        template_par[
-            "source_files"
-        ] = "{{ source_files | default('{{ source_files }}', true) }}"
+        template_par["source_files"] = (
+            "{{ source_files | default('{{ source_files }}', true) }}"
+        )
 
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)

@@ -224,7 +224,13 @@ def generate_input_files(
               map:
                 Ts0: 0.0
                 Td0: 0.0
-                Pn0: 0.0\n"""
+                Pn0: 0.0\n
+     - !ConstantMap
+        map:
+          Ts0: 0.0
+          Td0: 0.0
+          Pn0: 0.0
+                """
         myAffineMap = AffineMap(ua, ub, ta, tb)
         ldataName = ["Ts0", "Td0", "Pn0"]
         grid, lgridded_myData = gridto2Dlocal(

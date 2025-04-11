@@ -1,14 +1,15 @@
 !Switch
 
-[mu_d]: !Include yaml_files/mud.yaml
+[mu_d]: !Include 'yaml_files/mud.yaml'
 
 # static_strength, dynamic_strength, tau_0 are not used by seissol
 # but added for convenience for the compute_critical_nucleation python function
 [T_s, T_d, T_n, mu_s, cohesion, static_strength, dynamic_strength, tau_0]: !EvalModel
-    parameters: [Ts0, Td0, mu_d, x, y, z, rake_interp_low_slip, R]
+    parameters: [Ts0, Td0, fault_tag, mu_d, x, y, z, rake_interp_low_slip, R]
     model: !Switch
-        [Ts0, Td0]: !Include yaml_files/Ts0Td0.yaml
-        [mu_d]: !Include yaml_files/mud.yaml
+        [Ts0, Td0]: !Include 'yaml_files/Ts0Td0.yaml'
+        [mu_d]: !Include 'yaml_files/mud.yaml'
+        [fault_tag]: !Include 'yaml_files/fault_tags.yaml'
         [rake_interp_low_slip]: !Include 'yaml_files/FL33_34_fault.yaml'
         [x, y, z]: !AffineMap
           matrix:
@@ -82,7 +83,7 @@
 [d_c]: !EvalModel
     parameters: [fault_slip]
     model: !Switch
-        [fault_slip]: !Include yaml_files/fault_slip.yaml
+        [fault_slip]: !Include 'yaml_files/fault_slip.yaml'
     components: !LuaMap
       returns: [d_c]
       function: |

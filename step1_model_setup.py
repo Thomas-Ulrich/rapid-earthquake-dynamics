@@ -17,6 +17,8 @@ import glob
 import subprocess
 import numpy as np
 import yaml
+from pathlib import Path
+
 
 # Append finite_fault_models and external folders to path
 # Get the directory of the current script
@@ -139,6 +141,18 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--regional_seismic_stations",
+        type=str,
+        default="auto",
+        help="""
+        regional seismic stations for validating the models
+        - 'auto': would be automatically determined.
+        - OR: list of coma separated station, e.g.
+        "NC.KRP,BK.SBAR,BK.THOM,BK.DMOR,NC.KMPB,BK.HUNT,BK.ETSL,BK.HALS,BK.MNDO"
+        """,
+    )
+
+    parser.add_argument(
         "--tmax",
         type=float,
         default=None,
@@ -170,20 +184,33 @@ def copy_files(overwrite_files, setup_dir):
     os.makedirs(yaml_dir, exist_ok=True)
     os.makedirs(nc_dir, exist_ok=True)
 
-    for file_path in overwrite_files:
-        if not os.path.isfile(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
+    for path_str in overwrite_files:
+        path = Path(path_str).resolve()
+        if not path.exists():
+            raise FileNotFoundError(f"File or directory not found: {path}")
 
-        ext = os.path.splitext(file_path)[1].lower()
-        if ext == ".yaml":
-            dest = os.path.join(yaml_dir, os.path.basename(file_path))
-        elif ext == ".nc":
-            dest = os.path.join(nc_dir, os.path.basename(file_path))
+        if path.is_file():
+            ext = path.suffix.lower()
+            if ext == ".yaml":
+                dest = Path(yaml_dir) / path.name
+            elif ext == ".nc":
+                dest = Path(nc_dir) / path.name
+            else:
+                raise ValueError(f"Skipping unsupported file type: {path}")
+
+            print(f"Copying file {path} to {dest}")
+            shutil.copy2(path, dest)
+
+        elif path.is_dir():
+            dest = Path(setup_dir) / path.name
+            if dest.exists():
+                print(f"Removing existing folder before copy: {dest}")
+                shutil.rmtree(dest)
+            print(f"Copying folder {path} to {dest}")
+            shutil.copytree(path, dest)
+
         else:
-            raise ValueError(f"Skipping unsupported file type: {file_path}")
-
-        print(f"Copying {file_path} to {dest}")
-        shutil.copy2(file_path, dest)
+            raise ValueError(f"Unsupported path type: {path}")
 
 
 def dict_to_namespace(d):
@@ -347,6 +374,7 @@ def select_station_and_download_waveforms():
     with open("input_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]
+    regional_seismic_stations = config_dict["regional_seismic_stations"]
     if mesh_file == "auto":
         mesh_xdmf_file = "tmp/mesh.xdmf"
     else:
@@ -369,24 +397,26 @@ def select_station_and_download_waveforms():
         0.5,
     )
     generate_waveform_config_from_usgs.generate_waveform_config_file(
-        ignore_source_files=True
+        stations=regional_seismic_stations, ignore_source_files=True
     )
-    command = [
-        os.path.join(
-            current_script_dir,
-            "submodules/seismic-waveform-factory/scripts/select_stations.py",
-        ),
-        "waveforms_config.ini",
-        "14",
-        "7",
-    ]
-    subprocess.run(command, check=True)
-    print(
-        "Done selecting stations. If you are not satisfied, change "
-        "waveforms_config.ini and rerun:"
-    )
-    scommand = " ".join(command)
-    print(f"{scommand}")
+
+    if regional_seismic_stations == "auto":
+        command = [
+            os.path.join(
+                current_script_dir,
+                "submodules/seismic-waveform-factory/scripts/select_stations.py",
+            ),
+            "waveforms_config.ini",
+            "14",
+            "7",
+        ]
+        subprocess.run(command, check=True)
+        print(
+            "Done selecting stations. If you are not satisfied, change "
+            "waveforms_config.ini and rerun:"
+        )
+        scommand = " ".join(command)
+        print(f"{scommand}")
 
 
 if __name__ == "__main__":
