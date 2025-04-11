@@ -206,7 +206,8 @@ def run_step1():
         download_usgs_fsp=(vel_model == "usgs"),
     )
     os.chdir(derived_config["folder_name"])
-    save_config(vars(args), "input_config.yaml")
+    input_config = vars(args)
+    save_config(input_config, "input_config.yaml")
 
     refMRFfile = ""
     print(refMRF)
