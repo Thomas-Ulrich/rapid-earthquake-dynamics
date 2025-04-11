@@ -44,13 +44,9 @@ def generate():
     template_par["end_time"] = max(25.0, 0.6 * end_time)
     template_par["material_fname"] = "yaml_files/material.yaml"
 
-    with open("config.yaml", "r") as f:
+    with open("derived_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
-    mesh_file = config_dict["mesh"]
-    if mesh_file == "auto":
-        mesh_file = "tmp/mesh.puml.h5"
-    else:
-        mesh_file = "tmp/" + os.path.basename(mesh_file)
+    mesh_file = config_dict["mesh_file"]
     template_par["mesh_file"] = mesh_file
 
     template = templateEnv.get_template("parameters_fl34.tmpl.par")
