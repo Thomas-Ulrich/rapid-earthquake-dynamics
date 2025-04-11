@@ -558,12 +558,32 @@ class MultiFaultPlane:
             t0max = max(t0max, np.amax(fp.t0[:, :]))
         return t0max == 0.0
 
+    def generate_fault_tags_yaml(self):
+        template_yaml = """!Switch
+[fault_tag]: !Any
+     components:\n"""
+
+        for p, fp in enumerate(self.fault_planes):
+            fault_id = 3 if p == 0 else 64 + p
+            template_yaml += f"""     - !GroupFilter
+        groups: {fault_id}
+        components: !ConstantMap
+          map:
+            fault_tag: {fault_id}\n"""
+
+        fname = "yaml_files/fault_tags.yaml"
+        with open(fname, "w") as fid:
+            fid.write(template_yaml)
+        print(f"done writing {fname}")
+
     def generate_fault_ts_yaml_fl33(self, prefix, method, spatial_zoom, proj):
         "Generate yaml file initializing FL33 arrays and ts file describing"
         "the planar fault geometry."
 
         if not os.path.exists("yaml_files"):
             os.makedirs("yaml_files")
+        self.generate_fault_tags_yaml()
+
         # Generate yaml file loading ASAGI file
         variable_list_1 = (
             "strike_slip, dip_slip, rupture_onset, tau_S, tau_R, "
@@ -575,8 +595,7 @@ class MultiFaultPlane:
         )
         template_yaml = f"""!Switch
 [{variable_list_1}]: !EvalModel
-    parameters:
-      [{variable_list_2}]
+    parameters: [{variable_list_2}]
     model: !Any
      components:
 """
@@ -615,6 +634,17 @@ class MultiFaultPlane:
                     effective_rise_time:  2e100
                     rake_interp_low_slip: 0.0
 """
+
+        template_yaml += """
+      - !ConstantMap
+              map:
+                strike_slip: 0.0
+                dip_slip:    0.0
+                rupture_onset:    0.0
+                acc_time:  1e100
+                effective_rise_time:  2e100
+                rake_interp_low_slip: 0.0\n"""
+
         template_yaml += f"""    components: !LuaMap
       returns: [{variable_list_1}]\n"""
         template_yaml += """      function: |

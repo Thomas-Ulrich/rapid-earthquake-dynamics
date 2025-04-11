@@ -89,7 +89,7 @@ def compute_supershear_percentile(folder, velocity_model):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="""compute percentage of supershear in slip area for am
+        description="""compute percentage of supershear in slip area for an
         ensemble of DR models. all on the same mesh.
         partitionning may differ though"""
     )

@@ -171,8 +171,6 @@ def get_data(
     lat = float(origin[first_released_index]["properties"]["latitude"])
 
     projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon:.2f} +lat_0={lat:.2f}"
-    with open(f"{folder_name}/tmp/projection.txt", "w") as f:
-        f.write(projection)
 
     if use_usgs_finite_fault:
         with open(f"{folder_name}/tmp/hypocenter.txt", "w") as f:
@@ -199,7 +197,11 @@ def get_data(
 
     shutil.move(fn_json, f"{folder_name}/tmp/{fn_json}")
     print(folder_name)
-    return folder_name
+    derived_config = {}
+    derived_config["folder_name"] = folder_name
+    derived_config["projection"] = projection
+
+    return derived_config
 
 
 if __name__ == "__main__":

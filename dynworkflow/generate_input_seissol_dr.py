@@ -12,6 +12,7 @@ from dynworkflow.compile_scenario_macro_properties import infer_duration
 import seissolxdmf as sx
 import argparse
 from pyproj import Transformer
+import yaml
 
 
 def generate(mode, dic_values):
@@ -121,8 +122,7 @@ def generate(mode, dic_values):
         if verbose:
             print(f"done creating {out_fname}")
 
-    with open("tmp/projection.txt", "r") as f:
-        projection = f.read()
+    projection = dic_values["projection"]
     transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
     hypo = np.loadtxt("tmp/hypocenter.txt")
     hypo[2] *= -1e3
@@ -182,6 +182,9 @@ def generate(mode, dic_values):
             "hypo_y": hypo[1],
             "hypo_z": hypo[2],
             "r_crit": 3000.0,
+            "mu_delta_min": dic_values["mu_delta_min"],
+            "mesh_file": dic_values["mesh_file"],
+            "CFS_code_placeholder": dic_values["CFS_code_placeholder"],
         }
 
         sR = "_".join(map(str, R))
@@ -248,6 +251,8 @@ def generate(mode, dic_values):
                 "hypo_y": hypo[1],
                 "hypo_z": hypo[2],
                 "r_crit": list_nucleation_size[i],
+                "mu_delta_min": dic_values["mu_delta_min"],
+                "mesh_file": dic_values["mesh_file"],
             }
             render_file(template_par, "fault.tmpl.yaml", fn_fault)
         else:
@@ -343,6 +348,18 @@ if __name__ == "__main__":
     dic_values["cohesion"] = semicolon_separated_string_to_list_of_tuples(
         args.cohesionvalues[0]
     )
+    with open("derived_config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
+    dic_values["projection"] = config_dict["projection"]
+
+    if "CFS_code" in config_dict:
+        CFS_code_fn = config_dict["CFS_code"]
+        with open(CFS_code_fn, "r") as f:
+            dic_values["CFS_code_placeholder"] = f.read()
+    else:
+        dic_values["CFS_code_placeholder"] = ""
+
     dic_values["nsamples"] = args.nsamples[0]
     print(dic_values)
     generate(args.mode, dic_values)
