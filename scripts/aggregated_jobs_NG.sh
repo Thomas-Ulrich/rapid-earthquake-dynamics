@@ -17,7 +17,7 @@
 #SBATCH --ntasks-per-node=2
 #EAR may impact code performance
 #SBATCH --ear=off
-#SBATCH --nodes=40 --partition=general --time=00:40:00
+#SBATCH --nodes=40 --partition=general 
 ##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
