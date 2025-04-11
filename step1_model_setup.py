@@ -85,6 +85,16 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--fault_mesh_size",
+        type=str,
+        default="auto",
+        help="""
+        auto: inferred from fault dimensions
+        else provide a value
+        """,
+    )
+
+    parser.add_argument(
         "--finite_fault_model",
         type=str,
         default="usgs",
@@ -106,12 +116,14 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--tmax",
-        type=float,
-        default=None,
+        "--projection",
+        type=str,
+        default="auto",
         help="""
-        Maximum rupture time in seconds.
-        Slip contributions with t_rupt > tmax will be ignored.
+        Map projection specification.
+        - 'auto': transverse Mercator centered on the hypocenter.
+        - OR: custom projection string in Proj4 format
+        (e.g., '+proj=utm +zone=33 +datum=WGS84').
         """,
     )
 
@@ -127,6 +139,16 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--tmax",
+        type=float,
+        default=None,
+        help="""
+        Maximum rupture time in seconds.
+        Slip contributions with t_rupt > tmax will be ignored.
+        """,
+    )
+
+    parser.add_argument(
         "--velocity_model",
         type=str,
         default="auto",
@@ -135,18 +157,6 @@ def get_parser():
         - 'auto': choose based on finite fault model (e.g., Slipnear or USGS).
         - 'usgs': extract from the USGS FSP file.
         - OR: provide a velocity model in Axitra format.
-        """,
-    )
-
-    parser.add_argument(
-        "--projection",
-        type=str,
-        default="auto",
-        help="""
-        Map projection specification.
-        - 'auto': transverse Mercator centered on the hypocenter.
-        - OR: custom projection string in Proj4 format
-        (e.g., '+proj=utm +zone=33 +datum=WGS84').
         """,
     )
 
@@ -201,9 +211,7 @@ def process_parser():
     return args
 
 
-def save_config(args):
-    args_dict = vars(args)  # Convert Namespace to plain dict
-    config_out = "config.yaml"
+def save_config(args_dict, config_out):
     with open(config_out, "w") as f:
         yaml.dump(args_dict, f)
     print(f"Saved config to {config_out}")
@@ -236,15 +244,16 @@ def run_step1():
     else:
         if vel_model == "auto":
             vel_model = "usgs"
-    folder_name = get_usgs_finite_fault_data.get_data(
+    derived_config = get_usgs_finite_fault_data.get_data(
         args.event_id,
         min_magnitude=6,
         suffix=suffix,
         use_usgs_finite_fault=(finite_fault_model == "usgs"),
         download_usgs_fsp=(vel_model == "usgs"),
     )
-    os.chdir(folder_name)
-    save_config(args)
+    os.chdir(derived_config["folder_name"])
+    input_config = vars(args)
+    save_config(input_config, "input_config.yaml")
 
     refMRFfile = ""
     print(refMRF)
@@ -261,34 +270,24 @@ def run_step1():
     else:
         raise FileNotFoundError(f"{refMRF} does not exists")
 
-    with open("tmp/reference_STF.txt", "w") as f:
-        f.write(refMRFfile)
-
+    derived_config["reference_STF"] = refMRFfile
     projection = args.projection
     if projection == "auto":
-        with open("tmp/projection.txt", "r") as fid:
-            projection = fid.read()
-    else:
-        with open("tmp/projection.txt", "w") as f:
-            f.write(projection)
+        projection = derived_config["projection"]
 
     if finite_fault_model != "usgs":
         finite_fault_fn = shutil.copy(finite_fault_model, "tmp")
     else:
         finite_fault_fn = "tmp/basic_inversion.param"
 
+    if args.fault_mesh_size != "auto":
+        fault_mesh_size = float(args.fault_mesh_size)
     (
         spatial_zoom,
         fault_mesh_size,
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
-        finite_fault_fn, projection
+        finite_fault_fn, projection, args.fault_mesh_size
     )
-
-    with open("tmp/inferred_spatial_zoom.txt", "w") as f:
-        f.write(str(spatial_zoom))
-
-    with open("tmp/inferred_fault_mesh_size.txt", "w") as f:
-        f.write(str(fault_mesh_size))
 
     generate_FL33_input_files.main(
         finite_fault_fn,
@@ -321,10 +320,19 @@ def run_step1():
         result = os.system("pumgen -s msh4 tmp/mesh.msh")
         if result != 0:
             sys.exit(1)
+        mesh_file = "tmp/mesh.puml.h5"
     else:
-        shutil.copy(args.mesh, "tmp")
+        mesh_file = shutil.copy(args.mesh, "tmp")
         mesh_xdmf_file = args.mesh.split("puml.h5")[0] + ".xdmf"
         shutil.copy(mesh_xdmf_file, "tmp")
+
+    derived_config |= {
+        "mesh_file": mesh_file,
+        "spatial_zoom": spatial_zoom,
+        "fault_mesh_size": fault_mesh_size,
+        "mu_delta_min": input_config["mu_delta_min"],
+    }
+    save_config(derived_config, "derived_config.yaml")
 
     generate_input_seissol_fl33.generate()
     compute_moment_rate_from_finite_fault_file.compute(
@@ -335,11 +343,11 @@ def run_step1():
     copy_files(args.custom_setup_files, folder_name)
 
     print("step1 completed")
-    return folder_name
+    return derived_config["folder_name"]
 
 
 def select_station_and_download_waveforms():
-    with open("config.yaml", "r") as f:
+    with open("input_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]
     if mesh_file == "auto":

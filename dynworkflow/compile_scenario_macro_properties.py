@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import yaml
 import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
@@ -351,7 +352,12 @@ if __name__ == "__main__":
         return mr_ref[:last_index_non_zero, :]
 
     fn = "tmp/reference_STF.txt"
-    if os.path.exists(fn):
+    if os.path.exists("derived_config.yaml"):
+        with open("derived_config.yaml", "r") as f:
+            config_dict = yaml.safe_load(f)
+        refMRFfile = config_dict["reference_STF.txt"]
+    elif os.path.exists(fn):
+        # for backwards compatibility
         with open("tmp/reference_STF.txt", "r") as fid:
             refMRFfile = fid.read().strip()
     else:

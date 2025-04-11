@@ -15,8 +15,9 @@ if absolute_path not in sys.path:
 import project_fault_tractions_onto_asagi_grid
 
 if __name__ == "__main__":
-    with open("tmp/inferred_fault_mesh_size.txt", "r") as f:
-        inferred_fault_mesh_size = float(f.read())
+    with open("derived_config", "r") as f:
+        config_dict = yaml.safe_load(f)
+    fault_mesh_size = config_dict["fault_mesh_size"]
 
     fl33_file = "output/fl33-fault.xdmf"
     if not os.path.exists(fl33_file):
@@ -24,8 +25,8 @@ if __name__ == "__main__":
 
     project_fault_tractions_onto_asagi_grid.generate_input_files(
         fl33_file,
-        inferred_fault_mesh_size / 2,
-        gaussian_kernel=inferred_fault_mesh_size,
+        fault_mesh_size / 2,
+        gaussian_kernel=fault_mesh_size,
         taper=None,
         paraview_readable=None,
     )
@@ -33,14 +34,7 @@ if __name__ == "__main__":
     # mode = 'latin_hypercube'
     # mode = "picked_models"
     dic_values = {}
-    with open("config.yaml", "r") as f:
-        config_dict = yaml.safe_load(f)
-    mesh_file = dic_values["mesh"]
-    if mesh_file == "auto":
-        mesh_file = "tmp/mesh.puml.h5"
-    else:
-        mesh_file = "tmp/" + os.path.basename(mesh_file)
-
+    mesh_file = dic_values["mesh_file"]
     dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
 
     if mode == "picked_models":

@@ -17,7 +17,7 @@ if absolute_path not in sys.path:
 from multi_fault_plane import MultiFaultPlane
 
 
-def infer_quantities(filename, proj, mesh_size=None):
+def infer_quantities(filename, proj, mesh_size="auto"):
     prefix, ext = os.path.splitext(filename)
     prefix = os.path.basename(prefix)
     mfp = MultiFaultPlane.from_file(filename)
@@ -60,10 +60,10 @@ def infer_quantities(filename, proj, mesh_size=None):
         else:
             return 700
 
-    if not os.path.exists("tmp"):
-        os.makedirs("tmp")
-    if not mesh_size:
+    if mesh_size == "auto":
         mesh_size = get_fault_mesh_size(min_fault_plane_area, total_area)
+    else:
+        mesh_size = float(mesh_size)
     print(f"using a mesh size of {mesh_size}")
     print(min(dx, dy))
     inferred_spatial_zoom = next_odd_integer(min(dx, dy) / mesh_size)
@@ -78,27 +78,22 @@ if __name__ == "__main__":
         description="infer spatial zoom to match fault mesh size"
     )
     parser.add_argument("filename", help="filename of the srf file")
-    parser.add_argument("--mesh_size", help="fault mesh size", type=float)
-
+    parser.add_argument(
+        "--fault_mesh_size",
+        type=str,
+        default="auto",
+        help="""
+        auto: inferred from fault dimensions
+        else provide a value
+        """,
+    )
     parser.add_argument(
         "--proj",
         metavar="proj",
-        nargs=1,
         help="proj4 string describing the projection",
         required=True,
     )
     args = parser.parse_args()
-    mesh_size = args.mesh_size[0] if args.mesh_size else None
     inferred_spatial_zoom, mesh_size = infer_quantities(
-        args.filename, args.proj[0], mesh_size
+        args.filename, args.proj, args.fault_mesh_size
     )
-
-    fns = {
-        "inferred_spatial_zoom.txt": inferred_spatial_zoom,
-        "inferred_fault_mesh_size.txt": mesh_size,
-    }
-
-    for fn, value in fns.items():
-        with open(f"tmp/{fn}", "w") as f:
-            f.write(f"{value}\n")
-        print(f"done writing tmp/{fn}")
