@@ -355,7 +355,7 @@ if __name__ == "__main__":
     if os.path.exists("derived_config.yaml"):
         with open("derived_config.yaml", "r") as f:
             config_dict = yaml.safe_load(f)
-        refMRFfile = config_dict["reference_STF.txt"]
+        refMRFfile = config_dict["reference_STF"]
     elif os.path.exists(fn):
         # for backwards compatibility
         with open("tmp/reference_STF.txt", "r") as fid:
