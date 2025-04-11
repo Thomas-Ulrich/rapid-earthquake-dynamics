@@ -172,8 +172,7 @@ def copy_files(overwrite_files, setup_dir):
 
     for file_path in overwrite_files:
         if not os.path.isfile(file_path):
-            print(f"Warning: File not found: {file_path}")
-            continue
+            raise FileNotFoundError(f"File not found: {file_path}")
 
         ext = os.path.splitext(file_path)[1].lower()
         if ext == ".yaml":
@@ -181,8 +180,7 @@ def copy_files(overwrite_files, setup_dir):
         elif ext == ".nc":
             dest = os.path.join(nc_dir, os.path.basename(file_path))
         else:
-            print(f"Skipping unsupported file type: {file_path}")
-            continue
+            raise ValueError(f"Skipping unsupported file type: {file_path}")
 
         print(f"Copying {file_path} to {dest}")
         shutil.copy2(file_path, dest)
@@ -225,6 +223,7 @@ def run_step1():
         sys.exit(1)
 
     args = process_parser()
+    custom_setup_files = [os.path.abspath(file) for file in args.custom_setup_files]
     vel_model = args.velocity_model
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
@@ -288,7 +287,6 @@ def run_step1():
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
         finite_fault_fn, projection, args.fault_mesh_size
     )
-
     generate_FL33_input_files.main(
         finite_fault_fn,
         "cubic",
@@ -316,7 +314,6 @@ def run_step1():
         generate_mesh.generate(
             h_domain=20e3, h_fault=fault_mesh_size, interactive=False
         )
-
         result = os.system("pumgen -s msh4 tmp/mesh.msh")
         if result != 0:
             sys.exit(1)
@@ -340,7 +337,7 @@ def run_step1():
     )
     if not os.path.exists("output"):
         os.makedirs("output")
-    copy_files(args.custom_setup_files, folder_name)
+    copy_files(custom_setup_files, ".")
 
     print("step1 completed")
     return derived_config["folder_name"]
