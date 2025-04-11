@@ -635,7 +635,7 @@ class MultiFaultPlane:
                     rake_interp_low_slip: 0.0
 """
 
-        template_yaml += f"""
+        template_yaml += """
       - !ConstantMap
               map:
                 strike_slip: 0.0
