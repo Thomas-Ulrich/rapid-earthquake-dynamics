@@ -64,6 +64,17 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--custom_setup_files",
+        type=lambda s: s.split(";"),
+        default=[],
+        help="""
+           Semicolon-separated list of files (e.g., material.yaml;data.nc) to
+           overwrite default files in the earthquake setup folder. yaml files
+           will be copied to yaml_files folder. nc files to ASAGI_files folder
+        """,
+    )
+
+    parser.add_argument(
         "--event_id",
         type=str,
         help="""
@@ -140,6 +151,31 @@ def get_parser():
     )
 
     return parser
+
+
+def copy_files(overwrite_files, setup_dir):
+    yaml_dir = os.path.join(setup_dir, "yaml_files")
+    nc_dir = os.path.join(setup_dir, "ASAGI_files")
+
+    os.makedirs(yaml_dir, exist_ok=True)
+    os.makedirs(nc_dir, exist_ok=True)
+
+    for file_path in overwrite_files:
+        if not os.path.isfile(file_path):
+            print(f"Warning: File not found: {file_path}")
+            continue
+
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == ".yaml":
+            dest = os.path.join(yaml_dir, os.path.basename(file_path))
+        elif ext == ".nc":
+            dest = os.path.join(nc_dir, os.path.basename(file_path))
+        else:
+            print(f"Skipping unsupported file type: {file_path}")
+            continue
+
+        print(f"Copying {file_path} to {dest}")
+        shutil.copy2(file_path, dest)
 
 
 def dict_to_namespace(d):
@@ -296,6 +332,7 @@ def run_step1():
     )
     if not os.path.exists("output"):
         os.makedirs("output")
+    copy_files(args.custom_setup_files, folder_name)
 
     print("step1 completed")
     return folder_name
