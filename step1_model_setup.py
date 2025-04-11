@@ -275,6 +275,10 @@ def run_step1():
 
     args = process_parser()
     custom_setup_files = [os.path.abspath(file) for file in args.custom_setup_files]
+
+    if args.CFS_code:
+        CFS_code = os.path.abspath(args.CFS_code)
+
     vel_model = args.velocity_model
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
@@ -375,7 +379,7 @@ def run_step1():
         shutil.copy(mesh_xdmf_file, "tmp")
 
     if args.CFS_code:
-        CFS_code = shutil.copy(args.CFS_code, "tmp")
+        CFS_code = shutil.copy(CFS_code, "tmp")
         derived_config["CFS_code"] = CFS_code
 
     derived_config |= {
