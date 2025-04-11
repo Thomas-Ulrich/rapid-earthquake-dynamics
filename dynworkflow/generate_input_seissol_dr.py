@@ -184,6 +184,8 @@ def generate(mode, dic_values):
             "r_crit": 3000.0,
             "mu_delta_min": dic_values["mu_delta_min"],
             "mesh_file": dic_values["mesh_file"],
+            "mesh_file": dic_values["mesh_file"],
+            "CFS_code_placeholder": dic_values["CFS_code_placeholder"],
         }
 
         sR = "_".join(map(str, R))
@@ -351,6 +353,13 @@ if __name__ == "__main__":
         config_dict = yaml.safe_load(f)
     dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
     dic_values["projection"] = config_dict["projection"]
+
+    if "CFS_code" in config_dict:
+        CFS_code_fn = config_dict["CFS_code"]
+        with open("your_file.txt", "r") as f:
+            dic_values["CFS_code_placeholder"] = f.read()
+    else:
+        dic_values["CFS_code_placeholder"] = ""
 
     dic_values["nsamples"] = args.nsamples[0]
     print(dic_values)

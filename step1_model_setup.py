@@ -64,7 +64,15 @@ def get_parser():
         type=str,
         help="Path to a YAML config file containing all input parameters.",
     )
-
+    parser.add_argument(
+        "--CFS_code",
+        type=str,
+        help="""
+        code to add at {{ CFS_code_placeholder }} in 
+        dynworkflow/input_files/fault.tmpl.yaml
+        (e.g. for setting-up cohesion and shear stress on receiver faults
+        """,
+    )
     parser.add_argument(
         "--custom_setup_files",
         type=lambda s: s.split(";"),
@@ -349,6 +357,10 @@ def run_step1():
         mesh_file = shutil.copy(args.mesh, "tmp")
         mesh_xdmf_file = args.mesh.split("puml.h5")[0] + ".xdmf"
         shutil.copy(mesh_xdmf_file, "tmp")
+
+    if args.CFS_code:
+        CFS_code = shutil.copy(args.CFS_code, "tmp")
+        derived_config["CFS_code"] = CFS_code
 
     derived_config |= {
         "mesh_file": mesh_file,

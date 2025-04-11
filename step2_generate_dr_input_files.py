@@ -36,6 +36,12 @@ if __name__ == "__main__":
     dic_values = {}
     mesh_file = dic_values["mesh_file"]
     dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
+    if "CFS_code" in config_dict:
+        CFS_code_fn = config_dict["CFS_code"]
+        with open("your_file.txt", "r") as f:
+            dic_values["CFS_code_placeholder"] = f.read()
+    else:
+        dic_values["CFS_code_placeholder"] = ""
 
     if mode == "picked_models":
         dic_values["B"] = [0.9, 1.0, 1.2]
