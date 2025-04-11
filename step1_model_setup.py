@@ -74,6 +74,16 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--fault_mesh_size",
+        type=str,
+        default="auto",
+        help="""
+        auto: inferred from fault dimensions
+        else provide a value
+        """,
+    )
+
+    parser.add_argument(
         "--finite_fault_model",
         type=str,
         default="usgs",
@@ -95,12 +105,14 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--tmax",
-        type=float,
-        default=None,
+        "--projection",
+        type=str,
+        default="auto",
         help="""
-        Maximum rupture time in seconds.
-        Slip contributions with t_rupt > tmax will be ignored.
+        Map projection specification.
+        - 'auto': transverse Mercator centered on the hypocenter.
+        - OR: custom projection string in Proj4 format
+        (e.g., '+proj=utm +zone=33 +datum=WGS84').
         """,
     )
 
@@ -116,6 +128,16 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--tmax",
+        type=float,
+        default=None,
+        help="""
+        Maximum rupture time in seconds.
+        Slip contributions with t_rupt > tmax will be ignored.
+        """,
+    )
+
+    parser.add_argument(
         "--velocity_model",
         type=str,
         default="auto",
@@ -124,18 +146,6 @@ def get_parser():
         - 'auto': choose based on finite fault model (e.g., Slipnear or USGS).
         - 'usgs': extract from the USGS FSP file.
         - OR: provide a velocity model in Axitra format.
-        """,
-    )
-
-    parser.add_argument(
-        "--projection",
-        type=str,
-        default="auto",
-        help="""
-        Map projection specification.
-        - 'auto': transverse Mercator centered on the hypocenter.
-        - OR: custom projection string in Proj4 format
-        (e.g., '+proj=utm +zone=33 +datum=WGS84').
         """,
     )
 
@@ -234,11 +244,13 @@ def run_step1():
     else:
         finite_fault_fn = "tmp/basic_inversion.param"
 
+    if args.fault_mesh_size != "auto":
+        fault_mesh_size = float(args.fault_mesh_size)
     (
         spatial_zoom,
         fault_mesh_size,
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
-        finite_fault_fn, projection
+        finite_fault_fn, projection, args.fault_mesh_size
     )
 
     generate_FL33_input_files.main(
