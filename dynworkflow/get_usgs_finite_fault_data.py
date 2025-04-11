@@ -164,11 +164,11 @@ def get_data(
     # we use the first released hypoccenter for the projection, to avoid having change
     # in the projection if there is an update
     origin = get_value_from_usgs_data(jsondata, "origin")
-    first_released_index = min(
-        range(len(origin)), key=lambda i: origin[i]["updateTime"]
-    )
-    lon = float(origin[first_released_index]["properties"]["longitude"])
-    lat = float(origin[first_released_index]["properties"]["latitude"])
+    # first_released_index = min(
+    #    range(len(origin)), key=lambda i: origin[i]["updateTime"]
+    # )
+    lon = float(origin[0]["properties"]["longitude"])
+    lat = float(origin[0]["properties"]["latitude"])
 
     projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon:.2f} +lat_0={lat:.2f}"
 
