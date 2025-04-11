@@ -356,7 +356,7 @@ if __name__ == "__main__":
 
     if "CFS_code" in config_dict:
         CFS_code_fn = config_dict["CFS_code"]
-        with open("your_file.txt", "r") as f:
+        with open(CFS_code_fn, "r") as f:
             dic_values["CFS_code_placeholder"] = f.read()
     else:
         dic_values["CFS_code_placeholder"] = ""

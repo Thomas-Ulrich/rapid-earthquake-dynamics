@@ -244,6 +244,22 @@ def process_parser():
     return args
 
 
+class QuotedStringDumper(yaml.SafeDumper):
+    def represent_str(self, data):
+        # tag:yaml.org,2002:str is the YAML type tag that
+        # explicitly identifies a value as a string.
+        return self.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+
+
+QuotedStringDumper.add_representer(str, QuotedStringDumper.represent_str)
+
+
+def save_config(args_dict, config_out):
+    with open(config_out, "w") as f:
+        yaml.dump(args_dict, f, Dumper=QuotedStringDumper, default_flow_style=False)
+    print(f"Saved config to {config_out}")
+
+
 def save_config(args_dict, config_out):
     with open(config_out, "w") as f:
         yaml.dump(args_dict, f)

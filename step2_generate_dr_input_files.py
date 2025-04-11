@@ -15,7 +15,7 @@ if absolute_path not in sys.path:
 import project_fault_tractions_onto_asagi_grid
 
 if __name__ == "__main__":
-    with open("derived_config", "r") as f:
+    with open("derived_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     fault_mesh_size = config_dict["fault_mesh_size"]
 
@@ -34,11 +34,12 @@ if __name__ == "__main__":
     # mode = 'latin_hypercube'
     # mode = "picked_models"
     dic_values = {}
-    mesh_file = dic_values["mesh_file"]
+    dic_values["mesh_file"] = config_dict["mesh_file"]
     dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
+    dic_values["projection"] = config_dict["projection"]
     if "CFS_code" in config_dict:
         CFS_code_fn = config_dict["CFS_code"]
-        with open("your_file.txt", "r") as f:
+        with open(CFS_code_fn, "r") as f:
             dic_values["CFS_code_placeholder"] = f.read()
     else:
         dic_values["CFS_code_placeholder"] = ""
