@@ -85,7 +85,7 @@ wait
 
 echo "now generate point source representation"
 
-proj=$(cat "tmp/projection.txt")
+proj=$(grep '^projection:' derived_config.yaml | cut -d ':' -f2 | xargs)
 script_dir=../rapid-earthquake-dynamics/
 echo $script_dir   
 
