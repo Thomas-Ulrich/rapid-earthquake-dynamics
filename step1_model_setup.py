@@ -68,7 +68,7 @@ def get_parser():
         "--CFS_code",
         type=str,
         help="""
-        code to add at {{ CFS_code_placeholder }} in 
+        code to add at {{ CFS_code_placeholder }} in
         dynworkflow/input_files/fault.tmpl.yaml
         (e.g. for setting-up cohesion and shear stress on receiver faults
         """,

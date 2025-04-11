@@ -184,7 +184,6 @@ def generate(mode, dic_values):
             "r_crit": 3000.0,
             "mu_delta_min": dic_values["mu_delta_min"],
             "mesh_file": dic_values["mesh_file"],
-            "mesh_file": dic_values["mesh_file"],
             "CFS_code_placeholder": dic_values["CFS_code_placeholder"],
         }
 
