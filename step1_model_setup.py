@@ -18,7 +18,7 @@ import subprocess
 import numpy as np
 import yaml
 from pathlib import Path
-
+import re
 
 # Append finite_fault_models and external folders to path
 # Get the directory of the current script
@@ -208,14 +208,17 @@ def get_parser():
 
 
 def parse_parameter_string(param_str):
+    dic_values = {}
     for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
         key, val = match.group(1), match.group(2)
         if key == "cohesion":
             dic_values["cohesion"] = [
-                tuple(map(float, pair.split(","))) for pair in val.split(";")
+                list(map(float, pair.split(","))) for pair in val.split(";")
             ]
         else:
             dic_values[key] = [float(v) for v in val.split(",") if v.strip()]
+    print(dic_values)
+    return dic_values
 
 
 def copy_files(overwrite_files, setup_dir):
@@ -270,8 +273,6 @@ def process_parser():
         args = dict_to_namespace(args_dict)
     else:
         args_dict = vars(args)
-        if args.parameters:
-            args_dict |= parse_parameter_string(args.parameters)
 
     print("Using parameters:")
     for k, v in args_dict.items():
@@ -327,6 +328,8 @@ def run_step1():
     os.chdir(derived_config["folder_name"])
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
+    if args.parameters:
+        derived_config |= parse_parameter_string(args.parameters)
 
     refMRFfile = ""
     print(refMRF)

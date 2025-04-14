@@ -168,13 +168,14 @@ def generate(mode, dic_values):
     for i in range(nsample):
         row = pars[i, :]
         cohi, B, C = row[0:3]
-        cohesion_const, cohesion_lin = list_cohesion[int(cohi)]
+        cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
         R = row[3:]
 
         template_par = {
             "R_yaml_block": generate_R_yaml_block(R),
             "cohesion_const": cohesion_const * 1e6,
             "cohesion_lin": cohesion_lin * 1e6,
+            "cohesion_depth": cohesion_depth * 1e3,
             "B": B,
             "C": C,
             "min_dc": C * max_slip * 0.15,
@@ -198,7 +199,7 @@ def generate(mode, dic_values):
             template_par["terminatorMomentRateThreshold"] = -1
             template_par["surface_output_interval"] = 1.0
         else:
-            template_par["terminatorMomentRateThreshold"] = 5e17
+            template_par["terminatorMomentRateThreshold"] = 1e17
             template_par["surface_output_interval"] = 5.0
         template_par["end_time"] = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
         template_par["fault_fname"] = fn_fault
@@ -233,7 +234,7 @@ def generate(mode, dic_values):
     for i, fn in enumerate(list_fault_yaml):
         row = pars[i, :]
         cohi, B, C = row[0:3]
-        cohesion_const, cohesion_lin = list_cohesion[int(cohi)]
+        cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
         R = row[3:]
         sR = "_".join(map(str, R))
         code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
@@ -244,6 +245,7 @@ def generate(mode, dic_values):
                 "R_yaml_block": generate_R_yaml_block(R),
                 "cohesion_const": cohesion_const * 1e6,
                 "cohesion_lin": cohesion_lin * 1e6,
+                "cohesion_depth": cohesion_depth * 1e3,
                 "B": B,
                 "C": C,
                 "min_dc": C * max_slip * 0.15,
@@ -283,7 +285,7 @@ if __name__ == "__main__":
     # paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
     paramC = [0.1, 0.2, 0.3, 0.4, 0.5]
     paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-    paramCoh = [(0.25, 1)]
+    paramCoh = [(0.25, 1, 6)]
 
     def list_to_semicolon_separated_string(li):
         return ";".join(str(v) for v in li)
@@ -328,8 +330,8 @@ if __name__ == "__main__":
         "--cohesionvalues",
         nargs=1,
         help=(
-            "fault cohesion (c0 + c1*sigma_zz) values, "
-            "2 value per parameter set, separated by';'"
+            "K(z)  = K0 + K1 max(d-d_coh/d_coh))"
+            "3 value per parameter set, separated by';'"
         ),
         default=list_of_tuples_to_semicolon_separated_string(paramCoh),
     )
