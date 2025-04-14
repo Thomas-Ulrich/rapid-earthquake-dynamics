@@ -3,6 +3,7 @@ from dynworkflow import generate_input_seissol_dr
 import sys
 import os
 import yaml
+import re
 
 # Append kinematic_models folder to path
 # Get the directory of the current script
@@ -13,6 +14,21 @@ if absolute_path not in sys.path:
     sys.path.append(absolute_path)
 
 import project_fault_tractions_onto_asagi_grid
+
+
+def parse_parameter_string(param_str):
+    dic_values = {}
+    for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
+        key, val = match.group(1), match.group(2)
+        if key == "cohesion":
+            dic_values["cohesion"] = [
+                list(map(float, pair.split(","))) for pair in val.split(";")
+            ]
+        else:
+            dic_values[key] = [float(v) for v in val.split(",") if v.strip()]
+    print(dic_values)
+    return dic_values
+
 
 if __name__ == "__main__":
     with open("derived_config.yaml", "r") as f:
@@ -35,11 +51,10 @@ if __name__ == "__main__":
     dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
     dic_values["projection"] = config_dict["projection"]
 
-    dic_values["B"] = config_dict["B"]
-    dic_values["C"] = config_dict["C"]
-    dic_values["R"] = config_dict["R"]
-    dic_values["cohesion"] = config_dict["cohesion"]
-    mode = config_dict["mode"]
+    with open("input_config.yaml", "r") as f:
+        input_config_dict = yaml.safe_load(f)
+    dic_values |= parse_parameter_string(input_config_dict["parameters"])
+    mode = input_config_dict["mode"]
 
     if "CFS_code" in config_dict:
         CFS_code_fn = config_dict["CFS_code"]

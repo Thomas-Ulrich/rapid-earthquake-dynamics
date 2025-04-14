@@ -18,7 +18,6 @@ import subprocess
 import numpy as np
 import yaml
 from pathlib import Path
-import re
 
 # Append finite_fault_models and external folders to path
 # Get the directory of the current script
@@ -137,13 +136,14 @@ def get_parser():
         type=str,
         default=(
             "B=0.9,1.0,1.1,1.2 C=0.1,0.2,0.3,0.4,0.5 "
-            "R=0.55,0.6,0.65,0.7,0.8,0.9 cohesion=0.25,1"
+            "R=0.55,0.6,0.65,0.7,0.8,0.9 cohesion=0.25,1,6"
         ),
         help=(
             "Parameter definitions in 'key=val1,val2 ...' format. "
             "Separate key-value pairs with spaces. For cohesion, use "
-            "semicolon-separated tuples, "
-            "e.g. B=0.2,0.3 C=0.1,0.2,0.3 R=0.7,0.8 cohesion=0.25,0;0.3,1"
+            "semicolon-separated tuples, with 3 values K0,K1 (MPa) and d_coh (km)"
+            "K(z)  = K0 + K1 max(d-d_coh/d_coh))"
+            "e.g. B=0.2,0.3 C=0.1,0.2,0.3 R=0.7,0.8 cohesion=0.25,0,6;0.3,1,6"
         ),
     )
 
@@ -205,20 +205,6 @@ def get_parser():
     )
 
     return parser
-
-
-def parse_parameter_string(param_str):
-    dic_values = {}
-    for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
-        key, val = match.group(1), match.group(2)
-        if key == "cohesion":
-            dic_values["cohesion"] = [
-                list(map(float, pair.split(","))) for pair in val.split(";")
-            ]
-        else:
-            dic_values[key] = [float(v) for v in val.split(",") if v.strip()]
-    print(dic_values)
-    return dic_values
 
 
 def copy_files(overwrite_files, setup_dir):
@@ -328,8 +314,6 @@ def run_step1():
     os.chdir(derived_config["folder_name"])
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
-    if args.parameters:
-        derived_config |= parse_parameter_string(args.parameters)
 
     refMRFfile = ""
     print(refMRF)

@@ -45,7 +45,7 @@
         -- T_n = math.min(-10^6, 0.15*2700*9.8*x['z'])
         sigma_n = math.abs(T_n)
 
-        depthIncreasingCohesion = 6000.0
+        depthIncreasingCohesion = {{ cohesion_depth }}
         cohesion = coh0  -{{ cohesion_lin }} * math.max(0, (x['z'] + depthIncreasingCohesion) / depthIncreasingCohesion)
 
         T_s = math.cos(x['rake_interp_low_slip']) * x['mu_d']*sigma_n - {{ B }} * x['Ts0']
