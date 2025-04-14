@@ -119,10 +119,32 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--mode",
+        choices=["grid_search", "latin_hypercube", "picked_models"],
+        default="grid_search",
+        help="Sampling strategy for DR input generation.",
+    )
+
+    parser.add_argument(
         "--mu_delta_min",
         type=float,
         default=0.01,
         help="minimum allowed mu_s - mu_d",
+    )
+
+    parser.add_argument(
+        "--parameters",
+        type=str,
+        default=(
+            "B=0.9,1.0,1.1,1.2 C=0.1,0.2,0.3,0.4,0.5 "
+            "R=0.55,0.6,0.65,0.7,0.8,0.9 cohesion=0.25,1"
+        ),
+        help=(
+            "Parameter definitions in 'key=val1,val2 ...' format. "
+            "Separate key-value pairs with spaces. For cohesion, use "
+            "semicolon-separated tuples, "
+            "e.g. B=0.2,0.3 C=0.1,0.2,0.3 R=0.7,0.8 cohesion=0.25,0;0.3,1"
+        ),
     )
 
     parser.add_argument(
@@ -185,6 +207,17 @@ def get_parser():
     return parser
 
 
+def parse_parameter_string(param_str):
+    for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
+        key, val = match.group(1), match.group(2)
+        if key == "cohesion":
+            dic_values["cohesion"] = [
+                tuple(map(float, pair.split(","))) for pair in val.split(";")
+            ]
+        else:
+            dic_values[key] = [float(v) for v in val.split(",") if v.strip()]
+
+
 def copy_files(overwrite_files, setup_dir):
     yaml_dir = os.path.join(setup_dir, "yaml_files")
     nc_dir = os.path.join(setup_dir, "ASAGI_files")
@@ -237,6 +270,8 @@ def process_parser():
         args = dict_to_namespace(args_dict)
     else:
         args_dict = vars(args)
+        if args.parameters:
+            args_dict |= parse_parameter_string(args.parameters)
 
     print("Using parameters:")
     for k, v in args_dict.items():
