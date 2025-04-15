@@ -94,7 +94,7 @@
       function: |
        function f (x)
         return {
-          d_c =  math.max({{ min_dc }}, x["fault_slip"] * {{ C }});
+          d_c =  {{ d_c }}
         }
         end
 

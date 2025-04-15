@@ -83,8 +83,21 @@ def generate(mode, dic_values):
     elif mode == "grid_search":
         # grid parameter space
         paramB = dic_values["B"]
-        paramC = dic_values["C"]
         paramR = dic_values["R"]
+
+        if "C" in dic_values:
+            constant_d_c = False
+            Cname = "C"
+            paramC = dic_values["C"]
+        elif "d_c" in dic_values:
+            constant_d_c = True
+            Cname = "dc"
+            paramC = dic_values["d_c"]
+        else:
+            raise ValueError("nor C nor d_c given in parameters")
+        if ("C" in dic_values) and ("d_c" in dic_values):
+            raise ValueError("both C and d_c given in parameters")
+
         list_cohesion = dic_values["cohesion"]
         paramCoh = list(range(len(list_cohesion)))
         use_R_segment_wise = False
@@ -171,14 +184,18 @@ def generate(mode, dic_values):
         cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
         R = row[3:]
 
+        if constant_d_c:
+            d_c =  str(C);
+        else:
+            d_c =  f"{C} * math.max({0.15 * max_slip}, x[\"fault_slip\"])";
+
         template_par = {
             "R_yaml_block": generate_R_yaml_block(R),
             "cohesion_const": cohesion_const * 1e6,
             "cohesion_lin": cohesion_lin * 1e6,
             "cohesion_depth": cohesion_depth * 1e3,
             "B": B,
-            "C": C,
-            "min_dc": C * max_slip * 0.15,
+            "d_c": d_c,
             "hypo_x": hypo[0],
             "hypo_y": hypo[1],
             "hypo_z": hypo[2],
@@ -189,7 +206,7 @@ def generate(mode, dic_values):
         }
 
         sR = "_".join(map(str, R))
-        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
+        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
         fn_fault = f"yaml_files/fault_{code}.yaml"
         list_fault_yaml.append(fn_fault)
 
@@ -240,7 +257,14 @@ def generate(mode, dic_values):
         cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
         R = row[3:]
         sR = "_".join(map(str, R))
-        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
+
+        if constant_d_c:
+            d_c =  str(C);
+        else:
+            d_c =  f"{C} * math.max({0.15 * max_slip}, x[\"fault_slip\"])";
+
+        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
+
         if list_nucleation_size[i]:
             fn_fault = f"yaml_files/fault_{code}.yaml"
             assert fn_fault == fn
@@ -250,8 +274,7 @@ def generate(mode, dic_values):
                 "cohesion_lin": cohesion_lin * 1e6,
                 "cohesion_depth": cohesion_depth * 1e3,
                 "B": B,
-                "C": C,
-                "min_dc": C * max_slip * 0.15,
+                "d_c": d_c,
                 "hypo_x": hypo[0],
                 "hypo_y": hypo[1],
                 "hypo_z": hypo[2],
@@ -333,7 +356,7 @@ if __name__ == "__main__":
         "--cohesionvalues",
         nargs=1,
         help=(
-            "K(z)  = K0 + K1 max(d-d_coh/d_coh))"
+            "K(z) = K0 + K1 max(d-d_coh/d_coh))"
             "3 value per parameter set, separated by';'"
         ),
         default=list_of_tuples_to_semicolon_separated_string(paramCoh),
