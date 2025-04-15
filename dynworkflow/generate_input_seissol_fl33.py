@@ -55,10 +55,6 @@ def generate():
     with open(fname, "w") as fid:
         fid.write(outputText)
     print(f"done creating {fname}")
-    shutil.copy(
-        f"{input_file_dir}/material.yaml",
-        "yaml_files/material.yaml",
-    )
 
 
 if __name__ == "__main__":
