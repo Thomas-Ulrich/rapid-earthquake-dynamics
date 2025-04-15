@@ -185,9 +185,9 @@ def generate(mode, dic_values):
         R = row[3:]
 
         if constant_d_c:
-            d_c =  str(C);
+            d_c = str(C)
         else:
-            d_c =  f"{C} * math.max({0.15 * max_slip}, x[\"fault_slip\"])";
+            d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
 
         template_par = {
             "R_yaml_block": generate_R_yaml_block(R),
@@ -259,9 +259,9 @@ def generate(mode, dic_values):
         sR = "_".join(map(str, R))
 
         if constant_d_c:
-            d_c =  str(C);
+            d_c = str(C)
         else:
-            d_c =  f"{C} * math.max({0.15 * max_slip}, x[\"fault_slip\"])";
+            d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
 
         code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
 
@@ -311,7 +311,7 @@ if __name__ == "__main__":
     # paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
     paramC = [0.1, 0.2, 0.3, 0.4, 0.5]
     paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-    paramCoh = [(0.25, 1, 6)]
+    paramCoh = [(0.25, 1.0, 6.0)]
 
     def list_to_semicolon_separated_string(li):
         return ";".join(str(v) for v in li)
