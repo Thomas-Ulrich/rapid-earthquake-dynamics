@@ -229,7 +229,7 @@ def generate(mode, dic_values):
     template_par = {"mu_d": dic_values["mu_d"]}
     render_file(template_par, "mud.tmpl.yaml", "yaml_files/mud.yaml")
 
-    fnames = ["smooth_PREM_material.yaml", "fault_slip.yaml"]
+    fnames = ["fault_slip.yaml"]
     for fn in fnames:
         shutil.copy(f"{input_file_dir}/{fn}", f"yaml_files/{fn}")
 
@@ -245,7 +245,7 @@ def generate(mode, dic_values):
 
     list_nucleation_size = compute_critical_nucleation(
         fl33_file,
-        "yaml_files/smooth_PREM_material.yaml",
+        "yaml_files/material.yaml",
         "yaml_files/fault_slip.yaml",
         list_fault_yaml,
         hypo,

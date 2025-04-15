@@ -235,7 +235,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--materialyamlfile",
         help="yaml file desribing Lame parameters",
-        default="yaml_files/smooth_PREM_material.yaml",
+        default="yaml_files/material.yaml",
     )
     parser.add_argument(
         "--slipyamlfile",

@@ -56,8 +56,8 @@ def generate():
         fid.write(outputText)
     print(f"done creating {fname}")
     shutil.copy(
-        f"{input_file_dir}/smooth_PREM_material.yaml",
-        "yaml_files/smooth_PREM_material.yaml",
+        f"{input_file_dir}/material.yaml",
+        "yaml_files/material.yaml",
     )
 
 
