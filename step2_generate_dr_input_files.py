@@ -2,6 +2,8 @@
 from dynworkflow import generate_input_seissol_dr
 import sys
 import os
+import yaml
+import re
 
 # Append kinematic_models folder to path
 # Get the directory of the current script
@@ -13,9 +15,25 @@ if absolute_path not in sys.path:
 
 import project_fault_tractions_onto_asagi_grid
 
+
+def parse_parameter_string(param_str):
+    dic_values = {}
+    for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
+        key, val = match.group(1), match.group(2)
+        if key == "cohesion":
+            dic_values["cohesion"] = [
+                list(map(float, pair.split(","))) for pair in val.split(";")
+            ]
+        else:
+            dic_values[key] = [float(v) for v in val.split(",") if v.strip()]
+    print(dic_values)
+    return dic_values
+
+
 if __name__ == "__main__":
-    with open("tmp/inferred_fault_mesh_size.txt", "r") as f:
-        inferred_fault_mesh_size = float(f.read())
+    with open("derived_config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    fault_mesh_size = config_dict["fault_mesh_size"]
 
     fl33_file = "output/fl33-fault.xdmf"
     if not os.path.exists(fl33_file):
@@ -23,27 +41,27 @@ if __name__ == "__main__":
 
     project_fault_tractions_onto_asagi_grid.generate_input_files(
         fl33_file,
-        inferred_fault_mesh_size / 2,
-        gaussian_kernel=inferred_fault_mesh_size,
+        fault_mesh_size / 2,
+        gaussian_kernel=fault_mesh_size,
         taper=None,
         paraview_readable=None,
     )
-    mode = "grid_search"
-    # mode = 'latin_hypercube'
-    # mode = "picked_models"
     dic_values = {}
-    if mode == "picked_models":
-        dic_values["B"] = [0.9, 1.0, 1.2]
-        dic_values["C"] = [0.3 for i in range(3)]
-        dic_values["R"] = [0.65 for i in range(3)]
-        dic_values["cohesion"] = [(0.25, 0), (0.25, 1), (0.25, 2.5)]
-        generate_input_seissol_dr.generate(mode, dic_values)
+    dic_values["mesh_file"] = config_dict["mesh_file"]
+    dic_values["projection"] = config_dict["projection"]
+
+    with open("input_config.yaml", "r") as f:
+        input_config_dict = yaml.safe_load(f)
+    dic_values |= parse_parameter_string(input_config_dict["parameters"])
+    mode = input_config_dict["mode"]
+    dic_values["mu_delta_min"] = input_config_dict["mu_delta_min"]
+    dic_values["mu_d"] = input_config_dict["mu_d"]
+
+    if "CFS_code" in config_dict:
+        CFS_code_fn = config_dict["CFS_code"]
+        with open(CFS_code_fn, "r") as f:
+            dic_values["CFS_code_placeholder"] = f.read()
     else:
-        dic_values["B"] = [0.9, 1.0, 1.1, 1.2]
-        dic_values["C"] = [0.1, 0.2, 0.3, 0.4, 0.5]
-        dic_values["R"] = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-        # dic_values["cohesion"] = [(0.25, 0)]
-        dic_values["cohesion"] = [(0.25, 1)]
-        # only relevant for Latin Hypercube
-        dic_values["nsamples"] = 50
-        generate_input_seissol_dr.generate(mode, dic_values)
+        dic_values["CFS_code_placeholder"] = ""
+
+    generate_input_seissol_dr.generate(mode, dic_values)

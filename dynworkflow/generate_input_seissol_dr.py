@@ -12,6 +12,7 @@ from dynworkflow.compile_scenario_macro_properties import infer_duration
 import seissolxdmf as sx
 import argparse
 from pyproj import Transformer
+import yaml
 
 
 def generate(mode, dic_values):
@@ -82,8 +83,21 @@ def generate(mode, dic_values):
     elif mode == "grid_search":
         # grid parameter space
         paramB = dic_values["B"]
-        paramC = dic_values["C"]
         paramR = dic_values["R"]
+
+        if "C" in dic_values:
+            constant_d_c = False
+            Cname = "C"
+            paramC = dic_values["C"]
+        elif "d_c" in dic_values:
+            constant_d_c = True
+            Cname = "dc"
+            paramC = dic_values["d_c"]
+        else:
+            raise ValueError("nor C nor d_c given in parameters")
+        if ("C" in dic_values) and ("d_c" in dic_values):
+            raise ValueError("both C and d_c given in parameters")
+
         list_cohesion = dic_values["cohesion"]
         paramCoh = list(range(len(list_cohesion)))
         use_R_segment_wise = False
@@ -121,8 +135,7 @@ def generate(mode, dic_values):
         if verbose:
             print(f"done creating {out_fname}")
 
-    with open("tmp/projection.txt", "r") as f:
-        projection = f.read()
+    projection = dic_values["projection"]
     transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
     hypo = np.loadtxt("tmp/hypocenter.txt")
     hypo[2] *= -1e3
@@ -168,24 +181,32 @@ def generate(mode, dic_values):
     for i in range(nsample):
         row = pars[i, :]
         cohi, B, C = row[0:3]
-        cohesion_const, cohesion_lin = list_cohesion[int(cohi)]
+        cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
         R = row[3:]
+
+        if constant_d_c:
+            d_c = str(C)
+        else:
+            d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
 
         template_par = {
             "R_yaml_block": generate_R_yaml_block(R),
             "cohesion_const": cohesion_const * 1e6,
             "cohesion_lin": cohesion_lin * 1e6,
+            "cohesion_depth": cohesion_depth * 1e3,
             "B": B,
-            "C": C,
-            "min_dc": C * max_slip * 0.15,
+            "d_c": d_c,
             "hypo_x": hypo[0],
             "hypo_y": hypo[1],
             "hypo_z": hypo[2],
             "r_crit": 3000.0,
+            "mu_delta_min": dic_values["mu_delta_min"],
+            "mesh_file": dic_values["mesh_file"],
+            "CFS_code_placeholder": dic_values["CFS_code_placeholder"],
         }
 
         sR = "_".join(map(str, R))
-        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
+        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
         fn_fault = f"yaml_files/fault_{code}.yaml"
         list_fault_yaml.append(fn_fault)
 
@@ -195,7 +216,7 @@ def generate(mode, dic_values):
             template_par["terminatorMomentRateThreshold"] = -1
             template_par["surface_output_interval"] = 1.0
         else:
-            template_par["terminatorMomentRateThreshold"] = 5e17
+            template_par["terminatorMomentRateThreshold"] = 1e17
             template_par["surface_output_interval"] = 5.0
         template_par["end_time"] = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
         template_par["fault_fname"] = fn_fault
@@ -205,7 +226,10 @@ def generate(mode, dic_values):
         fn_param = f"parameters_dyn_{code}.par"
         render_file(template_par, "parameters_dyn.tmpl.par", fn_param)
 
-    fnames = ["smooth_PREM_material.yaml", "mud.yaml", "fault_slip.yaml"]
+    template_par = {"mu_d": dic_values["mu_d"]}
+    render_file(template_par, "mud.tmpl.yaml", "yaml_files/mud.yaml")
+
+    fnames = ["fault_slip.yaml"]
     for fn in fnames:
         shutil.copy(f"{input_file_dir}/{fn}", f"yaml_files/{fn}")
 
@@ -221,7 +245,7 @@ def generate(mode, dic_values):
 
     list_nucleation_size = compute_critical_nucleation(
         fl33_file,
-        "yaml_files/smooth_PREM_material.yaml",
+        "yaml_files/material.yaml",
         "yaml_files/fault_slip.yaml",
         list_fault_yaml,
         hypo,
@@ -230,10 +254,17 @@ def generate(mode, dic_values):
     for i, fn in enumerate(list_fault_yaml):
         row = pars[i, :]
         cohi, B, C = row[0:3]
-        cohesion_const, cohesion_lin = list_cohesion[int(cohi)]
+        cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
         R = row[3:]
         sR = "_".join(map(str, R))
-        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_C{C}_R{sR}"
+
+        if constant_d_c:
+            d_c = str(C)
+        else:
+            d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
+
+        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
+
         if list_nucleation_size[i]:
             fn_fault = f"yaml_files/fault_{code}.yaml"
             assert fn_fault == fn
@@ -241,13 +272,15 @@ def generate(mode, dic_values):
                 "R_yaml_block": generate_R_yaml_block(R),
                 "cohesion_const": cohesion_const * 1e6,
                 "cohesion_lin": cohesion_lin * 1e6,
+                "cohesion_depth": cohesion_depth * 1e3,
                 "B": B,
-                "C": C,
-                "min_dc": C * max_slip * 0.15,
+                "d_c": d_c,
                 "hypo_x": hypo[0],
                 "hypo_y": hypo[1],
                 "hypo_z": hypo[2],
                 "r_crit": list_nucleation_size[i],
+                "mu_delta_min": dic_values["mu_delta_min"],
+                "mesh_file": dic_values["mesh_file"],
             }
             render_file(template_par, "fault.tmpl.yaml", fn_fault)
         else:
@@ -278,7 +311,7 @@ if __name__ == "__main__":
     # paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
     paramC = [0.1, 0.2, 0.3, 0.4, 0.5]
     paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-    paramCoh = [(0.25, 1)]
+    paramCoh = [(0.25, 1.0, 6.0)]
 
     def list_to_semicolon_separated_string(li):
         return ";".join(str(v) for v in li)
@@ -323,8 +356,8 @@ if __name__ == "__main__":
         "--cohesionvalues",
         nargs=1,
         help=(
-            "fault cohesion (c0 + c1*sigma_zz) values, "
-            "2 value per parameter set, separated by';'"
+            "K(z) = K0 + K1 max(d-d_coh/d_coh))"
+            "3 value per parameter set, separated by';'"
         ),
         default=list_of_tuples_to_semicolon_separated_string(paramCoh),
     )
@@ -343,6 +376,24 @@ if __name__ == "__main__":
     dic_values["cohesion"] = semicolon_separated_string_to_list_of_tuples(
         args.cohesionvalues[0]
     )
+    with open("derived_config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    dic_values["projection"] = config_dict["projection"]
+
+    if "CFS_code" in config_dict:
+        CFS_code_fn = config_dict["CFS_code"]
+        with open(CFS_code_fn, "r") as f:
+            dic_values["CFS_code_placeholder"] = f.read()
+    else:
+        dic_values["CFS_code_placeholder"] = ""
+
     dic_values["nsamples"] = args.nsamples[0]
+
+    with open("input_config.yaml", "r") as f:
+        input_config_dict = yaml.safe_load(f)
+    dic_values["mu_delta_min"] = input_config_dict["mu_delta_min"]
+    dic_values["mu_d"] = input_config_dict["mu_d"]
+
     print(dic_values)
+
     generate(args.mode, dic_values)

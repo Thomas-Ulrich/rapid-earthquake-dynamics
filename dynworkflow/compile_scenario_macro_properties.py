@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import yaml
 import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
@@ -351,7 +352,12 @@ if __name__ == "__main__":
         return mr_ref[:last_index_non_zero, :]
 
     fn = "tmp/reference_STF.txt"
-    if os.path.exists(fn):
+    if os.path.exists("derived_config.yaml"):
+        with open("derived_config.yaml", "r") as f:
+            config_dict = yaml.safe_load(f)
+        refMRFfile = config_dict["reference_STF"]
+    elif os.path.exists(fn):
+        # for backwards compatibility
         with open("tmp/reference_STF.txt", "r") as fid:
             refMRFfile = fid.read().strip()
     else:
@@ -586,10 +592,11 @@ if __name__ == "__main__":
     ).reset_index(drop=True)
     print(selected_rows.to_string())
 
-    selected_rows = selected_rows.sort_values(
-        by="combined_gof", ascending=False
-    ).reset_index(drop=True)
-    print(selected_rows.to_string())
+    if "combined_gof" in selected_rows.columns:
+        selected_rows = selected_rows.sort_values(
+            by="combined_gof", ascending=False
+        ).reset_index(drop=True)
+        print(selected_rows.to_string())
 
     fname = "tmp/selected_output.txt"
     with open(fname, "w") as fid:

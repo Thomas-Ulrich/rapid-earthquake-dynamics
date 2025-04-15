@@ -43,8 +43,8 @@ source /etc/profile.d/modules.sh
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
-module load seissol/master-intel23-o4-elas-dunav-single-impi
-#module load seissol/master2-intel23-o4-elas-dunav-single-impi
+module load seissol/1.3.1-intel23-o4-elas-dunav-single-impi
+
 part_file=$1
 
 mapfile -t filenames < "$part_file"

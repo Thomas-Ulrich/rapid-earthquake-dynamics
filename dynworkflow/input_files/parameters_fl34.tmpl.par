@@ -41,7 +41,7 @@ refinement = 1
 /
             
 &MeshNml
-MeshFile = 'tmp/mesh.puml.h5'
+MeshFile = '{{ mesh_file }}'
 pumlboundaryformat = 'i32'
 meshgenerator = 'PUML'                         ! Name of meshgenerator (Gambit3D-fast, Netcdf or PUML)
 /

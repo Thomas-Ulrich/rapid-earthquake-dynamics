@@ -119,7 +119,7 @@ def compute_fmin_interp():
 
 
 def compute_critical_nucleation_one_file(
-    centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml
+    centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml
 ):
     start_time = time.time()
     bn_fault_yaml = os.path.basename(fault_yaml)
@@ -159,32 +159,35 @@ def compute_critical_nucleation_one_file(
     L = np.sqrt(area_crit / np.pi)
 
     maxnucRadius = np.sqrt((0.15 / np.pi) * slip_area)
-    radius = np.arange(0.5e3, maxnucRadius, 0.25e3)
+    radius = np.arange(0.5e3, maxnucRadius + 0.25e3, 0.25e3)
 
     nucRadius = False
     for rad in radius:
-        ids = points_in_sphere(centers, center, rad)
-        estimatedR = np.median(L[ids])
         ratio_slip_area = 100 * np.pi * rad**2 / slip_area
-        if rad > 2.0 * estimatedR:
-            break
         if ratio_slip_area > 15.0:
             nucRadius = min(rad, np.sqrt((0.15 / np.pi) * slip_area))
             ratio_slip_area = 100 * np.pi * nucRadius**2 / slip_area
-        else:
+            break
+
+        ids = points_in_sphere(centers, center, rad)
+        selected_area_ratio = face_area[ids] / area_crit[ids]
+        sum_ratio = np.sum(selected_area_ratio)
+        # 1.0 is what in theory needed
+        if sum_ratio > np.sqrt(2):
             nucRadius = rad
+            break
     runtime = time.time() - start_time
     print(
-        f"{bn_fault_yaml}: {rad:.0f} {estimatedR:.0f} {ratio_slip_area:.1f} "
-        f"{np.std(L[ids])} ({runtime} s, easi {easi_runtime}s)"
+        f"{bn_fault_yaml}: {rad:.0f} {ratio_slip_area:.1f} "
+        f" ({runtime:.3f} s, easi {easi_runtime:.3f}s)"
     )
     return nucRadius
 
 
 def compute_nucleation(args):
-    centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml = args
+    centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml = args
     return compute_critical_nucleation_one_file(
-        centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml
+        centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml
     )
 
 
@@ -203,8 +206,11 @@ def compute_critical_nucleation(
 
     G, CG = compute_G_and_CG(centers, ids, sx, mat_yaml)
     tags = sx.ReadFaultTags()[ids]
+
+    face_area = sx.ComputeCellAreas()[ids]
+
     args_list = [
-        (centers, center, slip_area, G, CG, fmin_interpf, tags, fault_yaml)
+        (centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml)
         for fault_yaml in list_fault_yaml
     ]
     from multiprocessing import Pool
@@ -218,7 +224,7 @@ def compute_critical_nucleation(
     num_threads = get_num_threads()
 
     print(f"using {num_threads} threads")
-    print("fault_yaml: selected_r estimated_r ratio_slip_area std")
+    print("fault_yaml: selected_r ratio_slip_area")
     with Pool(processes=num_threads) as pool:
         async_result = pool.map_async(compute_nucleation, args_list)
         results = async_result.get()
@@ -235,7 +241,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--materialyamlfile",
         help="yaml file desribing Lame parameters",
-        default="yaml_files/smooth_PREM_material.yaml",
+        default="yaml_files/material.yaml",
     )
     parser.add_argument(
         "--slipyamlfile",

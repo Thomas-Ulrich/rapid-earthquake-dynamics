@@ -245,6 +245,12 @@ def generate_input_files(
             grid, lgridded_myData, f"ASAGI_files/{fn}", ldataName, paraview_readable
         )
 
+    template_yaml += """     - !ConstantMap
+      map:
+        Ts0: 0.0
+        Td0: 0.0
+        Pn0: 0.0\n"""
+
     fname = "yaml_files/Ts0Td0.yaml"
     with open(fname, "w") as fid:
         fid.write(template_yaml)

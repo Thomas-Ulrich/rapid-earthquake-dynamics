@@ -6,6 +6,7 @@ import os
 import jinja2
 import shutil
 from scipy.spatial.distance import pdist
+import yaml
 
 
 def generate():
@@ -43,6 +44,11 @@ def generate():
     template_par["end_time"] = max(25.0, 0.6 * end_time)
     template_par["material_fname"] = "yaml_files/material.yaml"
 
+    with open("derived_config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    mesh_file = config_dict["mesh_file"]
+    template_par["mesh_file"] = mesh_file
+
     template = templateEnv.get_template("parameters_fl34.tmpl.par")
     outputText = template.render(template_par)
     fname = "parameters_fl33.par"
@@ -50,8 +56,8 @@ def generate():
         fid.write(outputText)
     print(f"done creating {fname}")
     shutil.copy(
-        f"{input_file_dir}/smooth_PREM_material.yaml",
-        "yaml_files/smooth_PREM_material.yaml",
+        f"{input_file_dir}/material.yaml",
+        "yaml_files/material.yaml",
     )
 
 

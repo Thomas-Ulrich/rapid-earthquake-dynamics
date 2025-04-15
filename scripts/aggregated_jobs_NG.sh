@@ -17,7 +17,7 @@
 #SBATCH --ntasks-per-node=2
 #EAR may impact code performance
 #SBATCH --ear=off
-#SBATCH --nodes=40 --partition=general --time=00:40:00
+#SBATCH --partition=general 
 ##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
@@ -45,25 +45,30 @@ source /etc/profile.d/modules.sh
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
-module load seissol/master-intel23-o4-elas-dunav-single-impi
-#module load seissol/master2-intel23-o4-elas-dunav-single-impi
+module load seissol/1.3.1-intel23-o4-elas-dunav-single-impi
 
 nodes_per_job=$(( $SLURM_JOB_NUM_NODES / $ndivide ))
 tasks_per_job=$(( $nodes_per_job * 2 ))
 
+if [[ -n "$1" ]]; then
+    part_file=$1
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - reading parameter files from: $1"
+    mapfile -t files < "$part_file"
+else
+    files=(parameters_dyn_*.par)
+fi
 
-# Create an indexed list of files
-files=(parameters_dyn_*.par)
 num_files=${#files[@]}
 echo "Found $num_files files to process."
 
 # Process files in parallel
 counter=0
 for filename in "${files[@]}"; do
-    echo "Processing file: $filename"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Processing file: $filename"
     modulo=$(( $counter % $ndivide ))
     counter0=$(printf "%05d" "$counter")
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter0.out SeisSol_Release_sskx_4_elastic $filename&
+    id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
+    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_4_elastic $filename&
  
     # Increment counter
     counter=$((counter + 1))

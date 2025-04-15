@@ -1,14 +1,15 @@
 !Switch
 
-[mu_d]: !Include yaml_files/mud.yaml
+[mu_d]: !Include 'yaml_files/mud.yaml'
 
 # static_strength, dynamic_strength, tau_0 are not used by seissol
 # but added for convenience for the compute_critical_nucleation python function
 [T_s, T_d, T_n, mu_s, cohesion, static_strength, dynamic_strength, tau_0]: !EvalModel
-    parameters: [Ts0, Td0, mu_d, x, y, z, rake_interp_low_slip, R]
+    parameters: [Ts0, Td0, fault_tag, mu_d, x, y, z, rake_interp_low_slip, R]
     model: !Switch
-        [Ts0, Td0]: !Include yaml_files/Ts0Td0.yaml
-        [mu_d]: !Include yaml_files/mud.yaml
+        [Ts0, Td0]: !Include 'yaml_files/Ts0Td0.yaml'
+        [mu_d]: !Include 'yaml_files/mud.yaml'
+        [fault_tag]: !Include 'yaml_files/fault_tags.yaml'
         [rake_interp_low_slip]: !Include 'yaml_files/FL33_34_fault.yaml'
         [x, y, z]: !AffineMap
           matrix:
@@ -44,7 +45,7 @@
         -- T_n = math.min(-10^6, 0.15*2700*9.8*x['z'])
         sigma_n = math.abs(T_n)
 
-        depthIncreasingCohesion = 6000.0
+        depthIncreasingCohesion = {{ cohesion_depth }}
         cohesion = coh0  -{{ cohesion_lin }} * math.max(0, (x['z'] + depthIncreasingCohesion) / depthIncreasingCohesion)
 
         T_s = math.cos(x['rake_interp_low_slip']) * x['mu_d']*sigma_n - {{ B }} * x['Ts0']
@@ -57,8 +58,13 @@
           T_d = T_d * Tau0_max/Tau0
           Tau0 =  math.sqrt(T_s^2 + T_d^2)
         end
-        mu_s =  x['mu_d'] + math.max(0.01, (Tau0/sigma_n - x['mu_d'])/R + cohesion/sigma_n)
+        mu_s =  x['mu_d'] + math.max({{ mu_delta_min }}, (Tau0/sigma_n - x['mu_d'])/R + cohesion/sigma_n)
         mu_d = x['mu_d']
+
+        -- it might be useful to CFS calculation to set up here fault_tag wise 
+        -- cohesion, T_s and T_d (e.g. useful for Mendocino)
+        {{ CFS_code_placeholder }}
+
         return {
           T_s = T_s,
           T_d = T_d,
@@ -82,13 +88,13 @@
 [d_c]: !EvalModel
     parameters: [fault_slip]
     model: !Switch
-        [fault_slip]: !Include yaml_files/fault_slip.yaml
+        [fault_slip]: !Include 'yaml_files/fault_slip.yaml'
     components: !LuaMap
       returns: [d_c]
       function: |
        function f (x)
         return {
-          d_c =  math.max({{ min_dc }}, x["fault_slip"] * {{ C }});
+          d_c =  {{ d_c }}
         }
         end
 
