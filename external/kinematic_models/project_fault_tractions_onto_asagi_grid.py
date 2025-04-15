@@ -245,7 +245,7 @@ def generate_input_files(
             grid, lgridded_myData, f"ASAGI_files/{fn}", ldataName, paraview_readable
         )
 
-    template_yaml += f"""     - !ConstantMap
+    template_yaml += """     - !ConstantMap
       map:
         Ts0: 0.0
         Td0: 0.0
