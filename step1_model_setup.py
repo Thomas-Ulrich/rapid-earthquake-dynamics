@@ -125,6 +125,13 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--mu_d",
+        type=float,
+        default=0.2,
+        help="dynamic friction",
+    )
+
+    parser.add_argument(
         "--mu_delta_min",
         type=float,
         default=0.01,
@@ -334,6 +341,8 @@ def run_step1():
     projection = args.projection
     if projection == "auto":
         projection = derived_config["projection"]
+    else:
+        derived_config["projection"] = projection
 
     if finite_fault_model != "usgs":
         finite_fault_fn = shutil.copy(finite_fault_model, "tmp")
@@ -393,6 +402,7 @@ def run_step1():
         "spatial_zoom": spatial_zoom,
         "fault_mesh_size": fault_mesh_size,
         "mu_delta_min": input_config["mu_delta_min"],
+        "mu_d": input_config["mu_d"],
     }
     save_config(derived_config, "derived_config.yaml")
 

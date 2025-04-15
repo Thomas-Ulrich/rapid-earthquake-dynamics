@@ -209,7 +209,10 @@ def generate(mode, dic_values):
         fn_param = f"parameters_dyn_{code}.par"
         render_file(template_par, "parameters_dyn.tmpl.par", fn_param)
 
-    fnames = ["smooth_PREM_material.yaml", "mud.yaml", "fault_slip.yaml"]
+    template_par = {"mu_d": dic_values["mu_d"]}
+    render_file(template_par, "mud.tmpl.yaml", "yaml_files/mud.yaml")
+
+    fnames = ["smooth_PREM_material.yaml", "fault_slip.yaml"]
     for fn in fnames:
         shutil.copy(f"{input_file_dir}/{fn}", f"yaml_files/{fn}")
 
@@ -352,7 +355,6 @@ if __name__ == "__main__":
     )
     with open("derived_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
-    dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
     dic_values["projection"] = config_dict["projection"]
 
     if "CFS_code" in config_dict:
@@ -363,5 +365,12 @@ if __name__ == "__main__":
         dic_values["CFS_code_placeholder"] = ""
 
     dic_values["nsamples"] = args.nsamples[0]
+
+    with open("input_config.yaml", "r") as f:
+        input_config_dict = yaml.safe_load(f)
+    dic_values["mu_delta_min"] = input_config_dict["mu_delta_min"]
+    dic_values["mu_d"] = input_config_dict["mu_d"]
+
     print(dic_values)
+
     generate(args.mode, dic_values)

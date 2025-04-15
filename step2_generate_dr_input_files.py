@@ -48,13 +48,14 @@ if __name__ == "__main__":
     )
     dic_values = {}
     dic_values["mesh_file"] = config_dict["mesh_file"]
-    dic_values["mu_delta_min"] = config_dict["mu_delta_min"]
     dic_values["projection"] = config_dict["projection"]
 
     with open("input_config.yaml", "r") as f:
         input_config_dict = yaml.safe_load(f)
     dic_values |= parse_parameter_string(input_config_dict["parameters"])
     mode = input_config_dict["mode"]
+    dic_values["mu_delta_min"] = input_config_dict["mu_delta_min"]
+    dic_values["mu_d"] = input_config_dict["mu_d"]
 
     if "CFS_code" in config_dict:
         CFS_code_fn = config_dict["CFS_code"]
