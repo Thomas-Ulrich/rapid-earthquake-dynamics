@@ -157,7 +157,7 @@ def get_data(
 
     folder_name = f"{day}_Mw{mag}_{descr[:20]}_{code_finite_fault}{suffix}"
 
-    if not os.path.exists(folder_name):
+    if os.path.exists(folder_name):
         response = input(
             f"Folder {folder_name} already exists. Do you want to continue? (y/n)"
         )
@@ -167,7 +167,6 @@ def get_data(
     else:
         os.makedirs(folder_name)
 
-        os.makedirs(folder_name)
     if not os.path.exists(f"{folder_name}/tmp"):
         os.makedirs(f"{folder_name}/tmp")
 
