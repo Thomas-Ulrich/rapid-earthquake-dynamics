@@ -224,13 +224,7 @@ def generate_input_files(
               map:
                 Ts0: 0.0
                 Td0: 0.0
-                Pn0: 0.0\n
-     - !ConstantMap
-        map:
-          Ts0: 0.0
-          Td0: 0.0
-          Pn0: 0.0
-                """
+                Pn0: 0.0\n"""
         myAffineMap = AffineMap(ua, ub, ta, tb)
         ldataName = ["Ts0", "Td0", "Pn0"]
         grid, lgridded_myData = gridto2Dlocal(
@@ -250,6 +244,12 @@ def generate_input_files(
         writeAllNetcdf(
             grid, lgridded_myData, f"ASAGI_files/{fn}", ldataName, paraview_readable
         )
+
+    template_yaml += f"""     - !ConstantMap
+      map:
+        Ts0: 0.0
+        Td0: 0.0
+        Pn0: 0.0\n"""
 
     fname = "yaml_files/Ts0Td0.yaml"
     with open(fname, "w") as fid:
