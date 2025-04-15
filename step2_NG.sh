@@ -29,13 +29,13 @@ get_scaled_walltime_and_ranks() {
     return 1
   fi
 
-  local candidates=(20 40 80 160)
+  local candidates=(20 40 80 160 200 240 280 320 340 380 400)
   local chosen_ranks=160
   local walltime=""
 
   for ranks in "${candidates[@]}"; do
-    # 2.0 is a safety factor
-    local target_time=$(echo "2.0 * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
+    # 1.5 is a safety factor
+    local target_time=$(echo "1.5 * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
 
     local hours=$(echo "$target_time/3600" | bc)
     local minutes=$(echo "($target_time%3600)/60" | bc)
@@ -63,7 +63,7 @@ get_scaled_walltime_and_ranks() {
 
 wait_for_job $job1_id
 
-read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" 120 1)
+read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" 120 2)
 echo "Using walltime: $walltime"
 echo "Using ranks: $ranks"
 
