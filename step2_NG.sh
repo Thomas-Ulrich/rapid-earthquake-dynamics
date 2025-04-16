@@ -34,8 +34,8 @@ get_scaled_walltime_and_ranks() {
   local walltime=""
 
   for ranks in "${candidates[@]}"; do
-    # 1.7 is a safety factor
-    local target_time=$(echo "1.7 * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
+    # 3.0 is a safety factor
+    local target_time=$(echo "3.0 * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
 
     local hours=$(echo "$target_time/3600" | bc)
     local minutes=$(echo "($target_time%3600)/60" | bc)

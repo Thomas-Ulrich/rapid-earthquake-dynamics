@@ -281,6 +281,7 @@ def generate(mode, dic_values):
                 "r_crit": list_nucleation_size[i],
                 "mu_delta_min": dic_values["mu_delta_min"],
                 "mesh_file": dic_values["mesh_file"],
+                "CFS_code_placeholder": dic_values["CFS_code_placeholder"],
             }
             render_file(template_par, "fault.tmpl.yaml", fn_fault)
         else:

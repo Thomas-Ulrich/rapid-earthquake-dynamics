@@ -21,8 +21,8 @@
 ##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
-# use a number of nodes multiple of 4!
-ndivide=$(( $SLURM_JOB_NUM_NODES / 4 ))
+# use a number of nodes multiple of 8!
+ndivide=$(( $SLURM_JOB_NUM_NODES / 8 ))
 
 #Run the program:
 export MP_SINGLE_THREAD=no

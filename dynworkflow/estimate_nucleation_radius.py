@@ -162,10 +162,11 @@ def compute_critical_nucleation_one_file(
     radius = np.arange(0.5e3, maxnucRadius + 0.25e3, 0.25e3)
 
     nucRadius = False
-    for rad in radius:
+    for k, rad in enumerate(radius):
         ratio_slip_area = 100 * np.pi * rad**2 / slip_area
         if ratio_slip_area > 15.0:
-            nucRadius = min(rad, np.sqrt((0.15 / np.pi) * slip_area))
+            nucRadius = radius[max(0, k - 1)]
+            # min(rad, np.sqrt((0.15 / np.pi) * slip_area))
             ratio_slip_area = 100 * np.pi * nucRadius**2 / slip_area
             break
 
@@ -173,12 +174,12 @@ def compute_critical_nucleation_one_file(
         selected_area_ratio = face_area[ids] / area_crit[ids]
         sum_ratio = np.sum(selected_area_ratio)
         # 1.0 is what in theory needed
-        if sum_ratio > np.sqrt(2):
+        if sum_ratio > 4.0:
             nucRadius = rad
             break
     runtime = time.time() - start_time
     print(
-        f"{bn_fault_yaml}: {rad:.0f} {ratio_slip_area:.1f} "
+        f"{bn_fault_yaml}: {nucRadius:.0f} {ratio_slip_area:.1f} "
         f" ({runtime:.3f} s, easi {easi_runtime:.3f}s)"
     )
     return nucRadius
