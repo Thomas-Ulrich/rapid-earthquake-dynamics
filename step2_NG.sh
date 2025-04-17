@@ -61,7 +61,8 @@ get_scaled_walltime_and_ranks() {
 }
 
 
-PARTITION=micro
+PARTITION=test
+ORDER=4
 
 if [[ -n "$1" ]]; then
   # If argument $1 is given, use it as job ID
