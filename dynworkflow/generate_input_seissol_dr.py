@@ -134,6 +134,11 @@ def generate_param_df(input_config, number_of_segments):
         raise NotImplementedError(f"unkown mode {mode}")
 
     param_df = pd.DataFrame(pars, columns=labels)
+    param_df["cohesion_idx"] = param_df["cohesion_idx"].astype(int)
+    param_df["cohesion_value"] = param_df["cohesion_idx"].apply(
+        lambda i: tuple(cohesion_values[int(i)])
+    )
+
     print(param_df)
     return param_df
 
@@ -179,11 +184,13 @@ def extract_template_params(
     max_slip,
     constant_d_c,
     input_config,
+    derived_config,
+    CFS_code_placeholder,
 ):
     cohi = int(row["cohesion_idx"])
     B = row["B"]
     C = row[Cname]
-    R = row.drop(["cohesion_idx", "B", Cname]).values
+    R = row.drop(["cohesion_idx", "cohesion_value", "B", Cname]).values
 
     cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
 
@@ -203,8 +210,8 @@ def extract_template_params(
         "hypo_y": hypo[1],
         "hypo_z": hypo[2],
         "mu_delta_min": input_config["mu_delta_min"],
-        "mesh_file": input_config["mesh_file"],
-        "CFS_code_placeholder": input_config["CFS_code_placeholder"],
+        "mesh_file": derived_config["mesh_file"],
+        "CFS_code_placeholder": CFS_code_placeholder,
     }
 
     sR = "_".join(map(str, R))
@@ -234,12 +241,12 @@ def generate():
     input_config |= parse_parameter_string(input_config["parameters"])
     cohesion_values = input_config["cohesion"]
 
-    if "CFS_code" in input_config:
+    if input_config["CFS_code"]:
         CFS_code_fn = input_config["CFS_code"]
         with open(CFS_code_fn, "r") as f:
-            input_config["CFS_code_placeholder"] = f.read()
+            CFS_code_placeholder = f.read()
     else:
-        input_config["CFS_code_placeholder"] = ""
+        CFS_code_placeholder = ""
 
     with open("derived_config.yaml", "r") as f:
         derived_config = yaml.safe_load(f)
@@ -256,12 +263,12 @@ def generate():
         Cname = "dc"
 
     param_df = generate_param_df(input_config, number_of_segments)
-    param_df.to_csv("simulation_parameters.csv", index=False)
+    param_df.to_csv("simulation_parameters.csv", index=True, index_label="id")
 
     nsample = len(param_df)
     print(f"parameter space has {nsample} samples")
 
-    projection = input_config["projection"]
+    projection = derived_config["projection"]
     transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
     hypo = np.loadtxt("tmp/hypocenter.txt")
     hypo[2] *= -1e3
@@ -277,7 +284,16 @@ def generate():
     for i in range(nsample):
         row = param_df.iloc[i]
         template_par, code = extract_template_params(
-            i, row, Cname, cohesion_values, hypo, max_slip, constant_d_c, input_config
+            i,
+            row,
+            Cname,
+            cohesion_values,
+            hypo,
+            max_slip,
+            constant_d_c,
+            input_config,
+            derived_config,
+            CFS_code_placeholder,
         )
         template_par["r_crit"] = 3000.0
         fn_fault = f"yaml_files/fault_{code}.yaml"
@@ -337,6 +353,8 @@ def generate():
                 max_slip,
                 constant_d_c,
                 input_config,
+                derived_config,
+                CFS_code_placeholder,
             )
             template_par["r_crit"] = list_nucleation_size[i]
             render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)

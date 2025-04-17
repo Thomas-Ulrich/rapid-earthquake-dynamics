@@ -46,7 +46,7 @@ echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
 
-ORDER={order:-4}
+ORDER=${order:-4}
 module load seissol/1.3.1-intel23-o${ORDER}-elas-dunav-single-impi
 
 nodes_per_job=$(( $SLURM_JOB_NUM_NODES / $ndivide ))
