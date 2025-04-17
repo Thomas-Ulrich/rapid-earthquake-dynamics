@@ -354,7 +354,7 @@ def run_step1():
     (
         spatial_zoom,
         fault_mesh_size,
-        number_of_segments
+        number_of_segments,
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
         finite_fault_fn, projection, args.fault_mesh_size
     )
