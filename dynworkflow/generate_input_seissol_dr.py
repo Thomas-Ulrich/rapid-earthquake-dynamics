@@ -283,8 +283,7 @@ def generate():
 
     list_fault_yaml = []
 
-    for idx in param_df.index:
-        row = param_df.iloc[idx]
+    for idx, row in param_df.iterrows():
         template_par, code = extract_template_params(
             idx,
             row,
@@ -343,9 +342,8 @@ def generate():
     )
     print(list_nucleation_size)
 
-    for k, idx in enumerate(param_df.index):
+    for k, (idx, row) in enumerate(param_df.iterrows()):
         if list_nucleation_size[k]:
-            row = param_df.iloc[idx]
             template_par, code = extract_template_params(
                 idx,
                 row,
