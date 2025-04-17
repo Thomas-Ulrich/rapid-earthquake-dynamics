@@ -190,6 +190,15 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--first_simulation_id",
+        type=int,
+        default=0,
+        help="""
+        first simulation id to be use in the ensemble
+        """,
+    )
+
+    parser.add_argument(
         "--tmax",
         type=float,
         default=None,
@@ -338,6 +347,7 @@ def run_step1():
         raise FileNotFoundError(f"{refMRF} does not exists")
 
     derived_config["reference_STF"] = refMRFfile
+    derived_config["first_simulation_id"] = args.first_simulation_id
     projection = args.projection
     if projection == "auto":
         projection = derived_config["projection"]

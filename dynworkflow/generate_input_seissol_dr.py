@@ -49,7 +49,7 @@ def render_file(templateEnv, template_par, template_fname, out_fname, verbose=Tr
         print(f"done creating {out_fname}")
 
 
-def generate_param_df(input_config, number_of_segments):
+def generate_param_df(input_config, number_of_segments, first_simulation_id):
     mode = input_config["mode"]
     if "C" in input_config:
         Cname = "C"
@@ -138,6 +138,7 @@ def generate_param_df(input_config, number_of_segments):
     param_df["cohesion_value"] = param_df["cohesion_idx"].apply(
         lambda i: tuple(cohesion_values[int(i)])
     )
+    param_df.index += first_simulation_id
 
     print(param_df)
     return param_df
@@ -262,7 +263,8 @@ def generate():
         constant_d_c = True
         Cname = "dc"
 
-    param_df = generate_param_df(input_config, number_of_segments)
+    first_simulation_id = derived_config["first_simulation_id"]
+    param_df = generate_param_df(input_config, number_of_segments, first_simulation_id)
     param_df.to_csv("simulation_parameters.csv", index=True, index_label="id")
 
     nsample = len(param_df)
@@ -281,10 +283,10 @@ def generate():
 
     list_fault_yaml = []
 
-    for i in range(nsample):
-        row = param_df.iloc[i]
+    for idx in param_df.index:
+        row = param_df.iloc[idx]
         template_par, code = extract_template_params(
-            i,
+            idx,
             row,
             Cname,
             cohesion_values,
@@ -341,11 +343,11 @@ def generate():
     )
     print(list_nucleation_size)
 
-    for i, fn in enumerate(list_fault_yaml):
-        if list_nucleation_size[i]:
-            row = param_df.iloc[i]
+    for k, idx in enumerate(param_df.index):
+        if list_nucleation_size[k]:
+            row = param_df.iloc[idx]
             template_par, code = extract_template_params(
-                i,
+                idx,
                 row,
                 Cname,
                 cohesion_values,
@@ -356,7 +358,7 @@ def generate():
                 derived_config,
                 CFS_code_placeholder,
             )
-            template_par["r_crit"] = list_nucleation_size[i]
+            template_par["r_crit"] = list_nucleation_size[k]
             fn_fault = f"yaml_files/fault_{code}.yaml"
             render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
         else:
@@ -379,3 +381,7 @@ def generate():
             for par_file in part:
                 f.write(par_file + "\n")
         print(f"done writing {part_filename}")
+
+    derived_config["first_simulation_id"] += len(param_df)
+    with open("derived_config.yaml", "w") as f:
+        yaml.dump(derived_config, f)
