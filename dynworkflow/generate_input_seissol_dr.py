@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import numpy as np
-import glob
 import os
 import jinja2
 import shutil
@@ -10,57 +9,77 @@ import random
 import itertools
 from dynworkflow.compile_scenario_macro_properties import infer_duration
 import seissolxdmf as sx
-import argparse
 from pyproj import Transformer
 import yaml
+import re
 
 
-def generate(mode, dic_values):
-    if not os.path.exists("yaml_files"):
-        os.makedirs("yaml_files")
-
-    def compute_max_slip(fn):
-        sx0 = sx.seissolxdmf(fn)
-        ndt = sx0.ReadNdt()
-        ASl = sx0.ReadData("ASl", ndt - 1)
-        if np.any(np.isnan(ASl)):
-            ASl = sx0.ReadData("ASl", ndt - 2)
-        return ASl.max()
-
-    kinmod_fn = "output/dyn-kinmod-fault.xdmf"
-    if not os.path.exists(kinmod_fn):
-        kinmod_fn = "extracted_output/dyn-kinmod_extracted-fault.xdmf"
-    max_slip = compute_max_slip(kinmod_fn)
+def compute_max_slip(fn):
+    sx0 = sx.seissolxdmf(fn)
+    ndt = sx0.ReadNdt()
+    ASl = sx0.ReadData("ASl", ndt - 1)
+    if np.any(np.isnan(ASl)):
+        ASl = sx0.ReadData("ASl", ndt - 2)
+    max_slip = ASl.max()
     assert max_slip > 0
+    return max_slip
 
-    # Get the directory of the script
-    script_path = os.path.abspath(__file__)
-    script_directory = os.path.dirname(script_path)
-    input_file_dir = f"{script_directory}/input_files"
-    templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
-    templateEnv = jinja2.Environment(loader=templateLoader)
-    number_of_segments = len(glob.glob("tmp/*.ts"))
-    print(f"found {number_of_segments} segments")
 
-    assert mode in ["latin_hypercube", "grid_search", "picked_models"]
-    longer_and_more_frequent_output = mode == "picked_models"
+def parse_parameter_string(param_str):
+    input_config = {}
+    for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
+        key, val = match.group(1), match.group(2)
+        if key == "cohesion":
+            input_config["cohesion"] = [
+                list(map(float, pair.split(","))) for pair in val.split(";")
+            ]
+        else:
+            input_config[key] = [float(v) for v in val.split(",") if v.strip()]
+    print(input_config)
+    return input_config
+
+
+def render_file(templateEnv, template_par, template_fname, out_fname, verbose=True):
+    template = templateEnv.get_template(template_fname)
+    outputText = template.render(template_par)
+    with open(out_fname, "w") as fid:
+        fid.write(outputText)
+    if verbose:
+        print(f"done creating {out_fname}")
+
+
+def generate_param_df(input_config):
+    mode = input_config["mode"]
+    if "C" in input_config:
+        constant_d_c = False
+        Cname = "C"
+        C_values = input_config["C"]
+    elif "d_c" in input_config:
+        constant_d_c = True
+        Cname = "dc"
+        C_values = input_config["d_c"]
+    else:
+        raise ValueError("nor C nor d_c given in parameters")
+    if ("C" in input_config) and ("d_c" in input_config):
+        raise ValueError("both C and d_c given in parameters")
+
+    B_values = input_config["B"]
+    R_values = input_config["R"]
+
+    cohesion_values = input_config["cohesion"]
+    cohesion_ids = list(range(len(cohesion_values)))
 
     if mode == "latin_hypercube":
-
-        def get_min_max(dic_values, key):
-            values = dic_values[key]
-            return min(values), max(values)
-
-        R0, R1 = get_min_max(dic_values, "R")
-        B0, B1 = get_min_max(dic_values, "B")
-        C0, C1 = get_min_max(dic_values, "C")
+        R0, R1 = min(R_values), max(R_values)
+        B0, B1 = min(B_values), max(B_values)
+        C0, C1 = min(C_values), max(C_values)
 
         l_bounds = [R0, B0, C0]
         u_bounds = [R1, B1, C1]
 
         # cohesion is fixed in this appraoch
-        list_cohesion = dic_values["cohesion"]
-        assert len(list_cohesion) == 1
+        cohesion_values = input_config["cohesion"]
+        assert len(cohesion_values) == 1
 
         if not os.path.exists("tmp/seed.txt"):
             seed = random.randint(1, 1000000)
@@ -73,69 +92,131 @@ def generate(mode, dic_values):
             print("seed read from tmp/seed.txt")
 
         sampler = qmc.LatinHypercube(d=3, seed=seed)
-        nsample = dic_values["nsamples"]
+        nsample = input_config["nsamples"]
         sample = sampler.random(n=nsample)
         pars = qmc.scale(sample, l_bounds, u_bounds)
         pars = np.around(pars, decimals=3)
         column_of_zeros = np.zeros((1, nsample))
         pars = np.insert(pars, 0, column_of_zeros, axis=1)
+        labels = ["B", Cname, "R"]
 
     elif mode == "grid_search":
-        # grid parameter space
-        paramB = dic_values["B"]
-        paramR = dic_values["R"]
-
-        if "C" in dic_values:
-            constant_d_c = False
-            Cname = "C"
-            paramC = dic_values["C"]
-        elif "d_c" in dic_values:
-            constant_d_c = True
-            Cname = "dc"
-            paramC = dic_values["d_c"]
-        else:
-            raise ValueError("nor C nor d_c given in parameters")
-        if ("C" in dic_values) and ("d_c" in dic_values):
-            raise ValueError("both C and d_c given in parameters")
-
-        list_cohesion = dic_values["cohesion"]
-        paramCoh = list(range(len(list_cohesion)))
         use_R_segment_wise = False
+
         if use_R_segment_wise:
-            params = [paramCoh, paramB, paramC] + [paramR] * number_of_segments
+            params = [cohesion_ids, B_values, C_values] + [
+                R_values
+            ] * number_of_segments
+            labels = ["cohesion_idx", "B", Cname] + [
+                f"R_seg{i+1}" for i in range(number_of_segments)
+            ]
             assert len(params) == number_of_segments + 3
         else:
-            params = [paramCoh, paramB, paramC, paramR]
+            params = [cohesion_ids, B_values, C_values, R_values]
+            labels = ["cohesion_idx", "B", Cname, "R"]
             assert len(params) == 4
+
         # Generate all combinations of parameter values
         param_combinations = list(itertools.product(*params))
+
         # Convert combinations to numpy array and round to desired decimals
         pars = np.around(np.array(param_combinations), decimals=3)
-        print(pars)
     elif mode == "picked_models":
-        list_cohesion = dic_values["cohesion"]
-        n = len(list_cohesion)
-        assert len(dic_values["B"]) == len(dic_values["C"]) == len(dic_values["R"]) == n
+        cohesion_values = input_config["cohesion"]
+        n = len(cohesion_values)
+        assert len(B_values) == len(C_values) == len(R_values) == n
         pars = [
-            [i, dic_values["B"][i], dic_values["C"][i], dic_values["R"][i]]
+            [i, input_config["B"][i], input_config[Cname][i], input_config["R"][i]]
             for i in range(n)
         ]
         pars = np.array(pars)
+        labels = ["cohesion_idx", "B", Cname, "R"]
     else:
         raise NotImplementedError(f"unkown mode {mode}")
 
-    nsample = pars.shape[0]
+    param_df = pd.DataFrame(pars, columns=labels)
+    print(param_df)
+    return param_df
+
+
+def compute_fault_sampling(kinmod_duration):
+    if kinmod_duration < 15:
+        return 0.25
+    elif kinmod_duration < 30:
+        return 0.5
+    elif kinmod_duration < 60:
+        return 1.0
+    elif kinmod_duration < 200:
+        return 2.5
+    else:
+        return 5.0
+
+
+def generate_R_yaml_block(Rvalues):
+    if len(Rvalues) == 1:
+        return f"""        [R]: !ConstantMap
+            map:
+              R: {Rvalues[0]}"""
+
+    R_yaml_block = """        [R]: !Any
+           components:"""
+    for p, Rp in enumerate(Rvalues):
+        fault_id = 3 if p == 0 else 64 + p
+        R_yaml_block += f"""
+            - !GroupFilter
+              groups: {fault_id}
+              components: !ConstantMap
+                 map:
+                   R: {Rp}"""
+    return R_yaml_block
+
+
+def generate():
+    if not os.path.exists("yaml_files"):
+        os.makedirs("yaml_files")
+
+    kinmod_fn = "output/dyn-kinmod-fault.xdmf"
+    if not os.path.exists(kinmod_fn):
+        kinmod_fn = "extracted_output/dyn-kinmod_extracted-fault.xdmf"
+    max_slip = compute_max_slip(kinmod_fn)
+
+    # Get the directory of the script
+    script_path = os.path.abspath(__file__)
+    script_directory = os.path.dirname(script_path)
+    input_file_dir = f"{script_directory}/input_files"
+    templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
+    templateEnv = jinja2.Environment(loader=templateLoader)
+
+    with open("input_config.yaml", "r") as f:
+        input_config = yaml.safe_load(f)
+    input_config |= parse_parameter_string(input_config["parameters"])
+
+    if "CFS_code" in input_config:
+        CFS_code_fn = input_config["CFS_code"]
+        with open(CFS_code_fn, "r") as f:
+            input_config["CFS_code_placeholder"] = f.read()
+    else:
+        input_config["CFS_code_placeholder"] = ""
+
+    with open("derived_config.yaml", "r") as f:
+        derived_config = yaml.safe_load(f)
+    number_of_segments = derived_config["number_of_segments"]
+    mode = input_config["mode"]
+
+    longer_and_more_frequent_output = mode == "picked_models"
+
+    if "C" in input_config:
+        constant_d_c = False
+        Cname = "C"
+    else:
+        constant_d_c = True
+        Cname = "dc"
+
+    param_df = generate_param_df(input_config)
+    nsample = len(param_df)
     print(f"parameter space has {nsample} samples")
 
-    def render_file(template_par, template_fname, out_fname, verbose=True):
-        template = templateEnv.get_template(template_fname)
-        outputText = template.render(template_par)
-        with open(out_fname, "w") as fid:
-            fid.write(outputText)
-        if verbose:
-            print(f"done creating {out_fname}")
-
-    projection = dic_values["projection"]
+    projection = input_config["projection"]
     transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
     hypo = np.loadtxt("tmp/hypocenter.txt")
     hypo[2] *= -1e3
@@ -144,45 +225,18 @@ def generate(mode, dic_values):
     fn_mr = "tmp/moment_rate_from_finite_source_file.txt"
     moment_rate = np.loadtxt(fn_mr)
     kinmod_duration = infer_duration(moment_rate[:, 0], moment_rate[:, 1])
-
-    def compute_fault_sampling(kinmod_duration):
-        if kinmod_duration < 15:
-            return 0.25
-        elif kinmod_duration < 30:
-            return 0.5
-        elif kinmod_duration < 60:
-            return 1.0
-        elif kinmod_duration < 200:
-            return 2.5
-        else:
-            return 5.0
-
     fault_sampling = compute_fault_sampling(kinmod_duration)
 
-    def generate_R_yaml_block(Rvalues):
-        if len(Rvalues) == 1:
-            return f"""        [R]: !ConstantMap
-                map:
-                  R: {Rvalues[0]}"""
-
-        R_yaml_block = """        [R]: !Any
-               components:"""
-        for p, Rp in enumerate(Rvalues):
-            fault_id = 3 if p == 0 else 64 + p
-            R_yaml_block += f"""
-                - !GroupFilter
-                  groups: {fault_id}
-                  components: !ConstantMap
-                     map:
-                       R: {Rp}"""
-        return R_yaml_block
-
     list_fault_yaml = []
+
     for i in range(nsample):
-        row = pars[i, :]
-        cohi, B, C = row[0:3]
-        cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
-        R = row[3:]
+        row = param_df.iloc[i]
+
+        cohi = int(row["cohesion_idx"])
+        B = row["B"]
+        C = row[Cname]
+        R = row.drop(["cohesion_idx", "B", Cname]).values  # Works for both scalar R or segment-wise R
+        cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
 
         if constant_d_c:
             d_c = str(C)
@@ -200,9 +254,9 @@ def generate(mode, dic_values):
             "hypo_y": hypo[1],
             "hypo_z": hypo[2],
             "r_crit": 3000.0,
-            "mu_delta_min": dic_values["mu_delta_min"],
-            "mesh_file": dic_values["mesh_file"],
-            "CFS_code_placeholder": dic_values["CFS_code_placeholder"],
+            "mu_delta_min": input_config["mu_delta_min"],
+            "mesh_file": input_config["mesh_file"],
+            "CFS_code_placeholder": input_config["CFS_code_placeholder"],
         }
 
         sR = "_".join(map(str, R))
@@ -210,7 +264,7 @@ def generate(mode, dic_values):
         fn_fault = f"yaml_files/fault_{code}.yaml"
         list_fault_yaml.append(fn_fault)
 
-        render_file(template_par, "fault.tmpl.yaml", fn_fault)
+        render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
 
         if longer_and_more_frequent_output:
             template_par["terminatorMomentRateThreshold"] = -1
@@ -224,10 +278,10 @@ def generate(mode, dic_values):
         template_par["material_fname"] = "yaml_files/material.yaml"
         template_par["fault_print_time_interval"] = fault_sampling
         fn_param = f"parameters_dyn_{code}.par"
-        render_file(template_par, "parameters_dyn.tmpl.par", fn_param)
+        render_file(templateEnv, template_par, "parameters_dyn.tmpl.par", fn_param)
 
-    template_par = {"mu_d": dic_values["mu_d"]}
-    render_file(template_par, "mud.tmpl.yaml", "yaml_files/mud.yaml")
+    template_par = {"mu_d": input_config["mu_d"]}
+    render_file(templateEnv, template_par, "mud.tmpl.yaml", "yaml_files/mud.yaml")
 
     fnames = ["fault_slip.yaml"]
     for fn in fnames:
@@ -251,10 +305,11 @@ def generate(mode, dic_values):
         hypo,
     )
     print(list_nucleation_size)
+
     for i, fn in enumerate(list_fault_yaml):
         row = pars[i, :]
         cohi, B, C = row[0:3]
-        cohesion_const, cohesion_lin, cohesion_depth = list_cohesion[int(cohi)]
+        cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[int(cohi)]
         R = row[3:]
         sR = "_".join(map(str, R))
 
@@ -279,11 +334,11 @@ def generate(mode, dic_values):
                 "hypo_y": hypo[1],
                 "hypo_z": hypo[2],
                 "r_crit": list_nucleation_size[i],
-                "mu_delta_min": dic_values["mu_delta_min"],
-                "mesh_file": dic_values["mesh_file"],
-                "CFS_code_placeholder": dic_values["CFS_code_placeholder"],
+                "mu_delta_min": input_config["mu_delta_min"],
+                "mesh_file": input_config["mesh_file"],
+                "CFS_code_placeholder": input_config["CFS_code_placeholder"],
             }
-            render_file(template_par, "fault.tmpl.yaml", fn_fault)
+            render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
         else:
             fn_param = f"parameters_dyn_{code}.par"
             print(f"removing {fn} and {fn_param} (nucleation too large)")
@@ -304,97 +359,3 @@ def generate(mode, dic_values):
             for par_file in part:
                 f.write(par_file + "\n")
         print(f"done writing {part_filename}")
-
-
-if __name__ == "__main__":
-    # Default values for parameters
-    paramB = [0.9, 1.0, 1.1, 1.2]
-    # paramC = [0.1, 0.15, 0.2, 0.25, 0.3]
-    paramC = [0.1, 0.2, 0.3, 0.4, 0.5]
-    paramR = [0.55, 0.6, 0.65, 0.7, 0.8, 0.9]
-    paramCoh = [(0.25, 1.0, 6.0)]
-
-    def list_to_semicolon_separated_string(li):
-        return ";".join(str(v) for v in li)
-
-    def semicolon_separated_string_to_list(li):
-        return [float(v) for v in li.split(";")]
-
-    def list_of_tuples_to_semicolon_separated_string(li):
-        return ";".join(f"{v[0]} {v[1]}" for v in li)
-
-    def semicolon_separated_string_to_list_of_tuples(s):
-        return [tuple(map(float, w.split())) for w in s.split(";")]
-
-    parser = argparse.ArgumentParser(
-        description="automatically generate input files for dynamic rupture models"
-    )
-    parser.add_argument(
-        "mode",
-        default="grid_search",
-        choices=["latin_hypercube", "grid_search", "picked_models"],
-        help="mode use to sample the parameter space",
-    )
-    parser.add_argument(
-        "--Bvalues",
-        nargs=1,
-        help="B (stress drop factor) values, separated by ';'",
-        default=list_to_semicolon_separated_string(paramR),
-    )
-    parser.add_argument(
-        "--Cvalues",
-        nargs=1,
-        help="C (Dc slip factor) values, separated by ';'",
-        default=list_to_semicolon_separated_string(paramR),
-    )
-    parser.add_argument(
-        "--Rvalues",
-        nargs=1,
-        help="R (relative prestress) values, separated by ';'",
-        default=list_to_semicolon_separated_string(paramR),
-    )
-    parser.add_argument(
-        "--cohesionvalues",
-        nargs=1,
-        help=(
-            "K(z) = K0 + K1 max(d-d_coh/d_coh))"
-            "3 value per parameter set, separated by';'"
-        ),
-        default=list_of_tuples_to_semicolon_separated_string(paramCoh),
-    )
-    parser.add_argument(
-        "--nsamples",
-        nargs=1,
-        help="number of samples (for Latin hypercube)",
-        default=[50],
-    )
-
-    args = parser.parse_args()
-    dic_values = {}
-    dic_values["B"] = semicolon_separated_string_to_list(args.Bvalues[0])
-    dic_values["C"] = semicolon_separated_string_to_list(args.Cvalues[0])
-    dic_values["R"] = semicolon_separated_string_to_list(args.Rvalues[0])
-    dic_values["cohesion"] = semicolon_separated_string_to_list_of_tuples(
-        args.cohesionvalues[0]
-    )
-    with open("derived_config.yaml", "r") as f:
-        config_dict = yaml.safe_load(f)
-    dic_values["projection"] = config_dict["projection"]
-
-    if "CFS_code" in config_dict:
-        CFS_code_fn = config_dict["CFS_code"]
-        with open(CFS_code_fn, "r") as f:
-            dic_values["CFS_code_placeholder"] = f.read()
-    else:
-        dic_values["CFS_code_placeholder"] = ""
-
-    dic_values["nsamples"] = args.nsamples[0]
-
-    with open("input_config.yaml", "r") as f:
-        input_config_dict = yaml.safe_load(f)
-    dic_values["mu_delta_min"] = input_config_dict["mu_delta_min"]
-    dic_values["mu_d"] = input_config_dict["mu_d"]
-
-    print(dic_values)
-
-    generate(args.mode, dic_values)

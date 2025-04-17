@@ -354,6 +354,7 @@ def run_step1():
     (
         spatial_zoom,
         fault_mesh_size,
+        number_of_segments
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
         finite_fault_fn, projection, args.fault_mesh_size
     )
@@ -403,6 +404,7 @@ def run_step1():
         "fault_mesh_size": fault_mesh_size,
         "mu_delta_min": input_config["mu_delta_min"],
         "mu_d": input_config["mu_d"],
+        "number_of_segments": number_of_segments,
     }
     save_config(derived_config, "derived_config.yaml")
 

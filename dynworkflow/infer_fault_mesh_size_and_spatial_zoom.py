@@ -70,7 +70,7 @@ def infer_quantities(filename, proj, mesh_size="auto"):
 
     print(f"inferred spatial zoom {inferred_spatial_zoom}")
 
-    return inferred_spatial_zoom, mesh_size
+    return inferred_spatial_zoom, mesh_size, len(mfp.fault_planes)
 
 
 if __name__ == "__main__":
@@ -94,6 +94,7 @@ if __name__ == "__main__":
         required=True,
     )
     args = parser.parse_args()
-    inferred_spatial_zoom, mesh_size = infer_quantities(
+    inferred_spatial_zoom, mesh_size, n_segments = infer_quantities(
         args.filename, args.proj, args.fault_mesh_size
     )
+    print(inferred_spatial_zoom, mesh_size, n_segments)
