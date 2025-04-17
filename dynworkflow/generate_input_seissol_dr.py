@@ -12,6 +12,7 @@ import seissolxdmf as sx
 from pyproj import Transformer
 import yaml
 import re
+import pandas as pd
 
 
 def compute_max_slip(fn):
@@ -48,14 +49,12 @@ def render_file(templateEnv, template_par, template_fname, out_fname, verbose=Tr
         print(f"done creating {out_fname}")
 
 
-def generate_param_df(input_config):
+def generate_param_df(input_config, number_of_segments):
     mode = input_config["mode"]
     if "C" in input_config:
-        constant_d_c = False
         Cname = "C"
         C_values = input_config["C"]
     elif "d_c" in input_config:
-        constant_d_c = True
         Cname = "dc"
         C_values = input_config["d_c"]
     else:
@@ -171,6 +170,49 @@ def generate_R_yaml_block(Rvalues):
     return R_yaml_block
 
 
+def extract_template_params(
+    i,
+    row,
+    Cname,
+    cohesion_values,
+    hypo,
+    max_slip,
+    constant_d_c,
+    input_config,
+):
+    cohi = int(row["cohesion_idx"])
+    B = row["B"]
+    C = row[Cname]
+    R = row.drop(["cohesion_idx", "B", Cname]).values
+
+    cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
+
+    if constant_d_c:
+        d_c = str(C)
+    else:
+        d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
+
+    template_param = {
+        "R_yaml_block": generate_R_yaml_block(R),
+        "cohesion_const": cohesion_const * 1e6,
+        "cohesion_lin": cohesion_lin * 1e6,
+        "cohesion_depth": cohesion_depth * 1e3,
+        "B": B,
+        "d_c": d_c,
+        "hypo_x": hypo[0],
+        "hypo_y": hypo[1],
+        "hypo_z": hypo[2],
+        "mu_delta_min": input_config["mu_delta_min"],
+        "mesh_file": input_config["mesh_file"],
+        "CFS_code_placeholder": input_config["CFS_code_placeholder"],
+    }
+
+    sR = "_".join(map(str, R))
+    code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
+
+    return template_param, code
+
+
 def generate():
     if not os.path.exists("yaml_files"):
         os.makedirs("yaml_files")
@@ -190,6 +232,7 @@ def generate():
     with open("input_config.yaml", "r") as f:
         input_config = yaml.safe_load(f)
     input_config |= parse_parameter_string(input_config["parameters"])
+    cohesion_values = input_config["cohesion"]
 
     if "CFS_code" in input_config:
         CFS_code_fn = input_config["CFS_code"]
@@ -212,7 +255,9 @@ def generate():
         constant_d_c = True
         Cname = "dc"
 
-    param_df = generate_param_df(input_config)
+    param_df = generate_param_df(input_config, number_of_segments)
+    param_df.to_csv("simulation_parameters.csv", index=False)
+
     nsample = len(param_df)
     print(f"parameter space has {nsample} samples")
 
@@ -231,36 +276,10 @@ def generate():
 
     for i in range(nsample):
         row = param_df.iloc[i]
-
-        cohi = int(row["cohesion_idx"])
-        B = row["B"]
-        C = row[Cname]
-        R = row.drop(["cohesion_idx", "B", Cname]).values  # Works for both scalar R or segment-wise R
-        cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
-
-        if constant_d_c:
-            d_c = str(C)
-        else:
-            d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
-
-        template_par = {
-            "R_yaml_block": generate_R_yaml_block(R),
-            "cohesion_const": cohesion_const * 1e6,
-            "cohesion_lin": cohesion_lin * 1e6,
-            "cohesion_depth": cohesion_depth * 1e3,
-            "B": B,
-            "d_c": d_c,
-            "hypo_x": hypo[0],
-            "hypo_y": hypo[1],
-            "hypo_z": hypo[2],
-            "r_crit": 3000.0,
-            "mu_delta_min": input_config["mu_delta_min"],
-            "mesh_file": input_config["mesh_file"],
-            "CFS_code_placeholder": input_config["CFS_code_placeholder"],
-        }
-
-        sR = "_".join(map(str, R))
-        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
+        template_par, code = extract_template_params(
+            i, row, Cname, cohesion_values, hypo, max_slip, constant_d_c, input_config
+        )
+        template_par["r_crit"] = 3000.0
         fn_fault = f"yaml_files/fault_{code}.yaml"
         list_fault_yaml.append(fn_fault)
 
@@ -307,37 +326,19 @@ def generate():
     print(list_nucleation_size)
 
     for i, fn in enumerate(list_fault_yaml):
-        row = pars[i, :]
-        cohi, B, C = row[0:3]
-        cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[int(cohi)]
-        R = row[3:]
-        sR = "_".join(map(str, R))
-
-        if constant_d_c:
-            d_c = str(C)
-        else:
-            d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
-
-        code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
-
         if list_nucleation_size[i]:
-            fn_fault = f"yaml_files/fault_{code}.yaml"
-            assert fn_fault == fn
-            template_par = {
-                "R_yaml_block": generate_R_yaml_block(R),
-                "cohesion_const": cohesion_const * 1e6,
-                "cohesion_lin": cohesion_lin * 1e6,
-                "cohesion_depth": cohesion_depth * 1e3,
-                "B": B,
-                "d_c": d_c,
-                "hypo_x": hypo[0],
-                "hypo_y": hypo[1],
-                "hypo_z": hypo[2],
-                "r_crit": list_nucleation_size[i],
-                "mu_delta_min": input_config["mu_delta_min"],
-                "mesh_file": input_config["mesh_file"],
-                "CFS_code_placeholder": input_config["CFS_code_placeholder"],
-            }
+            row = param_df.iloc[i]
+            template_par, code = extract_template_params(
+                i,
+                row,
+                Cname,
+                cohesion_values,
+                hypo,
+                max_slip,
+                constant_d_c,
+                input_config,
+            )
+            template_par["r_crit"] = list_nucleation_size[i]
             render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
         else:
             fn_param = f"parameters_dyn_{code}.par"
