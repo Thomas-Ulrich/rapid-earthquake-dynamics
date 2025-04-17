@@ -357,6 +357,7 @@ def generate():
                 CFS_code_placeholder,
             )
             template_par["r_crit"] = list_nucleation_size[i]
+            fn_fault = f"yaml_files/fault_{code}.yaml"
             render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
         else:
             fn_param = f"parameters_dyn_{code}.par"
