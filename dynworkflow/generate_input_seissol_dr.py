@@ -107,7 +107,7 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
                 R_values
             ] * number_of_segments
             labels = ["cohesion_idx", "B", Cname] + [
-                f"R_seg{i+1}" for i in range(number_of_segments)
+                f"R_seg{i + 1}" for i in range(number_of_segments)
             ]
             assert len(params) == number_of_segments + 3
         else:
