@@ -9,16 +9,14 @@ instaseis==1.4.2
 Jinja2==3.1.6
 lxml==5.3.0
 matplotlib==3.8.4
-netCDF4==1.7.1.post2
 netCDF4==1.7.2
 networkx==3.3
 numpy==2.2.4
-obspy==1.4.1.post0+334.gdb0be6b1e5.obspy.master
+obspy==1.4.1
 pandas==2.2.3
 pyproj==3.6.1
 pyprop8==1.1.5
 pyvista==0.44.1
-PyYAML==6.0.1
 PyYAML==6.0.2
 Requests==2.32.3
 scikit_learn==1.6.1
