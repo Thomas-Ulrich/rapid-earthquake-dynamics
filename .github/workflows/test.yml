@@ -22,7 +22,7 @@ jobs:
 
       - name: Set PYTHONPATH
         run: |
-          echo "PYTHONPATH=$(pwd)/dynworkflow" >> $GITHUB_ENV
+          echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
 
       - name: Run tests with coverage
         run: pytest --cov=dynworkflow --cov=external --cov=. --cov-report=xml
