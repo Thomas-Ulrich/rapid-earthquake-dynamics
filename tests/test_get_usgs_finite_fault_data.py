@@ -1,10 +1,9 @@
 import os
-import json
 import shutil
-import pytest
 from unittest import mock
 
 from dynworkflow.get_usgs_finite_fault_data import get_data
+
 
 @mock.patch("dynworkflow.get_usgs_finite_fault_data.wget_overwrite")
 @mock.patch("builtins.input", return_value="y")
@@ -37,11 +36,16 @@ def test_get_data_with_mocked_usgs(mock_input, mock_wget, tmp_path):
         # Assert
         assert "folder_name" in result
         assert "projection" in result
-        assert result["folder_name"] == "2025-03-28_Mw7.7_Burma_Myanmar_Earthq_us7000pn9s_test"
-        assert result["projection"] == "+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0=95.92 +lat_0=22.00"
+        assert (
+            result["folder_name"]
+            == "2025-03-28_Mw7.7_Burma_Myanmar_Earthq_us7000pn9s_test"
+        )
+        assert (
+            result["projection"]
+            == "+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0=95.92 +lat_0=22.00"
+        )
         assert os.path.exists(result["folder_name"])
 
     finally:
         # Cleanup and restore working dir
         os.chdir(cwd)
-
