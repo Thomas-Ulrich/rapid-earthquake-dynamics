@@ -6,6 +6,7 @@ from dynworkflow.get_usgs_finite_fault_data import get_data
 
 
 @mock.patch("dynworkflow.get_usgs_finite_fault_data.wget_overwrite")
+@mock.patch("builtins.input", return_value="y")
 def test_get_data_with_mocked_usgs(mock_input, mock_wget, tmp_path):
     # Arrange paths
     test_json_path = os.path.abspath("tests/data/us7000pn9s.json")
