@@ -14,9 +14,6 @@ def generate(h_domain, h_fault, interactive):
     # z0, z1 = -length_added, 5e3
 
     gmsh.initialize()
-    if not interactive:
-        # Avoid GUI display-related calls
-        gmsh.option.setNumber("General.Terminal", 1)
 
     gmsh.model.add("finite-fault")
 
