@@ -41,16 +41,22 @@ def parse_github_owner_repo(url):
     return None, None
 
 
-def get_git_info():
+def get_git_info(git_root):
     try:
         current_branch = subprocess.check_output(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            text=True,
+            cwd=git_root,
         ).strip()
         local_commit = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], text=True
+            ["git", "rev-parse", "HEAD"],
+            text=True,
+            cwd=git_root,
         ).strip()
         remote_default = subprocess.check_output(
-            ["git", "remote", "show", "origin"], text=True
+            ["git", "remote", "show", "origin"],
+            text=True,
+            cwd=git_root,
         )
         default_branch = None
         for line in remote_default.splitlines():
@@ -63,11 +69,12 @@ def get_git_info():
         return None, None, None
 
 
-def get_commit_distance(from_ref, to_ref):
+def get_commit_distance(from_ref, to_ref, git_root):
     try:
         result = subprocess.check_output(
             ["git", "rev-list", "--left-right", "--count", f"{from_ref}...{to_ref}"],
             text=True,
+            cwd=git_root,
         )
         behind, ahead = map(int, result.strip().split())
         return {"ahead_by": ahead, "behind_by": behind}
@@ -75,7 +82,9 @@ def get_commit_distance(from_ref, to_ref):
         return None
 
 
-def compute_commit_distance_from_local_head_to_ref(current_branch, target_ref):
+def compute_commit_distance_from_local_head_to_ref(
+    current_branch, target_ref, git_root
+):
     """
     Calculate the commit distance from the current HEAD to a target reference
     via the remote branch.
@@ -94,10 +103,10 @@ def compute_commit_distance_from_local_head_to_ref(current_branch, target_ref):
     remote_branch = f"origin/{current_branch}"
 
     # Step 1: Calculate distance from HEAD to remote branch
-    distance_to_remote = get_commit_distance(remote_branch, "HEAD")
+    distance_to_remote = get_commit_distance(remote_branch, "HEAD", git_root)
 
     # Step 2: Calculate distance from target reference to remote branch
-    distance_remote_to_ref = get_commit_distance(target_ref, remote_branch)
+    distance_remote_to_ref = get_commit_distance(target_ref, remote_branch, git_root)
 
     # If both distances were calculated successfully, combine them
     if distance_to_remote and distance_remote_to_ref:
@@ -149,8 +158,9 @@ def get_highest_semver(tags):
     return highest_version_tag, highest_version_sha
 
 
-def get_version_info(owner, repo):
-    current_branch, local_commit, default_branch = get_git_info()
+def get_version_info(owner, repo, git_root):
+    current_branch, local_commit, default_branch = get_git_info(git_root)
+    print(current_branch, local_commit, default_branch)
 
     # GitHub tag info
     base_url = f"https://api.github.com/repos/{owner}/{repo}"
@@ -170,12 +180,12 @@ def get_version_info(owner, repo):
 
     main_branch = f"origin/{default_branch}"
     commit_distance_to_main = compute_commit_distance_from_local_head_to_ref(
-        current_branch, main_branch
+        current_branch, main_branch, git_root
     )
     if highest_version_tag:
         commit_distance_to_highest_version = (
             compute_commit_distance_from_local_head_to_ref(
-                current_branch, highest_version_tag
+                current_branch, highest_version_tag, git_root
             )
         )
     else:
@@ -202,7 +212,7 @@ def get_repo_info():
         owner, repo = parse_github_owner_repo(remote_url)
 
         if owner and repo:
-            info = get_version_info(owner, repo)
+            info = get_version_info(owner, repo, git_root)
             return info
         else:
             print("Could not parse owner/repo from remote URL.")
