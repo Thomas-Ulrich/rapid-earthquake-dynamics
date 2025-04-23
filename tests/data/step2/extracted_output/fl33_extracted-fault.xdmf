@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+  <Grid Name="TimeSeries" GridType="Collection" CollectionType="Temporal">
+   <Grid Name="step_0" GridType="Uniform">
+    <Topology TopologyType="Triangle" NumberOfElements="27608">
+     <DataItem NumberType="Int" Precision="8" Format="HDF" Dimensions="27608 3">fl33_extracted-fault.h5:/connect</DataItem>
+    </Topology>
+    <Geometry name="geo" GeometryType="XYZ" NumberOfElements="14357">
+     <DataItem NumberType="Float" Precision="8" Format="HDF" Dimensions="14357 3">fl33_extracted-fault.h5:/geometry</DataItem>
+    </Geometry>
+    <Time Value="98.8509"/>
+    <Attribute Name="fault-tag" Center="Cell">
+     <DataItem NumberType="UInt" Precision="4" Format="HDF" Dimensions="1 27608">fl33_extracted-fault.h5:/fault-tag</DataItem>
+    </Attribute>
+    <Attribute Name="Ts0" Center="Cell">
+     <DataItem ItemType="HyperSlab" Dimensions="27608">
+      <DataItem NumberType="UInt" Precision="4" Format="XML" Dimensions="3 2">0 0 1 1 1 27608</DataItem>
+      <DataItem NumberType="Float" Precision="4" Format="HDF" Dimensions="1 27608">fl33_extracted-fault.h5:/Ts0</DataItem>
+     </DataItem>
+    </Attribute>
+    <Attribute Name="Td0" Center="Cell">
+     <DataItem ItemType="HyperSlab" Dimensions="27608">
+      <DataItem NumberType="UInt" Precision="4" Format="XML" Dimensions="3 2">0 0 1 1 1 27608</DataItem>
+      <DataItem NumberType="Float" Precision="4" Format="HDF" Dimensions="1 27608">fl33_extracted-fault.h5:/Td0</DataItem>
+     </DataItem>
+    </Attribute>
+    <Attribute Name="Pn0" Center="Cell">
+     <DataItem ItemType="HyperSlab" Dimensions="27608">
+      <DataItem NumberType="UInt" Precision="4" Format="XML" Dimensions="3 2">0 0 1 1 1 27608</DataItem>
+      <DataItem NumberType="Float" Precision="4" Format="HDF" Dimensions="1 27608">fl33_extracted-fault.h5:/Pn0</DataItem>
+     </DataItem>
+    </Attribute>
+   </Grid>
+  </Grid>
+ </Domain>
+</Xdmf>

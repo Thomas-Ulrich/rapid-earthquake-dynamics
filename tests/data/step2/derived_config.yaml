@@ -1,0 +1,27 @@
+fault_mesh_size: 2000.0
+first_simulation_id: 0
+folder_name: 2025-03-28_Mw7.7_Burma_Myanmar_Earthq_us7000pn9s_1
+hypocenter:
+- 96.001129
+- 21.983021
+- 10.0
+mesh_file: tmp/mesh.puml.h5
+mu_d: 0.2
+mu_delta_min: 0.01
+number_of_segments: 4
+projection: +proj=tmerc +datum=WGS84 +k=0.9996 +lon_0=95.92 +lat_0=22.00
+reference_STF: tmp/moment_rate.mr
+repository:
+  commit_distance_to_highest_version:
+    ahead_by: 2
+    behind_by: 0
+  commit_distance_to_main:
+    ahead_by: 0
+    behind_by: 0
+  current_branch: main
+  highest_version_tag: v0.1.0
+  latest_commit_on_main: 66b1ab2aec2128f379e3d65ba275b90496b1bc58
+  local_commit: 66b1ab2aec2128f379e3d65ba275b90496b1bc58
+  owner: Thomas-Ulrich
+  repo: rapid-earthquake-dynamics
+spatial_zoom: 3

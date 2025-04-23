@@ -1,0 +1,18 @@
+CFS_code: null
+config: null
+custom_setup_files: []
+event_id: us7000pn9s_1
+fault_mesh_size: '2000'
+finite_fault_model: usgs
+first_simulation_id: 0
+hypocenter: finite_fault
+mesh: auto
+mode: grid_search
+mu_d: 0.2
+mu_delta_min: 0.01
+parameters: B=0.9,1.2 C=0.1,0.2 R=0.55,0.6,0.65 cohesion=0.25,1,6
+projection: auto
+reference_moment_rate_function: auto
+regional_seismic_stations: auto
+tmax: null
+velocity_model: auto
