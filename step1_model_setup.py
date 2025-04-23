@@ -332,14 +332,16 @@ def run_step1():
     else:
         if vel_model == "auto":
             vel_model = "usgs"
+
     derived_config = get_usgs_finite_fault_data.get_data(
         args.event_id,
         min_magnitude=6,
         suffix=suffix,
         use_usgs_finite_fault=(finite_fault_model == "usgs"),
         download_usgs_fsp=(vel_model == "usgs"),
-        usgs_usgs_hypocenter=(args.hypocenter == "usgs"),
+        use_usgs_hypocenter=(args.hypocenter == "usgs"),
     )
+
     if args.hypocenter not in ["usgs", "finite_fault"]:
         hypocenter = [float(v) for v in args.hypocenter.split()]
         assert len(hypocenter) == 3
