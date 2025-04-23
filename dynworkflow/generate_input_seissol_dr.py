@@ -272,7 +272,7 @@ def generate():
 
     projection = derived_config["projection"]
     transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
-    hypo = np.loadtxt("tmp/hypocenter.txt")
+    hypo = derived_config["hypocenter"]
     hypo[2] *= -1e3
     hypo[0], hypo[1] = transformer.transform(hypo[0], hypo[1])
 

@@ -111,6 +111,18 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--hypocenter",
+        type=str,
+        default="finite_fault",
+        help="""
+        Specify the hypocenter location. Options:
+        - finite_fault: use the first rupturing point in the finite-fault model.
+        - usgs: use the most recent origin coordinates from the USGS.
+        - lon,lat,depth_km: manually provide coordinates (e.g., '86.08,27.67,15').
+        """,
+    )
+
+    parser.add_argument(
         "--mesh",
         type=str,
         default="auto",
@@ -160,7 +172,7 @@ def get_parser():
         default="auto",
         help="""
         Map projection specification.
-        - 'auto': transverse Mercator centered on the hypocenter.
+        - 'auto': transverse Mercator centered on the USGS first estimated hypocenter.
         - OR: custom projection string in Proj4 format
         (e.g., '+proj=utm +zone=33 +datum=WGS84').
         """,
@@ -326,7 +338,13 @@ def run_step1():
         suffix=suffix,
         use_usgs_finite_fault=(finite_fault_model == "usgs"),
         download_usgs_fsp=(vel_model == "usgs"),
+        usgs_usgs_hypocenter=(args.hypocenter == "usgs"),
     )
+    if args.hypocenter not in ["usgs", "finite_fault"]:
+        hypocenter = [float(v) for v in args.hypocenter.split()]
+        assert len(hypocenter) == 3
+        derived_config["hypocenter"] = hypocenter
+
     os.chdir(derived_config["folder_name"])
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
