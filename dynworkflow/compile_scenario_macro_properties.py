@@ -75,7 +75,7 @@ def extract_params_from_prefix(fname: str) -> dict:
         match = re.search(patterns[i], fname)
         out = {}
         if i == 0 and match:
-            out["sim_id"] = match.group(1)
+            out["sim_id"] = int(match.group(1))
             out["coh"] = (float(match.group(2)), float(match.group(3)))
             extract_BCR(out, match, 4)
             break
@@ -326,20 +326,6 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=figsize, dpi=80)
     ax = fig.add_subplot(111)
 
-    results = {
-        "coh": [],
-        "sim_id": [],
-        "B": [],
-        "C": [],
-        "R0": [],
-        "Mw": [],
-        "duration": [],
-        "ccmax": [],
-        "M0mis": [],
-        "Tgof": [],
-        "faultfn": [],
-    }
-
     def read_usgs_moment_rate(fname):
         mr_ref = np.loadtxt(fname, skiprows=2)
         # Conversion factor from dyne-cm/sec to Nm/sec (for older usgs files)
@@ -392,6 +378,29 @@ if __name__ == "__main__":
             mr_ref_interp, (0, added), "constant", constant_values=(0, 0)
         )
 
+    param_file = "simulation_parameters.csv"
+    if os.path.exists(param_file):
+        params = pd.read_csv(param_file)
+        params["sim_id"] = params["id"].astype(int)
+        Cname = "dc" if "dc" in params.columns else "C"
+    else:
+        params = None
+        Cname = "C"
+
+    results = {
+        "coh": [],
+        "sim_id": [],
+        "B": [],
+        Cname: [],
+        "R0": [],
+        "Mw": [],
+        "duration": [],
+        "ccmax": [],
+        "M0mis": [],
+        "Tgof": [],
+        "faultfn": [],
+    }
+
     for i, fn in enumerate(energy_files):
         df = pd.read_csv(fn)
         df = df.pivot_table(index="time", columns="variable", values="measurement")
@@ -408,15 +417,27 @@ if __name__ == "__main__":
             faultfn = faultfn[0]
         else:
             faultfn = glob.glob(f"{prefix}_*-fault.xdmf")[0]
-        out = extract_params_from_prefix(fn)
+        if params is None:
+            out = extract_params_from_prefix(fn)
+            coh_name = "coh"
+        else:
+            match = re.search(r"dyn_(\d{4})_", os.path.basename(fn))
+            if match:
+                sim_id = int(match.group(1))
+            else:
+                raise ValueError(f"could not get sim_id from {fn}")
+            out = params[params["id"] == sim_id]
+            out = out.to_dict(orient="records")[0]
+            coh_name = "cohesion_value"
+
         M0, Mw = computeMw(label, df.index.values, df["seismic_moment_rate"])
         duration = infer_duration(df.index.values, df["seismic_moment_rate"])
         results["Mw"].append(Mw)
         results["duration"].append(duration)
-        results["sim_id"].append(out["sim_id"])
-        results["coh"].append(out["coh"])
+        results["sim_id"].append(int(out["sim_id"]))
+        results["coh"].append(out[coh_name])
         results["B"].append(out["B"])
-        results["C"].append(out["C"])
+        results[Cname].append(out[Cname])
         results["R0"].append(out["R"])
         results["faultfn"].append(faultfn)
         # max_shift = int(min(5, 0.25 * inferred_duration) / dt)
@@ -450,7 +471,7 @@ if __name__ == "__main__":
 
     if os.path.exists("gof_slip.pkl"):
         gofa = pickle.load(open("gof_slip.pkl", "rb"))
-        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")
+        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
         gofa = gofa[["gof_slip", "sim_id"]]
         result_df = pd.merge(result_df, gofa, on="sim_id")
         result_df["combined_M0_cc_gof"] = np.sqrt(
@@ -462,7 +483,7 @@ if __name__ == "__main__":
     pkl_file = "percentage_supershear.pkl"
     if os.path.exists(pkl_file):
         gofa = pickle.load(open(pkl_file, "rb"))
-        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")
+        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
         gofa = gofa[["supershear", "sim_id"]]
         result_df = pd.merge(result_df, gofa, on="sim_id")
     else:
@@ -476,7 +497,9 @@ if __name__ == "__main__":
     if os.path.exists("gof_average.pkl"):
         print("gof_average.pkl detected: merging with results dataframe")
         gofa = pickle.load(open("gof_average.pkl", "rb"))
-        gofa["sim_id"] = gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")
+        gofa["sim_id"] = (
+            gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
+        )
         gofa = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
         gofa = gofa[["gofa", "sim_id"]]
         # merge the two DataFrames by sim_id
@@ -490,7 +513,7 @@ if __name__ == "__main__":
 
     coh = result_df["coh"].values
     B = result_df["B"].values
-    C = result_df["C"].values
+    C = result_df[Cname].values
     R = result_df["R0"].values
 
     def are_all_elements_same(arr):
@@ -545,7 +568,7 @@ if __name__ == "__main__":
             label = "simulation"
         else:
             label = ""
-            names = ["coh", "B", "C", "R"]
+            names = ["coh", "B", Cname, "R"]
             vals = [coh[i], B[i], C[i], R[i]]
             for p, x in enumerate(varying_param):
                 if x:
