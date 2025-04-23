@@ -7,6 +7,12 @@ from dynworkflow import (
     generate_input_seissol_fl33,
     prepare_velocity_model_files,
     generate_waveform_config_from_usgs,
+    vizualizeBoundaryConditions,
+)
+from finite_fault_models import (
+    generate_FL33_input_files,
+    compute_moment_rate_from_finite_fault_file,
+    generate_fault_output_from_fl33_input_files,
 )
 
 import argparse
@@ -18,25 +24,6 @@ import subprocess
 import numpy as np
 import yaml
 from pathlib import Path
-
-# Append finite_fault_models and external folders to path
-# Get the directory of the current script
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-
-relative_paths = [
-    "dynworkflow/finite_fault_models",
-    "external",
-]
-for relative_path in relative_paths:
-    absolute_path = os.path.join(current_script_dir, relative_path)
-    if absolute_path not in sys.path:
-        sys.path.append(absolute_path)
-
-
-import generate_FL33_input_files
-import compute_moment_rate_from_finite_fault_file
-import generate_fault_output_from_fl33_input_files
-import vizualizeBoundaryConditions
 
 
 def is_slipnear_file(fn):
