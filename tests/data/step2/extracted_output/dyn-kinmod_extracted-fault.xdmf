@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+  <Grid Name="TimeSeries" GridType="Collection" CollectionType="Temporal">
+   <Grid Name="step_0" GridType="Uniform">
+    <Topology TopologyType="Triangle" NumberOfElements="6902">
+     <DataItem NumberType="Int" Precision="8" Format="HDF" Dimensions="6902 3">dyn-kinmod_extracted-fault.h5:/connect</DataItem>
+    </Topology>
+    <Geometry name="geo" GeometryType="XYZ" NumberOfElements="3728">
+     <DataItem NumberType="Float" Precision="8" Format="HDF" Dimensions="3728 3">dyn-kinmod_extracted-fault.h5:/geometry</DataItem>
+    </Geometry>
+    <Time Value="143.5"/>
+    <Attribute Name="ASl" Center="Cell">
+     <DataItem ItemType="HyperSlab" Dimensions="6902">
+      <DataItem NumberType="UInt" Precision="4" Format="XML" Dimensions="3 2">0 0 1 1 1 6902</DataItem>
+      <DataItem NumberType="Float" Precision="4" Format="HDF" Dimensions="1 6902">dyn-kinmod_extracted-fault.h5:/ASl</DataItem>
+     </DataItem>
+    </Attribute>
+   </Grid>
+  </Grid>
+ </Domain>
+</Xdmf>
