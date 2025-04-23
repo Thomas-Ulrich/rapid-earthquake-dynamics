@@ -3,7 +3,7 @@ name: Lint Python code
 on:
   pull_request:
     branches:
-      - main  # or your default branch
+      - main
 
 jobs:
   lint:

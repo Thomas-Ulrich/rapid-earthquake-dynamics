@@ -7,6 +7,13 @@ from dynworkflow import (
     generate_input_seissol_fl33,
     prepare_velocity_model_files,
     generate_waveform_config_from_usgs,
+    vizualizeBoundaryConditions,
+    get_repo_info,
+)
+from kinematic_models import (
+    generate_FL33_input_files,
+    compute_moment_rate_from_finite_fault_file,
+    generate_fault_output_from_fl33_input_files,
 )
 
 import argparse
@@ -18,25 +25,6 @@ import subprocess
 import numpy as np
 import yaml
 from pathlib import Path
-
-# Append finite_fault_models and external folders to path
-# Get the directory of the current script
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-
-relative_paths = [
-    "dynworkflow/finite_fault_models",
-    "external",
-]
-for relative_path in relative_paths:
-    absolute_path = os.path.join(current_script_dir, relative_path)
-    if absolute_path not in sys.path:
-        sys.path.append(absolute_path)
-
-
-import generate_FL33_input_files
-import compute_moment_rate_from_finite_fault_file
-import generate_fault_output_from_fl33_input_files
-import vizualizeBoundaryConditions
 
 
 def is_slipnear_file(fn):
@@ -111,6 +99,18 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--hypocenter",
+        type=str,
+        default="finite_fault",
+        help="""
+        Specify the hypocenter location. Options:
+        - finite_fault: use the first rupturing point in the finite-fault model.
+        - usgs: use the most recent origin coordinates from the USGS.
+        - lon,lat,depth_km: manually provide coordinates (e.g., '86.08,27.67,15').
+        """,
+    )
+
+    parser.add_argument(
         "--mesh",
         type=str,
         default="auto",
@@ -160,7 +160,7 @@ def get_parser():
         default="auto",
         help="""
         Map projection specification.
-        - 'auto': transverse Mercator centered on the hypocenter.
+        - 'auto': transverse Mercator centered on the USGS first estimated hypocenter.
         - OR: custom projection string in Proj4 format
         (e.g., '+proj=utm +zone=33 +datum=WGS84').
         """,
@@ -186,6 +186,15 @@ def get_parser():
         - 'auto': would be automatically determined.
         - OR: list of coma separated station, e.g.
         "NC.KRP,BK.SBAR,BK.THOM,BK.DMOR,NC.KMPB,BK.HUNT,BK.ETSL,BK.HALS,BK.MNDO"
+        """,
+    )
+
+    parser.add_argument(
+        "--first_simulation_id",
+        type=int,
+        default=0,
+        help="""
+        first simulation id to be use in the ensemble
         """,
     )
 
@@ -311,13 +320,23 @@ def run_step1():
     else:
         if vel_model == "auto":
             vel_model = "usgs"
+
     derived_config = get_usgs_finite_fault_data.get_data(
         args.event_id,
         min_magnitude=6,
         suffix=suffix,
         use_usgs_finite_fault=(finite_fault_model == "usgs"),
         download_usgs_fsp=(vel_model == "usgs"),
+        use_usgs_hypocenter=(args.hypocenter == "usgs"),
     )
+    repo_info = get_repo_info.get_repo_info()
+    derived_config["repository"] = repo_info
+
+    if args.hypocenter not in ["usgs", "finite_fault"]:
+        hypocenter = [float(v) for v in args.hypocenter.split()]
+        assert len(hypocenter) == 3
+        derived_config["hypocenter"] = hypocenter
+
     os.chdir(derived_config["folder_name"])
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
@@ -338,6 +357,7 @@ def run_step1():
         raise FileNotFoundError(f"{refMRF} does not exists")
 
     derived_config["reference_STF"] = refMRFfile
+    derived_config["first_simulation_id"] = args.first_simulation_id
     projection = args.projection
     if projection == "auto":
         projection = derived_config["projection"]
@@ -354,6 +374,7 @@ def run_step1():
     (
         spatial_zoom,
         fault_mesh_size,
+        number_of_segments,
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
         finite_fault_fn, projection, args.fault_mesh_size
     )
@@ -403,6 +424,7 @@ def run_step1():
         "fault_mesh_size": fault_mesh_size,
         "mu_delta_min": input_config["mu_delta_min"],
         "mu_d": input_config["mu_d"],
+        "number_of_segments": number_of_segments,
     }
     save_config(derived_config, "derived_config.yaml")
 
@@ -419,6 +441,7 @@ def run_step1():
 
 
 def select_station_and_download_waveforms():
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
     with open("input_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]

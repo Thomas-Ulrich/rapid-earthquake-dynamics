@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job Name and Files (also --job-name)
-#SBATCH -J 2015_1.1
+#SBATCH -J aggregated
 #Output and error (also --output, --error):
 #SBATCH -o ./%j.%x.out
 #SBATCH -e ./%j.%x.out
@@ -21,8 +21,8 @@
 ##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
-# use a number of nodes multiple of 4!
-ndivide=$(( $SLURM_JOB_NUM_NODES / 4 ))
+# use a number of nodes multiple of 8!
+ndivide=$(( $SLURM_JOB_NUM_NODES / 8 ))
 
 #Run the program:
 export MP_SINGLE_THREAD=no
@@ -45,7 +45,9 @@ source /etc/profile.d/modules.sh
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
-module load seissol/1.3.1-intel23-o4-elas-dunav-single-impi
+
+ORDER=${order:-4}
+module load seissol/1.3.1-intel23-o${ORDER}-elas-dunav-single-impi
 
 nodes_per_job=$(( $SLURM_JOB_NUM_NODES / $ndivide ))
 tasks_per_job=$(( $nodes_per_job * 2 ))
@@ -68,7 +70,7 @@ for filename in "${files[@]}"; do
     modulo=$(( $counter % $ndivide ))
     counter0=$(printf "%05d" "$counter")
     id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_4_elastic $filename&
+    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
  
     # Increment counter
     counter=$((counter + 1))
@@ -96,7 +98,7 @@ for filename in "${files[@]}"; do
         echo "something went wrong? trying rerun seissol with file: $filename"
         modulo=$(( $counter % $ndivide ))
         counter0=$(printf "%05d" "$counter")
-        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_4_elastic $filename&
+        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
         counter=$((counter + 1))
     fi
 

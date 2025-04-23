@@ -14,6 +14,7 @@ def generate(h_domain, h_fault, interactive):
     # z0, z1 = -length_added, 5e3
 
     gmsh.initialize()
+
     gmsh.model.add("finite-fault")
 
     # We can log all messages for further processing with:

@@ -1,7 +1,6 @@
 #!/bin/bash
 echo parameters_fl33.par > fl33.txt
 script_dir=../rapid-earthquake-dynamics/
-job1_id=$(sbatch ${script_dir}/scripts/job_NG_test.sh fl33.txt| awk '{print $NF}')
 
 # Function to wait for a job to finish
 wait_for_job() {
@@ -29,13 +28,13 @@ get_scaled_walltime_and_ranks() {
     return 1
   fi
 
-  local candidates=(20 40 80 160)
-  local chosen_ranks=160
+  local candidates=($(seq 24 8 400))
+  local chosen_ranks=400
   local walltime=""
 
   for ranks in "${candidates[@]}"; do
-    # 2.0 is a safety factor
-    local target_time=$(echo "2.0 * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
+    # 3.0 is a safety factor
+    local target_time=$(echo "3.0 * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
 
     local hours=$(echo "$target_time/3600" | bc)
     local minutes=$(echo "($target_time%3600)/60" | bc)
@@ -61,13 +60,27 @@ get_scaled_walltime_and_ranks() {
   echo "$walltime $chosen_ranks"
 }
 
-wait_for_job $job1_id
 
-read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" 120 1)
+PARTITION=test
+ORDER=4
+
+if [[ -n "$1" ]]; then
+  # If argument $1 is given, use it as job ID
+  job1_id="$1"
+  echo "Using provided job ID: $job1_id"
+else
+  # Otherwise, run the pseudo-static step
+  job1_id=$(sbatch "${script_dir}/scripts/job_NG_test.sh" fl33.txt | awk '{print $NF}')
+  echo "Submitted pseudo-static job with ID: $job1_id"
+  wait_for_job "$job1_id"
+fi
+
+
+read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" 120 2)
 echo "Using walltime: $walltime"
 echo "Using ranks: $ranks"
 
-job2_id=$(sbatch ${script_dir}/scripts/job_NG_create_parameters.sh | awk '{print $NF}')
+job2_id=$(sbatch --partition=$PARTITION ${script_dir}/scripts/job_NG_create_parameters.sh | awk '{print $NF}')
 job3_id=$(sbatch --time=$walltime --nodes=$ranks --dependency=afterok:$job2_id ${script_dir}/scripts/aggregated_jobs_NG.sh part_1.txt | awk '{print $NF}')
-job4_id=$(sbatch --dependency=afterok:$job3_id ${script_dir}/scripts/compact_output_and_generate_PS_NG.sh | awk '{print $NF}')
-job5_id=$(sbatch --dependency=afterok:$job4_id ${script_dir}/scripts/generate_syn.sh | awk '{print $NF}')
+job4_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job3_id ${script_dir}/scripts/compact_output_and_generate_PS_NG.sh | awk '{print $NF}')
+job5_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job4_id ${script_dir}/scripts/generate_syn.sh | awk '{print $NF}')

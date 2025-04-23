@@ -95,6 +95,7 @@ def get_data(
     suffix,
     use_usgs_finite_fault=True,
     download_usgs_fsp=False,
+    use_usgs_hypocenter=False,
 ):
     if usgs_id_or_dtgeo_npy[-3:] == "npy":
         usgs_id = retrieve_usgs_id_from_dtgeo_dict(
@@ -149,9 +150,6 @@ def get_data(
         finite_fault = finite_faults[ff_id]
         code_finite_fault = finite_fault["code"]
         update_time = finite_fault["updateTime"]
-        hypocenter_x = finite_fault["properties"]["longitude"]
-        hypocenter_y = finite_fault["properties"]["latitude"]
-        hypocenter_z = finite_fault["properties"]["depth"]
     else:
         code_finite_fault = usgs_id
 
@@ -176,15 +174,22 @@ def get_data(
     first_released_index = min(
         range(len(origin)), key=lambda i: origin[i]["updateTime"]
     )
+
     lon = float(origin[first_released_index]["properties"]["longitude"])
     lat = float(origin[first_released_index]["properties"]["latitude"])
+
+    if use_usgs_hypocenter:
+        last_updated_index = max(
+            range(len(origin)), key=lambda i: origin[i]["updateTime"]
+        )
+        hypocenter_x = float(origin[last_updated_index]["properties"]["longitude"])
+        hypocenter_y = float(origin[last_updated_index]["properties"]["latitude"])
+        hypocenter_z = float(origin[last_updated_index]["properties"]["depth"])
+        hypocenter = [hypocenter_x, hypocenter_y, hypocenter_z]
 
     projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon:.2f} +lat_0={lat:.2f}"
 
     if use_usgs_finite_fault:
-        with open(f"{folder_name}/tmp/hypocenter.txt", "w") as f:
-            jsondata = f.write(f"{hypocenter_x} {hypocenter_y} {hypocenter_z}\n")
-
         for fn in [
             "moment_rate.mr",
             "basic_inversion.param",
@@ -209,6 +214,8 @@ def get_data(
     derived_config = {}
     derived_config["folder_name"] = folder_name
     derived_config["projection"] = projection
+    if use_usgs_hypocenter:
+        derived_config["hypocenter"] = hypocenter
 
     return derived_config
 

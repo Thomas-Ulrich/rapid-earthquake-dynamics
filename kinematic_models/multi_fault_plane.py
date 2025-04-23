@@ -1,5 +1,6 @@
 from fault_plane import FaultPlane
 import os
+import yaml
 import numpy as np
 
 
@@ -669,9 +670,22 @@ class MultiFaultPlane:
             fid.write(template_yaml)
         print(f"done writing {fname}")
         if self.hypocenter:
-            if not os.path.exists("tmp"):
-                os.makedirs("tmp")
-            with open("tmp/hypocenter.txt", "w") as f:
-                f.write(
-                    f"{self.hypocenter[0]} {self.hypocenter[1]} {self.hypocenter[2]}\n"
-                )
+            self.hypocenter = [float(val) for val in self.hypocenter]
+            config_path = "derived_config.yaml"
+            # Load existing config if it exists, else start with empty dict
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    config = yaml.safe_load(f) or {}
+            else:
+                config = {}
+
+            # Set the hypocenter
+            if "hypocenter" not in config:
+                config["hypocenter"] = [
+                    self.hypocenter[0],
+                    self.hypocenter[1],
+                    self.hypocenter[2],
+                ]
+                # Save back to the file
+                with open("derived_config.yaml", "w") as f:
+                    yaml.dump(config, f)
