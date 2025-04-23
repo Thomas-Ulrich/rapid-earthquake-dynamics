@@ -28,3 +28,4 @@ trimesh==4.4.6
 vtk==9.4.2
 wget==3.2
 xarray==2024.7.0
+semver==3.0.4
