@@ -8,6 +8,7 @@ from dynworkflow import (
     prepare_velocity_model_files,
     generate_waveform_config_from_usgs,
     vizualizeBoundaryConditions,
+    get_repo_info,
 )
 from kinematic_models import (
     generate_FL33_input_files,
@@ -328,6 +329,8 @@ def run_step1():
         download_usgs_fsp=(vel_model == "usgs"),
         use_usgs_hypocenter=(args.hypocenter == "usgs"),
     )
+    repo_info = get_repo_info.get_repo_info()
+    derived_config["repository"] = repo_info
 
     if args.hypocenter not in ["usgs", "finite_fault"]:
         hypocenter = [float(v) for v in args.hypocenter.split()]
