@@ -9,7 +9,7 @@ from dynworkflow import (
     generate_waveform_config_from_usgs,
     vizualizeBoundaryConditions,
 )
-from finite_fault_models import (
+from kinematic_models import (
     generate_FL33_input_files,
     compute_moment_rate_from_finite_fault_file,
     generate_fault_output_from_fl33_input_files,
@@ -438,6 +438,7 @@ def run_step1():
 
 
 def select_station_and_download_waveforms():
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
     with open("input_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]

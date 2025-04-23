@@ -670,6 +670,7 @@ class MultiFaultPlane:
             fid.write(template_yaml)
         print(f"done writing {fname}")
         if self.hypocenter:
+            self.hypocenter = [float(val) for val in self.hypocenter]
             config_path = "derived_config.yaml"
             # Load existing config if it exists, else start with empty dict
             if os.path.exists(config_path):
