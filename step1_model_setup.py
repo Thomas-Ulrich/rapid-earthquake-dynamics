@@ -378,6 +378,8 @@ def run_step1():
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
         finite_fault_fn, projection, args.fault_mesh_size
     )
+    save_config(derived_config, "derived_config.yaml")
+
     generate_FL33_input_files.main(
         finite_fault_fn,
         "cubic",
@@ -387,6 +389,10 @@ def run_step1():
         PSRthreshold=0.0,
         tmax=args.tmax,
     )
+
+    # reload config with potentially hypocenter
+    with open("derived_config.yaml") as f:
+        derived_config = yaml.safe_load(f)
 
     modify_FL33_34_fault_instantaneous_slip.update_file("yaml_files/FL33_34_fault.yaml")
 
