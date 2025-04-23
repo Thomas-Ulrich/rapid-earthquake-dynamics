@@ -159,10 +159,10 @@ def generate_BCR_plots(B, C, R):
         row = k % nrow
         col = k // nrow * n_div
         generate_XY_panel(
-            "B", B, "C", C, "R0", Rk, "ccmax", axarr[row, col], cm.cmaps["acton_r"]
+            "B", B, Cname, C, "R0", Rk, "ccmax", axarr[row, col], cm.cmaps["acton_r"]
         )
         generate_XY_panel(
-            "B", B, "C", C, "R0", Rk, "M0mis", axarr[row, col + 1], cm.cmaps["oslo_r"]
+            "B", B, Cname, C, "R0", Rk, "M0mis", axarr[row, col + 1], cm.cmaps["oslo_r"]
         )
     fname = "plots/parameter_space_BC_constant_R.pdf"
     plt.savefig(fname)
@@ -187,7 +187,7 @@ def generate_BCR_plots(B, C, R):
         generate_XY_panel(
             "R0",
             R,
-            "C",
+            Cname,
             C,
             "B",
             Bk,
@@ -199,7 +199,7 @@ def generate_BCR_plots(B, C, R):
             generate_XY_panel(
                 "R0",
                 R,
-                "C",
+                Cname,
                 C,
                 "B",
                 Bk,
@@ -210,7 +210,7 @@ def generate_BCR_plots(B, C, R):
             generate_XY_panel(
                 "R0",
                 R,
-                "C",
+                Cname,
                 C,
                 "B",
                 Bk,
@@ -245,7 +245,7 @@ def generate_BCR_moment_plots(B, C, R):
         generate_XY_panel(
             "R0",
             R,
-            "C",
+            Cname,
             C,
             "B",
             Bk,
@@ -254,7 +254,15 @@ def generate_BCR_moment_plots(B, C, R):
             cm.cmaps["acton"],
         )
         generate_XY_panel(
-            "R0", R, "C", C, "B", Bk, "duration", axarr[row, col + 1], cm.cmaps["oslo"]
+            "R0",
+            R,
+            Cname,
+            C,
+            "B",
+            Bk,
+            "duration",
+            axarr[row, col + 1],
+            cm.cmaps["oslo"],
         )
 
     fname = "plots/parameter_space_Mw_duration_R0C_constant_B.pdf"
