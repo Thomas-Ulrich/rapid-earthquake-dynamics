@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
+
 script_dir=../rapid-earthquake-dynamics/
 job1_id=$(sbatch ${script_dir}/scripts/compact_output_NG.sh | awk '{print $NF}')
 echo "Job 1 submitted with ID: $job1_id"
