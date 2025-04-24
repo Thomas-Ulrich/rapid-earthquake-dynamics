@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
+
 # Job Name and Files
 #SBATCH -J PSrep
 #SBATCH -o ./%j.%x.out

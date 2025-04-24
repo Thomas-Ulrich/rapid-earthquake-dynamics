@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
+
 set -euo pipefail
 module unload seissol
 module load seissol/master-gcc-12.2.0-o4-elas-dunav-single-sggt32q

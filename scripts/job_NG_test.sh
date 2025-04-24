@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
+
 # Job Name and Files (also --job-name)
 #SBATCH -J fl33
 #Output and error (also --output, --error):

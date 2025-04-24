@@ -5,6 +5,15 @@
 workflows for automated generation of dynamic rupture scenarios from earthquake kinematic models, enabling rapid source characterization
 
 
+# Cloning the repository
+
+```bash
+git clone --recursive https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics
+cd rapid-earthquake-dynamics
+git lfs install      # Enables Git LFS support for handling large binary files
+git lfs pull         # Downloads large files tracked by Git LFS (e.g., .h5, .nc)
+```
+
 # Installing requirements
 
 ## easi library with python bindings

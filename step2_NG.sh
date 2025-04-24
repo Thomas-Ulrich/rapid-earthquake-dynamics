@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
+
 echo parameters_fl33.par > fl33.txt
 script_dir=../rapid-earthquake-dynamics/
 
