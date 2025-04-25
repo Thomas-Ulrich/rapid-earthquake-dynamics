@@ -447,6 +447,7 @@ def run_step1():
     if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
         print(f"{file_path} is empty (static solution?).")
         assert refMRF != file_path
+        assert args.hypocenter != "finite_fault"
         moment_rate = np.loadtxt(refMRF, skiprows=2)
         with open(file_path, "w") as f:
             np.savetxt(f, moment_rate, fmt="%g")
