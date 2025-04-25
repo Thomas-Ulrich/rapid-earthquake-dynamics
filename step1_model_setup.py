@@ -442,6 +442,16 @@ def run_step1():
     compute_moment_rate_from_finite_fault_file.compute(
         finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax
     )
+
+    file_path = "tmp/moment_rate_from_finite_source_file.txt"
+    if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
+        print(f"{file_path} is empty (static solution?).")
+        assert refMRF != file_path
+        moment_rate = np.loadtxt(refMRF, skiprows=2)
+        with open(file_path, "w") as f:
+            np.savetxt(f, moment_rate, fmt="%g")
+        print("done copying refMRF to {file_path}")
+
     if not os.path.exists("output"):
         os.makedirs("output")
     copy_files(custom_setup_files, ".")
