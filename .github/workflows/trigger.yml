@@ -1,0 +1,10 @@
+name: Manual Trigger Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  say-hi:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "👋 Hello from workflow_dispatch!"
