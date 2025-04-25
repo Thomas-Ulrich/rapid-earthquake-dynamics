@@ -61,8 +61,6 @@
         mu_s =  x['mu_d'] + math.max({{ mu_delta_min }}, (Tau0/sigma_n - x['mu_d'])/R + cohesion/sigma_n)
         mu_d = x['mu_d']
 
-        -- it might be useful to CFS calculation to set up here fault_tag wise 
-        -- cohesion, T_s and T_d (e.g. useful for Mendocino)
         {{ CFS_code_placeholder }}
 
         return {
