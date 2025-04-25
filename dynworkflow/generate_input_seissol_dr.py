@@ -247,6 +247,9 @@ def generate():
     cohesion_values = input_config["cohesion"]
 
     if input_config["CFS_code"]:
+        # useful for CFS calculation to set up, fault_tag-wise,
+        # cohesion, T_s and T_d (e.g. for Mendocino)
+
         CFS_code_fn = input_config["CFS_code"]
         with open(CFS_code_fn, "r") as f:
             CFS_code_placeholder = f.read()
