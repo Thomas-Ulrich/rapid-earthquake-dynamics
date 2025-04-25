@@ -337,7 +337,7 @@ def run_step1():
     derived_config["repository"] = repo_info
 
     if args.hypocenter not in ["usgs", "finite_fault"]:
-        hypocenter = [float(v) for v in args.hypocenter.split()]
+        hypocenter = [float(v) for v in args.hypocenter.strip().split(",")]
         assert len(hypocenter) == 3
         derived_config["hypocenter"] = hypocenter
 
