@@ -42,10 +42,10 @@ RUN apt-get update -y && apt-get upgrade -y && \
     apt-get -y update
 
 # ## IO
-RUN python3 -m pip install --upgrade pip setuptools
+RUN python3 -m pip install --upgrade pip setuptools --break-system-packages
 
 # Install pybind11
-RUN python3 -m pip install pybind11 pytest pytest-cov
+RUN python3 -m pip install pybind11 pytest pytest-cov --break-system-packages
 
 # Set the working directory for the image
 WORKDIR /workspace
@@ -54,7 +54,7 @@ WORKDIR /workspace
 COPY requirements.txt /workspace/requirements.txt
 
 # Install python requirements
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN  pip install -r requirements.txt --break-system-packages
 
 # HDF5
 RUN wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.3/src/hdf5-1.12.3.tar.bz2 && \
