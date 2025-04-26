@@ -251,7 +251,7 @@ def generate():
     number_of_segments = derived_config["number_of_segments"]
     mode = input_config["mode"]
 
-    if derived_config["CFS_code"]:
+    if "CFS_code" in derived_config:
         # useful for CFS calculation to set up, fault_tag-wise,
         # cohesion, T_s and T_d (e.g. for Mendocino)
 
@@ -279,7 +279,8 @@ def generate():
 
     projection = derived_config["projection"]
     transformer = Transformer.from_crs("epsg:4326", projection, always_xy=True)
-    hypo = derived_config["hypocenter"]
+    # [:] required to get a copy
+    hypo = derived_config["hypocenter"][:]
     hypo[2] *= -1e3
     hypo[0], hypo[1] = transformer.transform(hypo[0], hypo[1])
 

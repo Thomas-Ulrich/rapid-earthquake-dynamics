@@ -509,10 +509,11 @@ if __name__ == "__main__":
     if os.path.exists("gof_average.pkl"):
         print("gof_average.pkl detected: merging with results dataframe")
         gofa = pickle.load(open("gof_average.pkl", "rb"))
+        gofa = gofa[~gofa["source_file"].str.contains(r"kinmod")]
+        gofa = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
         gofa["sim_id"] = (
             gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
         )
-        gofa = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
         gofa = gofa[["gofa", "sim_id"]]
         # merge the two DataFrames by sim_id
         result_df = pd.merge(result_df, gofa, on="sim_id")
