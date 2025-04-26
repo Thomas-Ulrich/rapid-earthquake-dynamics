@@ -6,6 +6,8 @@ import shutil
 import pytest
 import yaml
 import sys
+from unittest.mock import patch
+import glob
 
 # Append kinematic_models folder to path
 # Get the directory of the current script
@@ -17,7 +19,7 @@ if absolute_path not in sys.path:
 
 import project_fault_tractions_onto_asagi_grid
 
-# from dynworkflow import generate_input_seissol_dr
+from dynworkflow import generate_input_seissol_dr
 
 
 @pytest.fixture
@@ -68,5 +70,27 @@ def test_step2_workflow(step2_test_env):
     for k in range(1, 5):
         assert os.path.exists(f"ASAGI_files/basic_inversion{k}_3_cubic.nc")
 
-    # not activated yet, because of easi module
-    # generate_input_seissol_dr.generate()
+    # Now patch compute_critical_nucleation inside generate_input_seissol_dr
+    with patch(
+        "dynworkflow.generate_input_seissol_dr.compute_critical_nucleation"
+    ) as mock_compute:
+        # Define the fake output
+        mock_compute.side_effect = lambda fl33_file, *_args, **_kwargs: [
+            1000 for _ in range(len(fl33_file))
+        ]
+
+        # Now call generate() with the mock active
+        generate_input_seissol_dr.generate()
+
+    # Check that there are 12 parameters files
+    param_files = sorted(glob.glob("parameters_dyn_*.par"))
+    assert (
+        len(param_files) == 12
+    ), f"Expected 12 parameter files, found {len(param_files)}"
+
+    # Optionally, check that they are named correctly
+    for i, param_file in enumerate(param_files):
+        expected_prefix = f"parameters_dyn_{i:04d}_"
+        assert os.path.basename(param_file).startswith(
+            expected_prefix
+        ), f"Unexpected filename: {param_file}"
