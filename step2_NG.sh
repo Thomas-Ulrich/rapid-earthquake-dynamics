@@ -35,10 +35,11 @@ get_scaled_walltime_and_ranks() {
   local candidates=($(seq 24 8 400))
   local chosen_ranks=400
   local walltime=""
+  local safety_factor=3
 
   for ranks in "${candidates[@]}"; do
     # 3.0 is a safety factor
-    local target_time=$(echo "3.0 * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
+    local target_time=$(echo "$safety_factor * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
 
     local hours=$(echo "$target_time/3600" | bc)
     local minutes=$(echo "($target_time%3600)/60" | bc)
@@ -52,9 +53,9 @@ get_scaled_walltime_and_ranks() {
     fi
   done
 
-  # If none fit, use 160 and recalculate walltime
+  # If none fit, use max ranks and recalculate walltime
   if [[ -z "$walltime" ]]; then
-    local target_time=$(echo "$kernel_time * $scale_factor / (2 * $chosen_ranks )" | bc)
+    local target_time=$(echo "$safety_factor * $kernel_time * $scale_factor / ( 2 * $chosen_ranks )" | bc)
     local hours=$(echo "$target_time/3600" | bc)
     local minutes=$(echo "($target_time%3600)/60" | bc)
     local seconds=$(echo "$target_time%60" | bc)
@@ -66,7 +67,7 @@ get_scaled_walltime_and_ranks() {
 
 
 PARTITION=test
-ORDER=4
+export order=4
 
 if [[ -n "$1" ]]; then
   # If argument $1 is given, use it as job ID
@@ -85,6 +86,9 @@ echo "Using walltime: $walltime"
 echo "Using ranks: $ranks"
 
 job2_id=$(sbatch --partition=$PARTITION ${script_dir}/scripts/job_NG_create_parameters.sh | awk '{print $NF}')
+
+PARTITION=micro
+ 
 job3_id=$(sbatch --time=$walltime --nodes=$ranks --dependency=afterok:$job2_id ${script_dir}/scripts/aggregated_jobs_NG.sh part_1.txt | awk '{print $NF}')
 job4_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job3_id ${script_dir}/scripts/compact_output_and_generate_PS_NG.sh | awk '{print $NF}')
 job5_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job4_id ${script_dir}/scripts/generate_syn.sh | awk '{print $NF}')
