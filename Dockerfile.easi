@@ -72,8 +72,8 @@ RUN wget https://downloads.unidata.ucar.edu/netcdf-c/4.9.2/netcdf-c-4.9.2.tar.gz
 
 # ASAGI
 RUN git clone --recursive --depth 1 https://github.com/TUM-I5/ASAGI.git gitbuild && \
-    git checkout 4a29bb8c54904431ac4032ebfcf3512c8659a2f3 &&\
     mkdir -p gitbuild/build && cd gitbuild/build && \
+    git checkout 4a29bb8c54904431ac4032ebfcf3512c8659a2f3 && \
     cmake .. -DSHARED_LIB=OFF -DFORTRAN_SUPPORT=OFF -DSTATIC_LIB=ON -GNinja && \
     ninja install && \
     cd ../.. && rm -rf gitbuild
