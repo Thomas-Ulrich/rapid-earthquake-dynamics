@@ -86,11 +86,12 @@ RUN wget https://www.lua.org/ftp/lua-5.3.6.tar.gz && \
     cd .. && rm -rf lua-5.3.6
 
 # easi
-RUN git clone --recursive --depth 1 --branch v1.4.0 https://github.com/SeisSol/easi.git gitbuild && \
+RUN git clone --recursive --depth 1 --branch v1.5.2 https://github.com/SeisSol/easi.git gitbuild && \
     mkdir -p gitbuild/build && cd gitbuild/build && \
-    cmake .. -GNinja -DLUA=ON -DIMPALAJIT=ON -DASAGI=ON -DPYTHON_BINDINGS=ON && \
+    cmake .. -GNinja -DEASICUBE=OFF -DLUA=ON -DIMPALAJIT=OFF -DASAGI=ON -DPYTHON_BINDINGS=ON && \
     ninja install && \
     cd ../.. && rm -rf gitbuild
+
 
 # ## setup and cleanup
 
