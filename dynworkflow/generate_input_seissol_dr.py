@@ -251,7 +251,7 @@ def generate():
     number_of_segments = derived_config["number_of_segments"]
     mode = input_config["mode"]
 
-    if derived_config["CFS_code"]:
+    if "CFS_code" in derived_config:
         # useful for CFS calculation to set up, fault_tag-wise,
         # cohesion, T_s and T_d (e.g. for Mendocino)
 
