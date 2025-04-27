@@ -2,14 +2,6 @@ name: Build Docker Image for EASI
 
 on:
   workflow_dispatch: # This allows for manual triggering
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
-
-
 
 permissions:
   contents: read

@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2024 SeisSol Group
+# SPDX-FileCopyrightText: 2024 Thomas Ulrich
 #
-# SPDX-License-Identifier: BSD-3-Clause
-# SPDX-LicenseComments: Full text under /LICENSE and /LICENSES/
+# SPDX-License-Identifier: BSD-3-Clause AND MIT
+# SPDX-LicenseComments: Original under BSD-3-Clause (SeisSol Group), modifications under MIT (Thomas Ulrich)
 #
-# SPDX-FileContributor: Author lists in /AUTHORS and /CITATION.cff
-
-# ## boilerplate
+# SPDX-FileContributor: Author lists in /AUTHORS and /CITATION.cff (https://github.com/SeisSol/SeisSol/) and Thomas Ulrich
 
 FROM ubuntu:24.04
 
