@@ -74,14 +74,14 @@ RUN wget https://downloads.unidata.ucar.edu/netcdf-c/4.9.2/netcdf-c-4.9.2.tar.gz
 RUN git clone --recursive https://github.com/TUM-I5/ASAGI.git gitbuild && \
     mkdir -p gitbuild/build && cd gitbuild/build && \
     git checkout 4a29bb8c54904431ac4032ebfcf3512c8659a2f3 && \
-    cmake .. -DSHARED_LIB=OFF -DFORTRAN_SUPPORT=OFF -DSTATIC_LIB=ON -GNinja && \
+    cmake .. -DSHARED_LIB=OFF -DFORTRAN_SUPPORT=OFF -DSTATIC_LIB=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -GNinja && \
     ninja install && \
     cd ../.. && rm -rf gitbuild
 
 # Lua
 RUN wget https://www.lua.org/ftp/lua-5.3.6.tar.gz && \
     tar -xzvf lua-5.3.6.tar.gz && cd lua-5.3.6/ &&\
-    make linux && make local && \
+    make linux MYCFLAGS="-fPIC" && make local && \
     cp -r install/* /usr && \
     cd .. && rm -rf lua-5.3.6
 
