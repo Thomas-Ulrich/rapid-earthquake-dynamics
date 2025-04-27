@@ -23,11 +23,11 @@ jobs:
 
       - name: Run tests inside Docker
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            --workdir /workspace \
+         docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
             ghcr.io/thomas-ulrich/easi-image:latest \
-            bash -c "mpirun -n 1 pytest --cov=dynworkflow --cov=external --cov=. --cov-report=xml"
+            bash -c "pytest --cov=dynworkflow --cov=external --cov=. --cov-report=xml"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
