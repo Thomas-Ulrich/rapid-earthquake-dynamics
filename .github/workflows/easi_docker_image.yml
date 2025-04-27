@@ -39,7 +39,7 @@ jobs:
       # Build Docker image
       - name: Build Docker image for EASI
         run: |
-          docker build -f Dockerfile.easi.seisscoped -t ghcr.io/thomas-ulrich/easi-image:latest .
+          docker build -f Dockerfile.easi -t ghcr.io/thomas-ulrich/easi-image:latest .
       # Push Docker image to GHCR
       - name: Push Docker image to GHCR
         run: |
