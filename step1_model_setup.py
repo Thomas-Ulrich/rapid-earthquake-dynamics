@@ -263,26 +263,32 @@ def copy_files(overwrite_files, setup_dir):
             raise ValueError(f"Unsupported path type: {path}")
 
 
-def dict_to_namespace(d):
-    return argparse.Namespace(**d)
-
-
 def process_parser():
     parser = get_parser()
     args = parser.parse_args()
 
     if args.config:
+        # First, keep the defaults from argparse
+        args_dict = vars(args)
+
+        # Then load YAML and update only given fields
         with open(args.config, "r") as f:
-            args_dict = yaml.safe_load(f)
+            yaml_args = yaml.safe_load(f) or {}
         print(f"Loaded config from {args.config}")
-        args_dict["config"] = args.config
-        args = dict_to_namespace(args_dict)
+
+        # Update args_dict with fields from YAML
+        args_dict.update(yaml_args)
+
+        # Create updated Namespace
+        args = argparse.Namespace(**args_dict)
+
     else:
         args_dict = vars(args)
 
     print("Using parameters:")
     for k, v in args_dict.items():
         print(f"  {k}: {v}")
+
     return args
 
 
