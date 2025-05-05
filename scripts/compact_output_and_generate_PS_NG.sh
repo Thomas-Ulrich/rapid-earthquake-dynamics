@@ -105,7 +105,7 @@ for filename in "${files[@]}"; do
     # Launch task in the background
     srun --nodes=1 -n 1 -c 1 --exclusive --mem-per-cpu 8G \
         $script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py \
-        spatial "$filename" 1 tmp/depth_vs_rigidity.txt --DH 10 --proj "${proj}" --NZ 4 &
+        spatial "$filename" yaml_files/material.yaml --DH 10 --proj "${proj}" --NZ 4 &
     
     # Increment counter
     counter=$((counter + 1))
