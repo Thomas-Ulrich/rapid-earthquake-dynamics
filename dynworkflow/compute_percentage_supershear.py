@@ -10,6 +10,7 @@ import os
 import seissolxdmf as sx
 import pandas as pd
 import tqdm
+import easi
 
 
 # These 2 latter modules are on pypi (e.g. pip install seissolxdmf)
@@ -20,7 +21,7 @@ class seissolxdmfExtended(sx.seissolxdmf):
         self.connect = self.ReadConnect()
         self.vr = self.ReadData("Vr", self.ndt - 1)
         self.asl = self.ReadData("ASl", self.ndt - 1)
-        self.depthz = -self.compute_cell_centers()[:, 2]
+        self.xyzc = self.compute_cell_centers()
 
     def ReadTimeStep(self):
         try:
@@ -37,12 +38,21 @@ class seissolxdmfExtended(sx.seissolxdmf):
     def compute_cell_centers(self):
         return self.geometry[self.connect].mean(axis=1)
 
+    def evaluate_vp_vs(self, material_file):
+        regions = np.ones((self.nElements, 1))
+        print("Warning: assuming region 1 for all cells when evaluating mu with easi")
+        out = easi.evaluate_model(
+            self.xyzc, regions, ["rho", "mu", "lambda"], material_file
+        )
+        self.vs = np.sqrt(out["mu"] / out["rho"])
+        self.vp = np.sqrt((out["lambda"] + 2.0 * out["mu"]) / out["rho"])
+
 
 def l2_norm(areas, q):
     return np.dot(areas, np.power(q, 2))
 
 
-def compute_supershear_percentile(folder, velocity_model):
+def compute_supershear_percentile(folder, material_file):
     if os.path.exists(args.output_folder):
         args.output_folder += "/"
     fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
@@ -52,33 +62,17 @@ def compute_supershear_percentile(folder, velocity_model):
         "supershear": [],
     }
 
-    df = pd.read_csv(
-        velocity_model,
-        sep=r"\s+",
-        comment="#",
-        header=None,
-        names=["layer_width", "Vp", "Vs", "rho", "Qp", "Qs"],
-    )
-    df.loc[df.index[-1], "layer_width"] = 1e10
-    df["depth"] = df["layer_width"].cumsum()
-
-    # Function to find the appropriate value in Mui for any z
-    def find_last_value(zi, Vsi, z):
-        idx = np.searchsorted(zi, z, side="right")
-        return Vsi[idx]
-
     for fo in tqdm.tqdm(fault_output_files):
         if "dyn-kinmod" in fo:
             supershear_percentile = np.nan
         else:
             sx = seissolxdmfExtended(fo)
             areas = sx.compute_areas()
+            sx.evaluate_vp_vs(material_file)
             id_pos = sx.asl > 0.05
-            Vs = find_last_value(df["depth"], df["Vs"], sx.depthz)
-            Vp = find_last_value(df["depth"], df["Vp"], sx.depthz)
             # these 10% acknowledge the fact that
             # the supershear calculation can be imprecise
-            supershear = sx.vr > Vs + 0.1 * (Vp - Vs)
+            supershear = sx.vr > sx.vs + 0.1 * (sx.vp - sx.vs)
 
             total_area = areas[id_pos].sum()
             supershear_area = areas[id_pos & supershear].sum()
@@ -98,9 +92,7 @@ if __name__ == "__main__":
         partitionning may differ though"""
     )
     parser.add_argument("output_folder", help="folder where the models lie")
-    parser.add_argument(
-        "velocity_model", help="axitra file describing the 1D velocity model"
-    )
+    parser.add_argument("material_file", help="easi yaml file defining rho mu lambda")
 
     args = parser.parse_args()
-    compute_supershear_percentile(args.output_folder, args.velocity_model)
+    compute_supershear_percentile(args.output_folder, args.material_file)
