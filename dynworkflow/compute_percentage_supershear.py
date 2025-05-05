@@ -40,7 +40,6 @@ class seissolxdmfExtended(sx.seissolxdmf):
 
     def evaluate_vp_vs(self, material_file):
         regions = np.ones((self.nElements, 1))
-        print("Warning: assuming region 1 for all cells when evaluating mu with easi")
         out = easi.evaluate_model(
             self.xyzc, regions, ["rho", "mu", "lambda"], material_file
         )
@@ -62,6 +61,7 @@ def compute_supershear_percentile(folder, material_file):
         "supershear": [],
     }
 
+    print("Warning: assuming region 1 for all cells when evaluating mu with easi")
     for fo in tqdm.tqdm(fault_output_files):
         if "dyn-kinmod" in fo:
             supershear_percentile = np.nan
