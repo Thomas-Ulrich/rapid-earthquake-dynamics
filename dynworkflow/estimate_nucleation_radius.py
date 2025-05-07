@@ -84,7 +84,7 @@ def compute_G_and_CG(centers, ids, sx, mat_yaml):
     "compute nu across the fault, and compute C_Uenishi(nu)"
     fault_normal = sx.ComputeCellNormals()[ids]
     nx = fault_normal.shape[0]
-    regions = np.ones((nx, 1))
+    regions = np.ones((2 * nx,))
     centers_mp = np.vstack((centers + 0.1 * fault_normal, centers - 0.1 * fault_normal))
     out = easi.evaluate_model(centers_mp, regions, ["lambda", "mu"], mat_yaml)
     lambda_x = stiffness_average(out["lambda"][0:nx], out["lambda"][nx:])
