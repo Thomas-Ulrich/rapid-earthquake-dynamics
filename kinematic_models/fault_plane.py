@@ -12,6 +12,8 @@ from scipy.interpolate import griddata
 from scipy.ndimage import gaussian_filter
 from stf import regularizedYoffe, gaussianSTF
 from asagiwriter import writeNetcdf
+from scipy.interpolate import interp1d
+import pandas as pd
 
 
 def cosine_taper(npts, p=0.1, freqs=None, flimit=None, halfcosine=True, sactaper=False):
@@ -920,3 +922,16 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             fp1.init_aSR()
             fp1.aSR[:ny, :nx, :] = self.aSR[:, :, :]
         return fp1
+
+    def modify_shallow_slip_to_match_offset(self, offset_file):
+        data = pd.read_csv(offset_file)
+        latitudes = data["lat"].values
+        offsets = 100.0 * data["offset"].values
+
+        interp_func = interp1d(
+            latitudes, offsets, kind="linear", fill_value=None, bounds_error=False
+        )
+        for i in range(self.nx):
+            new_value = interp_func(self.lat[0, i])
+            if not np.isnan(new_value):
+                self.slip1[0, i] = new_value
