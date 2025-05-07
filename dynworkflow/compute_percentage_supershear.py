@@ -39,7 +39,7 @@ class seissolxdmfExtended(sx.seissolxdmf):
         return self.geometry[self.connect].mean(axis=1)
 
     def evaluate_vp_vs(self, material_file):
-        regions = np.ones((self.nElements, 1))
+        regions = np.ones((self.nElements,))
         out = easi.evaluate_model(
             self.xyzc, regions, ["rho", "mu", "lambda"], material_file
         )
