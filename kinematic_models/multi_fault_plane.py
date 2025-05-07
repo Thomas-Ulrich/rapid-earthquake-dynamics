@@ -562,6 +562,42 @@ class MultiFaultPlane:
             t0max = max(t0max, np.amax(fp.t0[:, :]))
         return t0max == 0.0
 
+    def write_param(self, fname):
+        "Write kinematic model to a .param file (USGS-style format)"
+        nplanes = len(self.fault_planes)
+        with open(fname, "w") as fout:
+            fout.write(f"#Total number of fault_segments= {nplanes}\n")
+            for p, fp in enumerate(self.fault_planes):
+                fout.write(
+                    f"#Fault_segment = {p + 1} nx(Along-strike)= {fp.nx} "
+                    f"Dx = {fp.dx:.2f}km ny(downdip)= {fp.ny} Dy = {fp.dy:.2f}km\n"
+                )
+                fout.write(
+                    "#Boundary of Fault_segment    1. "
+                    "EQ in cell (nan, nan). Lon: nan   Lat: nan\n"
+                )
+                fout.write("#Lon.  Lat.  Depth\n")
+                for indexes in ([0, 0], [0, -1], [-1, -1], [-1, 0], [0, 0]):
+                    i, j = indexes
+                    lon_b, lat_b, depth_b = fp.lon[j, i], fp.lat[j, i], fp.depth[j, i]
+                    fout.write(f"{lon_b:15.7f} {lat_b:15.7f} {depth_b:15.7f}\n")
+
+                fout.write(
+                    "#Lat. Lon. depth slip rake strike dip t_rup t_ris t_fal mo\n"
+                )
+                for j in range(fp.ny):
+                    for i in range(fp.nx):
+                        fout.write(
+                            f"{fp.lat[j, i]:12.6f} {fp.lon[j, i]:12.6f} "
+                            f"{fp.depth[j, i]:10.6f} "
+                            f"{fp.slip1[j, i]:12.6f} {fp.rake[j, i]:12.6f} "
+                            f"{fp.strike[j, i]:10.6f} {fp.dip[j, i]:10.6f} "
+                            f"{fp.t0[j, i]:10.6f} {fp.tacc[j, i]:10.6f} "
+                            f"{fp.rise_time[j, i] - fp.tacc[j, i]:10.6f} -1\n"
+                        )
+
+        print(f"done writing {fname}")
+
     def generate_fault_tags_yaml(self):
         template_yaml = """!Switch
 [fault_tag]: !Any
