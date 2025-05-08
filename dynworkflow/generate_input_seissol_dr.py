@@ -12,6 +12,7 @@ from scipy.stats import qmc
 import random
 import itertools
 from dynworkflow.compile_scenario_macro_properties import infer_duration
+from dynworkflow import step1_args
 import seissolxdmf as sx
 from pyproj import Transformer
 import yaml
@@ -241,8 +242,12 @@ def generate():
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
 
+    # load first default arguments for backwards compatibility
+    args = step1_args.get_args()
+    input_config = vars(args)
+
     with open("input_config.yaml", "r") as f:
-        input_config = yaml.safe_load(f)
+        input_config |= yaml.safe_load(f)
     input_config |= parse_parameter_string(input_config["parameters"])
     cohesion_values = input_config["cohesion"]
 
