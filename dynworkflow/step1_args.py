@@ -1,7 +1,8 @@
 import argparse
+import sys
 
 
-def get_args():
+def get_parser():
     parser = argparse.ArgumentParser(
         description="""
         Automatically set up an ensemble of dynamic rupture models from a kinematic
@@ -222,4 +223,17 @@ def get_args():
         """,
     )
 
-    return parser.parse_args()
+    return parser
+
+
+def get_args(argv=None):
+    """
+    Parse command-line arguments for the workflow.
+
+    The test on argv is required because pytest adds its own arguments
+    when running tests, which would otherwise cause parsing to fail.
+    """
+    parser = get_parser()
+    if argv is None:
+        argv = sys.argv[1:]
+    return parser.parse_known_args(argv)[0]
