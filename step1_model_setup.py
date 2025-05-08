@@ -194,11 +194,45 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--regional_synthetics_generator",
+        type=str,
+        choices=["axitra", "seissol"],
+        default="axitra",
+        help="""
+            Tool used for generating regional waveform synthetics.
+        """,
+    )
+
+    parser.add_argument(
         "--first_simulation_id",
         type=int,
         default=0,
         help="""
         first simulation id to be use in the ensemble
+        """,
+    )
+
+    parser.add_argument(
+        "--seissol_end_time",
+        type=str,
+        default="auto",
+        help="""
+        End time for SeisSol simulation.
+        Options:
+        - 'auto': Automatically determined based on estimated earthquake duration.
+        - A float value (in seconds): Specify a manual end time.
+        """,
+    )
+
+    parser.add_argument(
+        "--terminator",
+        type=str,
+        default="auto",
+        help="""
+        Controls whether the SeisSol terminator is enabled.
+        Options:
+        - 'auto': Enabled if --seissol_end_time is 'auto', otherwise disabled.
+        - 'True' or 'False': Manually enable or disable the terminator.
         """,
     )
 
@@ -306,6 +340,22 @@ def run_step1():
         sys.exit(1)
 
     args = process_parser()
+
+    assert args.terminator.lower() in ["auto", "true", "false"], (
+        f"Invalid value for --terminator: {args.terminator}."
+        " Must be 'auto', 'True', or 'False'."
+    )
+    if args.seissol_end_time != "auto":
+        try:
+            float(args.seissol_end_time)
+        except ValueError:
+            raise ValueError(
+                (
+                    "Invalid value for --seissol_end_time: "
+                    f"'{args.seissol_end_time}'. Must be 'auto' or a float."
+                )
+            )
+
     custom_setup_files = [os.path.abspath(file) for file in args.custom_setup_files]
 
     if args.CFS_code:

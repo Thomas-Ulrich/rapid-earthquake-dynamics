@@ -534,6 +534,7 @@ if __name__ == "__main__":
             return True
         return np.all([np.array_equal(x, arr[0]) for x in arr])
 
+    assert len(result_df) > 0
     if are_all_elements_same(coh):
         generate_BCR_plots(B, C, R)
         generate_BCR_moment_plots(B, C, R)

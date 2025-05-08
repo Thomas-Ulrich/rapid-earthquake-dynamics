@@ -82,7 +82,7 @@ EnergyOutput = 1 ! Computation of energy, written in csv file
 EnergyTerminalOutput = 1 ! Write energy to standard output
 EnergyOutputInterval = 0.25
 
-ReceiverOutput = 0
+ReceiverOutput = {{ enable_receiver_output }}
 RFileName = 'tmp/seissol_station_5.txt'
 pickdt = 0.05
 ReceiverOutputInterval = 5

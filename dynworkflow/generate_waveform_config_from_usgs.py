@@ -64,6 +64,9 @@ def generate_waveform_config_file(stations="auto", ignore_source_files=False):
         template_par[
             "source_files"
         ] = "{{ source_files | default('{{ source_files }}', true) }}"
+        template_par[
+            "seissol_outputs"
+        ] = "{{ seissol_outputs | default('{{ seissol_outputs }}', true) }}"
 
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)

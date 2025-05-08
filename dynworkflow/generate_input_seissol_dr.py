@@ -310,13 +310,33 @@ def generate():
 
         render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
 
+        if input_config["seissol_end_time"] == "auto":
+            template_par["end_time"] = kinmod_duration + max(
+                20.0, 0.25 * kinmod_duration
+            )
+            use_terminator = True
+        else:
+            template_par["end_time"] = float(input_config["seissol_end_time"])
+            use_terminator = False
+
+        terminator = input_config["terminator"].lower()
+        if terminator != "auto":
+            use_terminator = True if terminator == "true" else False
+
         if longer_and_more_frequent_output:
             template_par["terminatorMomentRateThreshold"] = -1
             template_par["surface_output_interval"] = 1.0
         else:
-            template_par["terminatorMomentRateThreshold"] = 1e17
+            template_par["terminatorMomentRateThreshold"] = (
+                1e17 if use_terminator else -1
+            )
             template_par["surface_output_interval"] = 5.0
-        template_par["end_time"] = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
+
+        if input_config["regional_synthetics_generator"] == "seissol":
+            template_par["enable_receiver_output"] = 1
+        else:
+            template_par["enable_receiver_output"] = 0
+
         template_par["fault_fname"] = fn_fault
         template_par["output_file"] = f"output/dyn_{code}"
         template_par["material_fname"] = "yaml_files/material.yaml"
