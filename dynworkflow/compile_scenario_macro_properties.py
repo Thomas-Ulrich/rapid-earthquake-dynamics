@@ -587,6 +587,8 @@ if __name__ == "__main__":
             for p, x in enumerate(varying_param):
                 if x:
                     label += f"{names[p]}={vals[p]},"
+            # remove the last ,
+            label = label[0:-1]
         if i in selected_indices or i in indices_of_nlargest_values:
             if one_model_shown:
                 labelargs = {"label": f"{label} (Mw={Mw[i]:.2f})"}
@@ -645,7 +647,7 @@ if __name__ == "__main__":
     print(f"done writing {fname}")
 
     col = 1 if one_model_shown else 2
-    kargs = {"bbox_to_anchor": (1.0, 1.25)} if one_model_shown else {}
+    kargs = {"bbox_to_anchor": (1.0, 1.28)}
     ax.legend(frameon=False, loc="upper right", ncol=col, fontsize=ps, **kargs)
     ax.set_ylim(bottom=0)
     ax.set_xlim(left=0)
