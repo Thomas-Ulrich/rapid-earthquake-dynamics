@@ -12,6 +12,7 @@ from scipy.stats import qmc
 import random
 import itertools
 from dynworkflow.compile_scenario_macro_properties import infer_duration
+from dynworkflow import step1_args
 import seissolxdmf as sx
 from pyproj import Transformer
 import yaml
@@ -241,8 +242,12 @@ def generate():
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
 
+    # load first default arguments for backwards compatibility
+    args = step1_args.get_args()
+    input_config = vars(args)
+
     with open("input_config.yaml", "r") as f:
-        input_config = yaml.safe_load(f)
+        input_config |= yaml.safe_load(f)
     input_config |= parse_parameter_string(input_config["parameters"])
     cohesion_values = input_config["cohesion"]
 
@@ -310,13 +315,33 @@ def generate():
 
         render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
 
+        if input_config["seissol_end_time"] == "auto":
+            template_par["end_time"] = kinmod_duration + max(
+                20.0, 0.25 * kinmod_duration
+            )
+            use_terminator = True
+        else:
+            template_par["end_time"] = float(input_config["seissol_end_time"])
+            use_terminator = False
+
+        terminator = input_config["terminator"].lower()
+        if terminator != "auto":
+            use_terminator = True if terminator == "true" else False
+
         if longer_and_more_frequent_output:
             template_par["terminatorMomentRateThreshold"] = -1
             template_par["surface_output_interval"] = 1.0
         else:
-            template_par["terminatorMomentRateThreshold"] = 1e17
+            template_par["terminatorMomentRateThreshold"] = (
+                1e17 if use_terminator else -1
+            )
             template_par["surface_output_interval"] = 5.0
-        template_par["end_time"] = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
+
+        if input_config["regional_synthetics_generator"] == "seissol":
+            template_par["enable_receiver_output"] = 1
+        else:
+            template_par["enable_receiver_output"] = 0
+
         template_par["fault_fname"] = fn_fault
         template_par["output_file"] = f"output/dyn_{code}"
         template_par["material_fname"] = "yaml_files/material.yaml"
