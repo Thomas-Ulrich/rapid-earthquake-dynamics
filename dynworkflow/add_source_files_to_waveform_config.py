@@ -7,6 +7,7 @@ import os
 import glob
 import jinja2
 import yaml
+from dynworkflow import step1_args
 
 
 def update_file():
@@ -15,8 +16,12 @@ def update_file():
     templateEnv = jinja2.Environment(loader=templateLoader)
     template_par = {}
 
+    # load first default arguments for backwards compatibility
+    args = step1_args.get_args()
+    input_config = vars(args)
+
     with open("input_config.yaml", "r") as f:
-        input_config = yaml.safe_load(f)
+        input_config |= yaml.safe_load(f)
     regional_synthetics_generator = input_config["regional_synthetics_generator"]
 
     if regional_synthetics_generator == "seissol":
