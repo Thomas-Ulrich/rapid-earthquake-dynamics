@@ -87,7 +87,6 @@ def compute_supershear_percentile(folder, material_file):
     if os.path.exists(args.output_folder):
         args.output_folder += "/"
     fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
-    print(fault_output_files)
     results = {
         "faultfn": [],
         "supershear": [],

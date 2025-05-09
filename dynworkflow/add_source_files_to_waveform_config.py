@@ -7,7 +7,7 @@ import os
 import glob
 import jinja2
 import yaml
-from dynworkflow import step1_args
+import step1_args
 
 
 def update_file():
