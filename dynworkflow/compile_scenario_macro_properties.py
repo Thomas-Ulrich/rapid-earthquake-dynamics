@@ -23,12 +23,12 @@ pd.set_option("display.max_columns", None)
 
 def infer_duration(time, moment_rate):
     moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
-    M0 = np.trapezoid(moment_rate[:], x=time[:])
+    M0 = np.trapz(moment_rate[:], x=time[:])
     return np.amax(time[moment < 0.99 * M0])
 
 
 def computeMw(label, time, moment_rate):
-    M0 = np.trapezoid(moment_rate[:], x=time[:])
+    M0 = np.trapz(moment_rate[:], x=time[:])
     Mw = 2.0 * np.log10(M0) / 3.0 - 6.07
     # print(f"{label} moment magnitude: {Mw:.2} (M0 = {M0:.4e})")
     return M0, Mw
@@ -534,6 +534,7 @@ if __name__ == "__main__":
             return True
         return np.all([np.array_equal(x, arr[0]) for x in arr])
 
+    assert len(result_df) > 0
     if are_all_elements_same(coh):
         generate_BCR_plots(B, C, R)
         generate_BCR_moment_plots(B, C, R)
@@ -586,6 +587,8 @@ if __name__ == "__main__":
             for p, x in enumerate(varying_param):
                 if x:
                     label += f"{names[p]}={vals[p]},"
+            # remove the last ,
+            label = label[0:-1]
         if i in selected_indices or i in indices_of_nlargest_values:
             if one_model_shown:
                 labelargs = {"label": f"{label} (Mw={Mw[i]:.2f})"}
@@ -644,7 +647,7 @@ if __name__ == "__main__":
     print(f"done writing {fname}")
 
     col = 1 if one_model_shown else 2
-    kargs = {"bbox_to_anchor": (1.0, 1.25)} if one_model_shown else {}
+    kargs = {"bbox_to_anchor": (1.0, 1.28)}
     ax.legend(frameon=False, loc="upper right", ncol=col, fontsize=ps, **kargs)
     ax.set_ylim(bottom=0)
     ax.set_xlim(left=0)
