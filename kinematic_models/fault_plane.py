@@ -934,4 +934,6 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         for i in range(self.nx):
             new_value = interp_func(self.lat[0, i])
             if not np.isnan(new_value):
-                self.slip1[0, i] = new_value
+                self.slip1[0, i] = np.abs(
+                    new_value / np.cos(np.radians(self.rake[0, i]))
+                )
