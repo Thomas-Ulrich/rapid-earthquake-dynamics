@@ -68,6 +68,17 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--gof_components",
+        type=str,
+        default="slip_distribution,regional_wf,moment_rate_function",
+        help=(
+            "Comma-separated list of goodness-of-fit components to be used in model "
+            " validation. Valid options: slip_distribution, teleseismic_body_wf, "
+            "regional_wf, moment_rate_function, fault_offsets, seismic_moment."
+        ),
+    )
+
+    parser.add_argument(
         "--hypocenter",
         type=str,
         default="finite_fault",

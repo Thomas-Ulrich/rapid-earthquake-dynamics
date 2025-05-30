@@ -135,8 +135,8 @@ def generate_XY_panel(
         label = "gof seismic moment"
     elif name_col == "combined_M0_cc_gof":
         label = "gof M0 and moment rate"
-    elif name_col == "gof_wf":
-        label = "gof waveforms"
+    elif name_col == "gof_reg_wf":
+        label = "gof regional waveforms"
     elif name_col == "combined_gof":
         label = "combined gof"
     else:
@@ -199,7 +199,7 @@ def generate_BCR_plots(B, C, R):
             axarr[row, col],
             cm.cmaps["acton_r"],
         )
-        if "gof_wf" in result_df:
+        if "gof_reg_wf" in result_df:
             generate_XY_panel(
                 "R0",
                 R,
@@ -207,7 +207,7 @@ def generate_BCR_plots(B, C, R):
                 C,
                 "B",
                 Bk,
-                "gof_wf",
+                "gof_reg_wf",
                 axarr[row, col + 1],
                 cm.cmaps["acton_r"],
             )
@@ -350,6 +350,11 @@ if __name__ == "__main__":
         return mr_ref[:last_index_non_zero, :]
 
     fn = "tmp/reference_STF.txt"
+
+    with open("input_config.yaml", "r") as f:
+        input_config_dict = yaml.safe_load(f)
+    gof_components = input_config_dict["gof_components"].strip().split(",")
+
     if os.path.exists("derived_config.yaml"):
         with open("derived_config.yaml", "r") as f:
             config_dict = yaml.safe_load(f)
@@ -485,19 +490,27 @@ if __name__ == "__main__":
         gofa = pickle.load(open("gof_slip.pkl", "rb"))
         gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
         gofa = gofa[["gof_slip", "sim_id"]]
-        result_df = pd.merge(result_df, gofa, on="sim_id")
+        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
         result_df["combined_M0_cc_gof"] = np.sqrt(
             result_df["M0mis"] * result_df["ccmax"] * result_df["gof_slip"]
         )
     else:
         print("gof_slip.pkl could not be found")
 
+    if os.path.exists("rms_offset.csv"):
+        gofa = pd.read_csv("rms_offset.csv", sep=",")
+        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
+        gofa = gofa[["offset_rms", "sim_id"]]
+        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
+    else:
+        print("rms_offset.csv could not be found")
+
     pkl_file = "percentage_supershear.pkl"
     if os.path.exists(pkl_file):
         gofa = pickle.load(open(pkl_file, "rb"))
         gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
         gofa = gofa[["supershear", "sim_id"]]
-        result_df = pd.merge(result_df, gofa, on="sim_id")
+        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
     else:
         print(f"{pkl_file} could not be found")
 
@@ -505,22 +518,36 @@ if __name__ == "__main__":
         by="combined_M0_cc_gof", ascending=False
     ).reset_index(drop=True)
     print(result_df.to_string())
+    for waveform_type in ["regional", "teleseismic"]:
+        fname = f"gof_{waveform_type}_waveforms_average.pkl"
+        print(fname)
+        if os.path.exists(fname):
+            print(f"{fname} detected: merging with results dataframe")
+            gofa = pickle.load(open(fname, "rb"))
+            gofa = gofa[~gofa["source_file"].str.contains(r"kinmod")]
+            gofa["sim_id"] = (
+                gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
+            )
+            if waveform_type == "regional":
+                gofa = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
+                gofa = gofa[["gofa", "sim_id"]]
+                gofa = gofa.rename(columns={"gofa": "gofa_reg"})
+            else:
+                gofaP = gofa[gofa["gofa_name"].str.contains(r"P_Z\d+")]
+                gofaP = gofaP.rename(columns={"gofa": "gofaP"})
+                # print(gofaP)
+                gofaSH = gofa[gofa["gofa_name"].str.contains(r"SH_T\d+")]
+                gofaSH = gofaSH.rename(columns={"gofa": "gofaSH"})
+                gofaP = pd.merge(gofaP, gofaSH, on="sim_id")
+                print(gofaP)
+                gofa = gofaP[["gofaP", "gofaSH", "sim_id"]]
 
-    if os.path.exists("gof_average.pkl"):
-        print("gof_average.pkl detected: merging with results dataframe")
-        gofa = pickle.load(open("gof_average.pkl", "rb"))
-        gofa = gofa[~gofa["source_file"].str.contains(r"kinmod")]
-        gofa = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
-        gofa["sim_id"] = (
-            gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
-        )
-        gofa = gofa[["gofa", "sim_id"]]
-        # merge the two DataFrames by sim_id
-        result_df = pd.merge(result_df, gofa, on="sim_id")
-        result_df = result_df.rename(columns={"gofa": "gof_wf"})
-        result_df["combined_gof"] = np.sqrt(
-            result_df["combined_M0_cc_gof"] * result_df["gof_wf"]
-        )
+            # merge the two DataFrames by sim_id
+            result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
+
+        # result_df["combined_gof"] = np.sqrt(
+        #    result_df["combined_M0_cc_gof"] * result_df["gof_reg_wf"]
+        # )
 
     print(result_df.to_string())
 

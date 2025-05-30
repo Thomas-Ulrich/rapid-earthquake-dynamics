@@ -173,6 +173,19 @@ def run_step1():
         assert len(hypocenter) == 3
         derived_config["hypocenter"] = hypocenter
 
+    allowed_gof_components = {
+        "slip_distribution",
+        "telsesismic_body_wf",
+        "regional_wf",
+        "moment_rate_function",
+        "fault_offsets",
+        "seismic_moment"
+    }
+    gof_components = args.gof_components.strip().split(",")
+    for comp in gof_components:
+        if comp not in allowed_gof_components:
+            raise ValueError(f"gof_component: {comp} not in {allowed_gof_components}")
+
     os.chdir(derived_config["folder_name"])
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
