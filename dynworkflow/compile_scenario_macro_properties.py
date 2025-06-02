@@ -129,12 +129,12 @@ def generate_XY_panel(
     ax.set_xticklabels(FormatStrFormatter("%g").format_ticks(unique_arr1))
     ax.set_yticks(unique_arr2)
     ax.set_title(f"{name3}={val3}")
-    if name_col == "ccmax":
-        label = "gof moment rate release"
-    elif name_col == "M0mis":
+    if name_col == "gof_MRF":
+        label = "gof moment rate function"
+    elif name_col == "gof_M0":
         label = "gof seismic moment"
-    elif name_col == "combined_M0_cc_gof":
-        label = "gof M0 and moment rate"
+    elif name_col == "gof_tel_wf":
+        label = "gof teleseismic waveforms"
     elif name_col == "gof_reg_wf":
         label = "gof regional waveforms"
     elif name_col == "combined_gof":
@@ -163,10 +163,18 @@ def generate_BCR_plots(B, C, R):
         row = k % nrow
         col = k // nrow * n_div
         generate_XY_panel(
-            "B", B, Cname, C, "R0", Rk, "ccmax", axarr[row, col], cm.cmaps["acton_r"]
+            "B", B, Cname, C, "R0", Rk, "gof_MRF", axarr[row, col], cm.cmaps["acton_r"]
         )
         generate_XY_panel(
-            "B", B, Cname, C, "R0", Rk, "M0mis", axarr[row, col + 1], cm.cmaps["oslo_r"]
+            "B",
+            B,
+            Cname,
+            C,
+            "R0",
+            Rk,
+            "gof_M0",
+            axarr[row, col + 1],
+            cm.cmaps["oslo_r"],
         )
     fname = "plots/parameter_space_BC_constant_R.pdf"
     plt.savefig(fname)
@@ -195,7 +203,7 @@ def generate_BCR_plots(B, C, R):
             C,
             "B",
             Bk,
-            "combined_M0_cc_gof",
+            "combined_gof",
             axarr[row, col],
             cm.cmaps["acton_r"],
         )
@@ -218,7 +226,7 @@ def generate_BCR_plots(B, C, R):
                 C,
                 "B",
                 Bk,
-                # "combined_M0_cc_gof",
+                # "combined_gof",
                 "combined_gof",
                 axarr[row, col + 2],
                 cm.cmaps["batlowW_r"],
@@ -354,6 +362,13 @@ if __name__ == "__main__":
     with open("input_config.yaml", "r") as f:
         input_config_dict = yaml.safe_load(f)
     gof_components = input_config_dict["gof_components"].strip().split(",")
+    gof_component_to_name = {}
+    gof_component_to_name["slip_distribution"] = "gof_slip"
+    gof_component_to_name["teleseismic_wf"] = "gof_tel_wf"
+    gof_component_to_name["regional_wf"] = "gof_reg_wf"
+    gof_component_to_name["moment_rate_function"] = "gof_MRF"
+    gof_component_to_name["fault_offsets"] = "gof_offsets"
+    gof_component_to_name["seismic_moment"] = "gof_M0"
 
     if os.path.exists("derived_config.yaml"):
         with open("derived_config.yaml", "r") as f:
@@ -412,9 +427,9 @@ if __name__ == "__main__":
         "R0": [],
         "Mw": [],
         "duration": [],
-        "ccmax": [],
-        "M0mis": [],
-        "Tgof": [],
+        "gof_MRF": [],
+        "gof_M0": [],
+        "gof_T": [],
         "faultfn": [],
     }
 
@@ -477,30 +492,28 @@ if __name__ == "__main__":
         cc = correlate(s1, s2, shift=max_shift)
         shift, ccmax = xcorr_max(cc, abs_max=False)
         # results["shift_syn_ref_sec"].append(shift * dt)
-        results["ccmax"].append(ccmax)
+        results["gof_MRF"].append(ccmax)
         # allow 15% variation on the misfit
         M0_gof = min(1, 1.15 - abs(M0 - M0ref) / M0ref)
-        results["M0mis"].append(M0_gof)
+        results["gof_M0"].append(M0_gof)
         duration_gof = min(1, 1 - abs(duration - inferred_duration) / inferred_duration)
-        results["Tgof"].append(duration_gof)
+        results["gof_T"].append(duration_gof)
     result_df = pd.DataFrame(results)
-    result_df["combined_M0_cc_gof"] = np.sqrt(result_df["M0mis"] * result_df["ccmax"])
 
     if os.path.exists("gof_slip.pkl"):
         gofa = pickle.load(open("gof_slip.pkl", "rb"))
         gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
         gofa = gofa[["gof_slip", "sim_id"]]
         result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
-        result_df["combined_M0_cc_gof"] = np.sqrt(
-            result_df["M0mis"] * result_df["ccmax"] * result_df["gof_slip"]
-        )
+
     else:
         print("gof_slip.pkl could not be found")
 
     if os.path.exists("rms_offset.csv"):
         gofa = pd.read_csv("rms_offset.csv", sep=",")
         gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
-        gofa = gofa[["offset_rms", "sim_id"]]
+        gofa["gof_offsets"] = np.exp(-gofa["offset_rms"])
+        gofa = gofa[["gof_offsets", "sim_id"]]
         result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
     else:
         print("rms_offset.csv could not be found")
@@ -514,10 +527,6 @@ if __name__ == "__main__":
     else:
         print(f"{pkl_file} could not be found")
 
-    result_df = result_df.sort_values(
-        by="combined_M0_cc_gof", ascending=False
-    ).reset_index(drop=True)
-    print(result_df.to_string())
     for waveform_type in ["regional", "teleseismic"]:
         fname = f"gof_{waveform_type}_waveforms_average.pkl"
         print(fname)
@@ -534,20 +543,44 @@ if __name__ == "__main__":
                 gofa = gofa.rename(columns={"gofa": "gofa_reg"})
             else:
                 gofaP = gofa[gofa["gofa_name"].str.contains(r"P_Z\d+")]
-                gofaP = gofaP.rename(columns={"gofa": "gofaP"})
+                gofaP = gofaP.rename(columns={"gofa": "gof_P"})
                 # print(gofaP)
                 gofaSH = gofa[gofa["gofa_name"].str.contains(r"SH_T\d+")]
-                gofaSH = gofaSH.rename(columns={"gofa": "gofaSH"})
+                gofaSH = gofaSH.rename(columns={"gofa": "gof_SH"})
                 gofaP = pd.merge(gofaP, gofaSH, on="sim_id")
-                print(gofaP)
-                gofa = gofaP[["gofaP", "gofaSH", "sim_id"]]
+                # 50% weight for SH (as in wasp)
+                gofaP["gof_tel_wf"] = (gofaP["gof_P"] + 0.5 * gofaP["gof_SH"]) / 1.5
+
+                gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "sim_id"]]
 
             # merge the two DataFrames by sim_id
             result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
 
-        # result_df["combined_gof"] = np.sqrt(
-        #    result_df["combined_M0_cc_gof"] * result_df["gof_reg_wf"]
-        # )
+    result_df = result_df[sorted(result_df.columns)]
+    result_df["combined_gof"] = 0.0
+    ncomp = 0
+    for comp in gof_components:
+        col_name = gof_component_to_name[comp]
+        if col_name in result_df.keys():
+            result_df["combined_gof"] += result_df[col_name]
+            ncomp += 1
+        else:
+            Warning(
+                "{comp} given in 'gof_components' ({gof_components})"
+                "but {col_name} not found in result_df"
+            )
+
+    result_df["combined_gof"] /= ncomp
+
+    result_df = result_df.sort_values(by="combined_gof", ascending=False).reset_index(
+        drop=True
+    )
+
+    result_df["faultfn"] = result_df["faultfn"].apply(
+        lambda x: os.path.basename(x)
+        .split("_extracted-fault.xdmf")[0]
+        .split("-fault.xdmf")[0]
+    )
 
     print(result_df.to_string())
 
@@ -568,16 +601,14 @@ if __name__ == "__main__":
 
     varying_param = [len(np.unique(x)) > 1 for x in [coh, B, C, R]]
 
-    combined_M0_cc_gof = result_df["combined_M0_cc_gof"].values
+    combined_gof = result_df["combined_gof"].values
     Mw = result_df["Mw"].values
-    indices_of_nlargest_values = (
-        result_df["combined_M0_cc_gof"].nlargest(args.nmin[0]).index
-    )
+    indices_of_nlargest_values = result_df["combined_gof"].nlargest(args.nmin[0]).index
     indices_of_nmax_largest_values = (
-        result_df["combined_M0_cc_gof"].nlargest(args.nmax[0]).index
+        result_df["combined_gof"].nlargest(args.nmax[0]).index
     )
     indices_greater_than_threshold = result_df[
-        result_df["combined_M0_cc_gof"] > args.gof_threshold[0]
+        result_df["combined_gof"] > args.gof_threshold[0]
     ].index
     if len(indices_greater_than_threshold) > args.nmax[0]:
         selected_indices = indices_of_nmax_largest_values
@@ -585,18 +616,17 @@ if __name__ == "__main__":
         selected_indices = indices_greater_than_threshold
 
     for fn in energy_files:
-        prefix_to_match = fn.split("-energy.csv")[0]
-        row_with_prefix1 = result_df[
-            result_df["faultfn"].str.startswith(prefix_to_match + "_")
+        prefix_to_match = os.path.basename(fn.split("-energy.csv")[0])
+        row_with_prefix = result_df[
+            result_df["faultfn"].str.startswith(prefix_to_match)
         ]
-        row_with_prefix2 = result_df[
-            result_df["faultfn"].str.startswith(prefix_to_match + "-")
-        ]
-        if not row_with_prefix1.empty:
-            i = row_with_prefix1.index[0]
-        elif not row_with_prefix2.empty:
-            i = row_with_prefix2.index[0]
+        if not row_with_prefix.empty:
+            i = row_with_prefix.index[0]
         else:
+            raise ValueError(
+                f"could not associate {fn} ({prefix_to_match}) with a ",
+                "fault filename from", result_df["faultfn"],
+            )
             continue
 
         df = pd.read_csv(fn)
@@ -621,7 +651,7 @@ if __name__ == "__main__":
                 labelargs = {"label": f"{label} (Mw={Mw[i]:.2f})"}
             else:
                 labelargs = {
-                    "label": f"{label} (Mw={Mw[i]:.2f}, gof={combined_M0_cc_gof[i]:.2})"
+                    "label": f"{label} (Mw={Mw[i]:.2f}, gof={combined_gof[i]:.2})"
                 }
             alpha = 1.0
         else:
@@ -640,6 +670,7 @@ if __name__ == "__main__":
         label=f"{ref_name} (Mw={Mwref:.2f})",
         color="black",
     )
+
     if ref_name != "usgs" and os.path.exists("tmp/moment_rate.mr"):
         mr_usgs = read_usgs_moment_rate("tmp/moment_rate.mr")
         mr_usgs = trim_trailing_zero(mr_usgs)
@@ -654,7 +685,7 @@ if __name__ == "__main__":
 
     selected_rows = result_df[result_df["Mw"] > 6]
     selected_rows = selected_rows.sort_values(
-        by="combined_M0_cc_gof", ascending=False
+        by="combined_gof", ascending=False
     ).reset_index(drop=True)
     print(selected_rows.to_string())
 
