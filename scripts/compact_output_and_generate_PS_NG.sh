@@ -106,7 +106,38 @@ for filename in "${files[@]}"; do
     srun --nodes=1 -n 1 -c 1 --exclusive --mem-per-cpu 8G \
         $script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py \
         spatial "$filename" yaml_files/material.yaml --DH 10 --proj "${proj}" --NZ 4 &
+
+    # Increment counter
+    counter=$((counter + 1))
     
+    if (( $counter >= $SLURM_NTASKS )); then
+    # Wait after every SLURM_NTASKS tasks
+        echo "waiting, $counter"
+        wait -n
+    fi
+done
+
+
+
+# Wait for remaining background jobs
+echo "Waiting for remaining tasks..."
+wait
+
+# Collect output after all tasks complete
+mkdir -p point_source_representation_regional
+mv PointSource* point_source_representation_regional
+
+
+# Process files in parallel
+for filename in "${files[@]}"; do
+    echo "Processing file: $filename"
+    
+    # Launch task in the background
+    srun --nodes=1 -n 1 -c 1 --exclusive --mem-per-cpu 8G \
+        $script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py \
+        spatial "$filename" yaml_files/material.yaml --DH 10 --proj "${proj}" --NZ 4 \
+        --slip_threshold " -1e10" --use_geometric_center &
+
     # Increment counter
     counter=$((counter + 1))
     
@@ -122,5 +153,7 @@ echo "Waiting for remaining tasks..."
 wait
 
 # Collect output after all tasks complete
-mv PointSource* tmp
+mkdir -p point_source_representation_teleseismic
+mv PointSource* point_source_representation_teleseismic
+
 echo "All tasks completed!"
