@@ -362,6 +362,23 @@ if __name__ == "__main__":
     with open("input_config.yaml", "r") as f:
         input_config_dict = yaml.safe_load(f)
     gof_components = input_config_dict["gof_components"].strip().split(",")
+    gof_weights = {}
+    for i, comp_and_weight in enumerate(gof_components):
+        parts = comp_and_weight.split()
+        if len(parts) > 2:
+            raise ValueError("did not understand format of gof_component: {comp}")
+        elif len(parts) == 2:
+            comp = parts[0]
+            gof_weights[comp] = float(parts[1])
+        elif len(parts) == 1:
+            gof_weights[comp_and_weight] = 1.0
+
+    gof_components = gof_weights.keys()
+    # Normalize the weights so they sum to 1
+    total_weight = sum(gof_weights.values())
+    gof_weights = {k: v / total_weight for k, v in gof_weights.items()}
+    print(gof_weights)
+
     gof_component_to_name = {}
     gof_component_to_name["slip_distribution"] = "gof_slip"
     gof_component_to_name["teleseismic_wf"] = "gof_tel_wf"
@@ -625,7 +642,8 @@ if __name__ == "__main__":
         else:
             raise ValueError(
                 f"could not associate {fn} ({prefix_to_match}) with a ",
-                "fault filename from", result_df["faultfn"],
+                "fault filename from",
+                result_df["faultfn"],
             )
             continue
 
