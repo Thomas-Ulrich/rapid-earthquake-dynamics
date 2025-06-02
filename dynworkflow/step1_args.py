@@ -173,6 +173,18 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--teleseismic_stations",
+        type=str,
+        default="auto",
+        help="""
+        teleseismic seismic stations for validating the models
+        - 'auto': would be automatically determined.
+        - OR: list of coma separated station, e.g.
+        "NC.KRP,BK.SBAR,BK.THOM,BK.DMOR,NC.KMPB,BK.HUNT,BK.ETSL,BK.HALS,BK.MNDO"
+        """,
+    )
+
+    parser.add_argument(
         "--regional_synthetics_generator",
         type=str,
         choices=["axitra", "seissol"],

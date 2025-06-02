@@ -179,7 +179,7 @@ def run_step1():
         "regional_wf",
         "moment_rate_function",
         "fault_offsets",
-        "seismic_moment"
+        "seismic_moment",
     }
     gof_components = args.gof_components.strip().split(",").split()[0]
     for comp in gof_components:
@@ -312,6 +312,7 @@ def select_station_and_download_waveforms():
         config_dict = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]
     regional_seismic_stations = config_dict["regional_seismic_stations"]
+    teleseismic_stations = config_dict["teleseismic_stations"]
     if mesh_file == "auto":
         mesh_xdmf_file = "tmp/mesh.xdmf"
     else:
@@ -334,7 +335,9 @@ def select_station_and_download_waveforms():
         0.5,
     )
     generate_waveform_config_from_usgs.generate_waveform_config_file(
-        stations=regional_seismic_stations, ignore_source_files=True
+        regional_stations=regional_seismic_stations,
+        teleseismic_stations=teleseismic_stations,
+        ignore_source_files=True,
     )
 
     if regional_seismic_stations == "auto":
@@ -343,17 +346,19 @@ def select_station_and_download_waveforms():
                 current_script_dir,
                 "submodules/seismic-waveform-factory/scripts/select_stations.py",
             ),
-            "waveforms_config.ini",
+            "waveforms_config_regional.ini",
             "14",
             "7",
         ]
         subprocess.run(command, check=True)
         print(
             "Done selecting stations. If you are not satisfied, change "
-            "waveforms_config.ini and rerun:"
+            "waveforms_config_regional.ini and rerun:"
         )
         scommand = " ".join(command)
         print(f"{scommand}")
+    if teleseismic_seismic_stations == "auto":
+        raise NotImplementedError("please specify manually teleseismic stations")
 
 
 if __name__ == "__main__":

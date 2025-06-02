@@ -124,8 +124,8 @@ echo "Waiting for remaining tasks..."
 wait
 
 # Collect output after all tasks complete
-mkdir -p point_source_representation_regional
-mv PointSource* point_source_representation_regional
+mkdir -p mps_regional
+mv PointSource* mps_regional
 
 
 # Process files in parallel
@@ -153,7 +153,7 @@ echo "Waiting for remaining tasks..."
 wait
 
 # Collect output after all tasks complete
-mkdir -p point_source_representation_teleseismic
-mv PointSource* point_source_representation_teleseismic
+mkdir -p mps_teleseismic
+mv PointSource* mps_teleseismic
 
 echo "All tasks completed!"

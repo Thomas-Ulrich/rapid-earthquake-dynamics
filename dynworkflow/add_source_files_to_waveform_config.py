@@ -10,7 +10,7 @@ import yaml
 import step1_args
 
 
-def update_file():
+def update_file(waveform_type="regional"):
     current_directory = os.getcwd()
     templateLoader = jinja2.FileSystemLoader(searchpath=current_directory)
     templateEnv = jinja2.Environment(loader=templateLoader)
@@ -22,9 +22,10 @@ def update_file():
 
     with open("input_config.yaml", "r") as f:
         input_config |= yaml.safe_load(f)
+
     regional_synthetics_generator = input_config["regional_synthetics_generator"]
 
-    if regional_synthetics_generator == "seissol":
+    if waveform_type == "regional" and regional_synthetics_generator == "seissol":
         par_files = glob.glob("parameters_dyn_*.par")
 
         seissol_outputs = []
@@ -37,7 +38,9 @@ def update_file():
         template_par["source_files"] = " "
         template_par["seissol_outputs"] = ",".join(seissol_outputs)
     else:
-        point_source_files = ",".join(sorted(glob.glob("tmp/PointSou*.h5")))
+        point_source_files = ",".join(
+            sorted(glob.glob(f"mps_{waveform_type}/PointSou*.h5"))
+        )
         template_par["source_files"] = point_source_files
         template_par["seissol_outputs"] = " "
 
@@ -49,8 +52,13 @@ def update_file():
         if verbose:
             print(f"done creating {out_fname}")
 
-    render_file(template_par, "waveforms_config.ini", "waveforms_config_sources.ini")
+    render_file(
+        template_par,
+        f"waveforms_config_{waveform_type}.ini",
+        f"waveforms_config_{waveform_type}_sources.ini",
+    )
 
 
 if __name__ == "__main__":
     update_file()
+    update_file(waveform_type="teleseismic")
