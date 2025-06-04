@@ -34,6 +34,22 @@ def computeMw(label, time, moment_rate):
     return M0, Mw
 
 
+def plot_gof_xy(df, gof1, gof2):
+    if gof1 in df.keys() and gof2 in df.keys():
+        print("skipping plot_gof_xy with {gof1} {gof2} as not found in {df.keys()}")
+        return
+
+    # Plot
+    plt.figure(figsize=(8, 6))
+    print(result_df.keys())
+    plt.scatter(result_df[gof1], result_df[gof2], alpha=0.7)
+    plt.xlabel(gof1)
+    plt.ylabel(gof2)
+    plt.grid(True)
+    plt.savefig(f"plots/gof_plot_{gof1}_{gof2}.png", dpi=300, bbox_inches="tight")
+    plt.close()
+
+
 def extract_params_from_prefix(fname: str) -> dict:
     """
     Extract simulation parameters from a file name prefix.
@@ -572,6 +588,9 @@ if __name__ == "__main__":
 
             # merge the two DataFrames by sim_id
             result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
+
+    plot_gof_xy(result_df, "gof_tel_wf", "gof_MRF")
+    plot_gof_xy(result_df, "gof_tel_wf", "duration")
 
     result_df = result_df[sorted(result_df.columns)]
     result_df["combined_gof"] = 0.0

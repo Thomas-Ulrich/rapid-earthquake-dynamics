@@ -38,9 +38,8 @@ def update_file(waveform_type="regional"):
         template_par["source_files"] = " "
         template_par["seissol_outputs"] = ",".join(seissol_outputs)
     else:
-        point_source_files = ",".join(
-            sorted(glob.glob(f"mps_{waveform_type}/PointSou*.h5"))
-        )
+        pattern = f"mps_{waveform_type}/PointSou*.h5"
+        point_source_files = ",".join(sorted(glob.glob(pattern)))
         template_par["source_files"] = point_source_files
         template_par["seissol_outputs"] = " "
 
