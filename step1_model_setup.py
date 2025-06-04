@@ -357,7 +357,7 @@ def select_station_and_download_waveforms():
         )
         scommand = " ".join(command)
         print(f"{scommand}")
-    if teleseismic_seismic_stations == "auto":
+    if teleseismic_stations == "auto":
         raise NotImplementedError("please specify manually teleseismic stations")
 
 
