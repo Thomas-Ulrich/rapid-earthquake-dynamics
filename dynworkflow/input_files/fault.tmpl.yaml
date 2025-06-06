@@ -51,7 +51,7 @@
         T_s = math.cos(x['rake_interp_low_slip']) * x['mu_d']*sigma_n - {{ B }} * x['Ts0']
         T_d = math.sin(x['rake_interp_low_slip']) * x['mu_d']*sigma_n - {{ B }} * x['Td0']
         Tau0 =  math.sqrt(T_s^2 + T_d^2)
-        mu_smax = 1.5
+        mu_smax = 0.75
         Tau0_max = sigma_n * ( x['mu_d'] + (mu_smax - x['mu_d'] - cohesion/sigma_n) * R)
         if (Tau0 > Tau0_max) then
           T_s = T_s * Tau0_max/Tau0

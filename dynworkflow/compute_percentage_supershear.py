@@ -7,82 +7,99 @@ import glob
 import numpy as np
 import argparse
 import os
-import seissolxdmf as sx
+from seissolxdmf import seissolxdmf
 import pandas as pd
 import tqdm
+import pyvista as pv
+import easi
 
 
-# These 2 latter modules are on pypi (e.g. pip install seissolxdmf)
-class seissolxdmfExtended(sx.seissolxdmf):
-    def __init__(self, xdmfFilename):
-        super().__init__(xdmfFilename)
-        self.geometry = self.ReadGeometry()
-        self.connect = self.ReadConnect()
-        self.vr = self.ReadData("Vr", self.ndt - 1)
-        self.asl = self.ReadData("ASl", self.ndt - 1)
-        self.depthz = -self.compute_cell_centers()[:, 2]
+def generate_pv_mesh(fname):
+    # Load your data
+    sx = seissolxdmf(fname)
 
-    def ReadTimeStep(self):
-        try:
-            return super().ReadTimeStep()
-        except NameError:
-            return 0.0
+    # Create the mesh
+    points = sx.ReadGeometry()
+    connectivity = sx.ReadConnect().astype(np.int64)
+    n_elements = sx.ReadNElements()
 
-    def compute_areas(self):
-        triangles = self.geometry[self.connect, :]
-        a = triangles[:, 1, :] - triangles[:, 0, :]
-        b = triangles[:, 2, :] - triangles[:, 0, :]
-        return 0.5 * np.linalg.norm(np.cross(a, b), axis=1)
+    faces = np.hstack(
+        [np.full((n_elements, 1), 3, dtype=np.int64), connectivity]
+    ).ravel()
+    mesh = pv.PolyData(points, faces)
 
-    def compute_cell_centers(self):
-        return self.geometry[self.connect].mean(axis=1)
+    # Read and add data
+    vr = sx.ReadData("Vr", sx.ndt - 1)
+    mesh.cell_data["vr"] = vr
 
+    asl = sx.ReadData("ASl", sx.ndt - 1)
+    mesh.cell_data["asl"] = asl
 
-def l2_norm(areas, q):
-    return np.dot(areas, np.power(q, 2))
+    mesh = mesh.threshold(value=0.05, scalars="asl")
+    return mesh
 
 
-def compute_supershear_percentile(folder, velocity_model):
+def evaluate_vs(mesh, material_file):
+    cell_centers = mesh.cell_centers().points
+    regions = np.ones((mesh.n_cells,))
+    out = easi.evaluate_model(cell_centers, regions, ["rho", "mu"], material_file)
+    vs = np.sqrt(out["mu"] / out["rho"])
+    return vs
+
+
+def get_supershear_ratio(mesh, vs):
+    mask = mesh.cell_data["vr"] > vs
+    mesh.cell_data["vr_gt_vs"] = mask.astype(np.float32)
+    total_area_mesh = (
+        mesh.compute_cell_sizes(length=False, volume=False, area=True)
+        .cell_data["Area"]
+        .sum()
+    )
+    active_cells = mesh.threshold(0.5, scalars="vr_gt_vs")
+
+    # Find connected components
+    connected = active_cells.connectivity()
+
+    # Now, each connected region is labeled in 'RegionId'
+    region_ids = connected.cell_data["RegionId"]
+
+    # Sum areas for each region
+    areas = {}
+    for region in range(region_ids.min(), region_ids.max() + 1):
+        submesh = connected.extract_cells(region_ids == region)
+        total_area = (
+            submesh.compute_cell_sizes(length=False, volume=False, area=True)
+            .cell_data["Area"]
+            .sum()
+        )
+        areas[region] = total_area
+
+    sum_selected_area = 0.0
+    # Filter regions with more than 5 cells
+    for region, area in areas.items():
+        n_cells = (region_ids == region).sum()
+        if n_cells > 5:
+            sum_selected_area += area
+    return 100 * sum_selected_area / total_area_mesh
+
+
+def compute_supershear_percentile(folder, material_file):
     if os.path.exists(args.output_folder):
         args.output_folder += "/"
     fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
-
     results = {
         "faultfn": [],
         "supershear": [],
     }
 
-    df = pd.read_csv(
-        velocity_model,
-        sep=r"\s+",
-        comment="#",
-        header=None,
-        names=["layer_width", "Vp", "Vs", "rho", "Qp", "Qs"],
-    )
-    df.loc[df.index[-1], "layer_width"] = 1e10
-    df["depth"] = df["layer_width"].cumsum()
-
-    # Function to find the appropriate value in Mui for any z
-    def find_last_value(zi, Vsi, z):
-        idx = np.searchsorted(zi, z, side="right")
-        return Vsi[idx]
-
+    print("Warning: assuming region 1 for all cells when evaluating mu with easi")
     for fo in tqdm.tqdm(fault_output_files):
         if "dyn-kinmod" in fo:
             supershear_percentile = np.nan
         else:
-            sx = seissolxdmfExtended(fo)
-            areas = sx.compute_areas()
-            id_pos = sx.asl > 0.05
-            Vs = find_last_value(df["depth"], df["Vs"], sx.depthz)
-            Vp = find_last_value(df["depth"], df["Vp"], sx.depthz)
-            # these 10% acknowledge the fact that
-            # the supershear calculation can be imprecise
-            supershear = sx.vr > Vs + 0.1 * (Vp - Vs)
-
-            total_area = areas[id_pos].sum()
-            supershear_area = areas[id_pos & supershear].sum()
-            supershear_percentile = (supershear_area / total_area) * 100
+            mesh = generate_pv_mesh(fo)
+            vs = evaluate_vs(mesh, material_file)
+            supershear_percentile = get_supershear_ratio(mesh, vs)
         results["faultfn"].append(fo)
         results["supershear"].append(supershear_percentile)
     df = pd.DataFrame(results)
@@ -98,9 +115,7 @@ if __name__ == "__main__":
         partitionning may differ though"""
     )
     parser.add_argument("output_folder", help="folder where the models lie")
-    parser.add_argument(
-        "velocity_model", help="axitra file describing the 1D velocity model"
-    )
+    parser.add_argument("material_file", help="easi yaml file defining rho mu lambda")
 
     args = parser.parse_args()
-    compute_supershear_percentile(args.output_folder, args.velocity_model)
+    compute_supershear_percentile(args.output_folder, args.material_file)
