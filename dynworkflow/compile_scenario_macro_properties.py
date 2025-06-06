@@ -589,8 +589,9 @@ if __name__ == "__main__":
             # merge the two DataFrames by sim_id
             result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
 
-    plot_gof_xy(result_df, "gof_tel_wf", "gof_MRF")
-    plot_gof_xy(result_df, "gof_tel_wf", "duration")
+    if "gof_tel_wf" in result_df.keys():
+        plot_gof_xy(result_df, "gof_tel_wf", "gof_MRF")
+        plot_gof_xy(result_df, "gof_tel_wf", "duration")
 
     result_df = result_df[sorted(result_df.columns)]
     result_df["combined_gof"] = 0.0

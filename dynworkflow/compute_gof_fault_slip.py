@@ -162,4 +162,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     atol = args.atol[0]
+    print(
+        (
+            "computing the gof to the reference fault slip distribution"
+            f" {args.reference_model}..."
+        )
+    )
     compute_gof_fault_slip(args.output_folder, args.reference_model, atol)

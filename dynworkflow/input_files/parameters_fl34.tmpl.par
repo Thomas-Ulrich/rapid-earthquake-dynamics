@@ -47,7 +47,7 @@ meshgenerator = 'PUML'                         ! Name of meshgenerator (Gambit3D
 /
 
 &Discretization
-CFL = 0.5                                      ! CFL number (<=1.0)
+CFL = 0.45                                      ! CFL number (<=1.0)
 ClusteredLTS = 2                               ! 1 for Global time stepping, 2,3,5,... Local time stepping (advised value 2)
 !ClusteredLTS defines the multi-rate for the time steps of the clusters 2 for Local time stepping
 ! Wiggle factor settings:
