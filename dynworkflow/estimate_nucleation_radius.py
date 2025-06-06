@@ -11,6 +11,7 @@ import seissolxdmf
 import os
 import time
 from multiprocessing import cpu_count
+from sklearn.decomposition import PCA
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
@@ -123,7 +124,16 @@ def compute_fmin_interp():
 
 
 def compute_critical_nucleation_one_file(
-    centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml
+    estimated_fault_width,
+    centers,
+    center,
+    face_area,
+    slip_area,
+    G,
+    CG,
+    fmin_interpf,
+    tags,
+    fault_yaml,
 ):
     start_time = time.time()
     bn_fault_yaml = os.path.basename(fault_yaml)
@@ -168,7 +178,7 @@ def compute_critical_nucleation_one_file(
     nucRadius = False
     for k, rad in enumerate(radius):
         ratio_slip_area = 100 * np.pi * rad**2 / slip_area
-        if ratio_slip_area > 15.0:
+        if ratio_slip_area > 15.0 or rad > 0.5 * estimated_fault_width:
             nucRadius = radius[max(0, k - 1)]
             # min(rad, np.sqrt((0.15 / np.pi) * slip_area))
             ratio_slip_area = 100 * np.pi * nucRadius**2 / slip_area
@@ -190,9 +200,29 @@ def compute_critical_nucleation_one_file(
 
 
 def compute_nucleation(args):
-    centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml = args
+    (
+        estimated_fault_width,
+        centers,
+        center,
+        face_area,
+        slip_area,
+        G,
+        CG,
+        fmin_interpf,
+        tags,
+        fault_yaml,
+    ) = args
     return compute_critical_nucleation_one_file(
-        centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml
+        estimated_fault_width,
+        centers,
+        center,
+        face_area,
+        slip_area,
+        G,
+        CG,
+        fmin_interpf,
+        tags,
+        fault_yaml,
     )
 
 
@@ -202,6 +232,12 @@ def compute_critical_nucleation(
     fmin_interpf = compute_fmin_interp()
     sx = SeissolxdmfExtended(fault_xdmf)
     centers = sx.ComputeCellCenters()
+    pca = PCA(n_components=2)
+    points = pca.fit_transform(centers)
+    la, lb = np.amax(points, axis=0) - np.amin(points, axis=0)
+    estimated_fault_width = min(la, lb)
+    print("estimated_fault_width", estimated_fault_width)
+
     slip_area = compute_slip_area(centers, sx, slip_yaml)
 
     center = np.array(hypo_coords)
@@ -215,7 +251,18 @@ def compute_critical_nucleation(
     face_area = sx.ComputeCellAreas()[ids]
 
     args_list = [
-        (centers, center, face_area, slip_area, G, CG, fmin_interpf, tags, fault_yaml)
+        (
+            estimated_fault_width,
+            centers,
+            center,
+            face_area,
+            slip_area,
+            G,
+            CG,
+            fmin_interpf,
+            tags,
+            fault_yaml,
+        )
         for fault_yaml in list_fault_yaml
     ]
     from multiprocessing import Pool
