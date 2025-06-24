@@ -203,11 +203,9 @@ def extract_template_params(
 
     # Extract values for all keys matching "R", "R_1", "R_2", etc.
     R_values = row[row.index.str.match(r"^R(_\d+)?$")].tolist()
-
     cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
 
     template_param = {
-        "R_yaml_block": generate_R_yaml_block(R_values),
         "cohesion_const": cohesion_const * 1e6,
         "cohesion_lin": cohesion_lin * 1e6,
         "cohesion_depth": cohesion_depth * 1e3,
@@ -220,17 +218,27 @@ def extract_template_params(
         "mesh_file": derived_config["mesh_file"],
         "CFS_code_placeholder": CFS_code_placeholder,
     }
+    if len(R_values) > 0:
+        template_param["R_yaml_block"] = generate_R_yaml_block(R_values)
+        sR = "_".join(map(str, R_values))
+    if "mus" in row:
+        template_param["mu_s"] = row["mus"]
+    if "mud" in row:
+        template_param["mu_d"] = row["mud"]
+    if "sigman" in row:
+        sigma_n = row["sigman"]
+        template_param["sigma_n"] = f"-{sigma_n}e6"
 
-    sR = "_".join(map(str, R_values))
-    # Remove R-related keys
+        # Remove R-related keys
     row_cleaned = row.drop(row.index[row.index.str.match(r"^R(_\d+)?$")]).drop(
         ["cohesion_value", "cohesion_idx"]
     )
     code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_" + "_".join(
         [f"{var}{val}" for var, val in row_cleaned.items()]
     )
-    code += f"_R{sR}"
-
+    if len(R_values) > 0:
+        code += f"_R{sR}"
+    print(template_param)
     return template_param, code
 
 
@@ -297,6 +305,11 @@ def generate():
     fault_sampling = compute_fault_sampling(kinmod_duration)
 
     list_fault_yaml = []
+    if "mud" in parameters_structured.keys():
+        fn_fault_template = "fault_constant_friction.tmpl.yaml"
+    else:
+        fn_fault_template = "fault.tmpl.yaml"
+    print(fn_fault_template)
 
     for idx, row in param_df.iterrows():
         template_par, code = extract_template_params(
@@ -312,8 +325,7 @@ def generate():
         template_par["r_crit"] = 3000.0
         fn_fault = f"yaml_files/fault_{code}.yaml"
         list_fault_yaml.append(fn_fault)
-
-        render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
+        render_file(templateEnv, template_par, fn_fault_template, fn_fault)
 
         if input_config["seissol_end_time"] == "auto":
             template_par["end_time"] = kinmod_duration + max(
@@ -389,7 +401,7 @@ def generate():
             )
             template_par["r_crit"] = list_nucleation_size[k]
             fn_fault = f"yaml_files/fault_{code}.yaml"
-            render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
+            render_file(templateEnv, template_par, fn_fault_template, fn_fault)
         else:
             fn_param = f"parameters_dyn_{code}.par"
             print(f"removing {fn} and {fn_param} (nucleation too large)")

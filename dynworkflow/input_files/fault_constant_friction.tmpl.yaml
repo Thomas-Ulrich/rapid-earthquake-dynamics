@@ -1,0 +1,112 @@
+!Switch
+
+# static_strength, dynamic_strength, tau_0 are not used by seissol
+# but added for convenience for the compute_critical_nucleation python function
+[T_s, T_d, T_n, mu_d, mu_s, cohesion, static_strength, dynamic_strength, tau_0]: !EvalModel
+    parameters: [Ts0, Td0, fault_tag, x, y, z, rake_interp_low_slip]
+    model: !Switch
+        [Ts0, Td0]: !Include 'yaml_files/Ts0Td0.yaml'
+        [fault_tag]: !Include 'yaml_files/fault_tags.yaml'
+        [rake_interp_low_slip]: !Include 'yaml_files/FL33_34_fault.yaml'
+        [x, y, z]: !AffineMap
+          matrix:
+            x: [1.0, 0.0, 0.0]
+            y: [0.0, 1.0, 0.0]
+            z: [0.0, 0.0, 1.0]
+          translation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+    components: !LuaMap
+      returns: [T_s, T_d, T_n, cohesion, mu_d, mu_s, static_strength, dynamic_strength, tau_0]
+      function: |
+       function f (x)
+
+        -- ensure R>0.8 in the nucleation region
+        xha = { {{ hypo_x }}, {{ hypo_y }}, {{ hypo_z }}}
+        r_crita = {{ r_crit }}
+        ra = math.sqrt((x['x']-xha[1])^2 + (x['y']-xha[2])^2 + (x['z']-xha[3])^2 )
+        coh0 = -{{ cohesion_const }}
+        cohn = 0.0
+        R = 0.97
+        if (ra <= r_crita) then
+          coh0 = cohn
+        elseif (ra <= r_crita + 1000) then
+          xi =  (ra - r_crita)/1000
+          coh0 = cohn * xi + (1-xi) * coh0
+        end
+        mu_s = {{ mu_s }}
+        mu_d = {{ mu_d }}
+        mu_smax = mu_s 
+
+        -- T_n constant at -40 MPa below ~4km depth (e.g. Suppe, 2014)
+        T_n = math.min(-10^6, math.max( {{ sigma_n }}, 0.4*2700*9.8*x['z']))
+        -- T_n = math.min(-10^6, 0.15*2700*9.8*x['z'])
+        sigma_n = math.abs(T_n)
+
+        depthIncreasingCohesion = {{ cohesion_depth }}
+        cohesion = coh0  -{{ cohesion_lin }} * math.max(0, (x['z'] + depthIncreasingCohesion) / depthIncreasingCohesion)
+
+        T_s = math.cos(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Ts0']
+        T_d = math.sin(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Td0']
+        Tau0 =  math.sqrt(T_s^2 + T_d^2)
+        Tau0_max = sigma_n * ( mu_d + (mu_smax - mu_d - cohesion/sigma_n) * R)
+        if (Tau0 > Tau0_max) then
+          T_s = T_s * Tau0_max/Tau0
+          T_d = T_d * Tau0_max/Tau0
+          Tau0 =  math.sqrt(T_s^2 + T_d^2)
+        end
+
+        {{ CFS_code_placeholder }}
+
+        return {
+          T_s = T_s,
+          T_d = T_d,
+          T_n = T_n,
+          cohesion = cohesion,
+          mu_d = mu_d,
+          mu_s = mu_s,
+          dynamic_strength = - mu_d * T_n - cohesion,
+          static_strength = - mu_s * T_n - cohesion,  
+          tau_0 = Tau0
+        }
+        end
+
+
+[Tnuc_n, Tnuc_s, Tnuc_d]: !ConstantMap
+  map:
+    Tnuc_n: 0
+    Tnuc_s: 0
+    Tnuc_d: 0
+
+
+[d_c]: !EvalModel
+    parameters: [fault_slip]
+    model: !Switch
+        [fault_slip]: !Include 'yaml_files/fault_slip.yaml'
+    components: !LuaMap
+      returns: [d_c]
+      function: |
+       function f (x)
+        return {
+          d_c =  {{ d_c }}
+        }
+        end
+
+[forced_rupture_time]: !LuaMap
+  returns: [forced_rupture_time]
+  function: |
+      function f (x)
+        xha = { {{ hypo_x }}, {{ hypo_y }}, {{ hypo_z }}}
+        r_crita = {{ r_crit }}
+        ra = math.sqrt((x["x"]-xha[1])^2 + (x["y"]-xha[2])^2 + (x["z"]-xha[3])^2 )
+        Vs = 3464.0
+        if (ra <= r_crita) then
+          forced_rupture_time = ra/(0.7*Vs)+(0.081*r_crita/(0.7*Vs))*(1.0/(1.0-(ra/r_crita)^2)-1.0)
+        else
+          forced_rupture_time = 1000000000.0
+        end
+        return {
+          forced_rupture_time = forced_rupture_time
+        }
+      end
