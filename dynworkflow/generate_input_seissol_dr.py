@@ -32,6 +32,7 @@ def compute_max_slip(fn):
 
 
 def parse_parameter_string(param_str):
+    param_str = param_str.replace("_", "")
     input_config = {}
     for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
         key, val = match.group(1), match.group(2)
@@ -60,7 +61,7 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
     names = sorted(parameters_structured.keys())
     names_no_cohesion = [name for name in names if name != "cohesion"]
 
-    if ("C" not in names) and ("d_c" not in names):
+    if ("C" not in names) and ("dc" not in names):
         raise ValueError("nor C nor d_c given in parameters")
     if ("C" in names) and ("d_c" in names):
         raise ValueError("both C and d_c given in parameters")
@@ -181,26 +182,27 @@ def generate_R_yaml_block(Rvalues):
 def extract_template_params(
     i,
     row,
-    Cname,
     cohesion_values,
     hypo,
     max_slip,
-    constant_d_c,
     input_config,
     derived_config,
     CFS_code_placeholder,
 ):
+    if "C" in row:
+        Cname = "C"
+        C = row[Cname]
+        d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
+    else:
+        Cname = "dc"
+        C = row[Cname]
+        d_c = str(C)
+
     cohi = int(row["cohesion_idx"])
     B = row["B"]
-    C = row[Cname]
     R = row.drop(["cohesion_idx", "cohesion_value", "B", Cname]).values
 
     cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
-
-    if constant_d_c:
-        d_c = str(C)
-    else:
-        d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
 
     template_param = {
         "R_yaml_block": generate_R_yaml_block(R),
@@ -266,13 +268,6 @@ def generate():
 
     longer_and_more_frequent_output = mode == "picked_models"
 
-    if "C" in parameters_structured:
-        constant_d_c = False
-        Cname = "C"
-    else:
-        constant_d_c = True
-        Cname = "dc"
-
     first_simulation_id = derived_config["first_simulation_id"]
     param_df = generate_param_df(input_config, number_of_segments, first_simulation_id)
     param_df.to_csv("simulation_parameters.csv", index=True, index_label="id")
@@ -298,11 +293,9 @@ def generate():
         template_par, code = extract_template_params(
             idx,
             row,
-            Cname,
             cohesion_values,
             hypo,
             max_slip,
-            constant_d_c,
             input_config,
             derived_config,
             CFS_code_placeholder,
@@ -378,11 +371,9 @@ def generate():
             template_par, code = extract_template_params(
                 idx,
                 row,
-                Cname,
                 cohesion_values,
                 hypo,
                 max_slip,
-                constant_d_c,
                 input_config,
                 derived_config,
                 CFS_code_placeholder,
