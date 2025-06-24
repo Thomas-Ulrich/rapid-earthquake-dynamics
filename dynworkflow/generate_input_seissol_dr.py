@@ -56,33 +56,29 @@ def render_file(templateEnv, template_par, template_fname, out_fname, verbose=Tr
 
 def generate_param_df(input_config, number_of_segments, first_simulation_id):
     mode = input_config["mode"]
-    if "C" in input_config:
-        Cname = "C"
-        C_values = input_config["C"]
-    elif "d_c" in input_config:
-        Cname = "dc"
-        C_values = input_config["d_c"]
-    else:
+    parameters_structured = input_config["parameters_structured"]
+    names = sorted(parameters_structured.keys())
+    names_no_cohesion = [name for name in names if name != "cohesion"]
+
+    if ("C" not in names) and ("d_c" not in names):
         raise ValueError("nor C nor d_c given in parameters")
-    if ("C" in input_config) and ("d_c" in input_config):
+    if ("C" in names) and ("d_c" in names):
         raise ValueError("both C and d_c given in parameters")
 
-    B_values = input_config["B"]
-    R_values = input_config["R"]
-
-    cohesion_values = input_config["cohesion"]
+    cohesion_values = parameters_structured["cohesion"]
     cohesion_ids = list(range(len(cohesion_values)))
 
     if mode == "latin_hypercube":
-        R0, R1 = min(R_values), max(R_values)
-        B0, B1 = min(B_values), max(B_values)
-        C0, C1 = min(C_values), max(C_values)
+        bounds = {}
+        for name in names_no_cohesion:
+            values = parameters_structured[name]
+            bounds[name] = (min(values), max(values))
 
-        l_bounds = [R0, B0, C0]
-        u_bounds = [R1, B1, C1]
+        l_bounds = [bounds[name][0] for name in names_no_cohesion]
+        u_bounds = [bounds[name][1] for name in names_no_cohesion]
 
         # cohesion is fixed in this appraoch
-        cohesion_values = input_config["cohesion"]
+        cohesion_values = parameters_structured["cohesion"]
         assert len(cohesion_values) == 1
 
         if not os.path.exists("tmp/seed.txt"):
@@ -102,23 +98,26 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
         pars = np.around(pars, decimals=3)
         column_of_zeros = np.zeros((1, nsample))
         pars = np.insert(pars, 0, column_of_zeros, axis=1)
-        labels = ["B", Cname, "R"]
+        labels = names_no_cohesion
 
     elif mode == "grid_search":
         use_R_segment_wise = False
 
         if use_R_segment_wise:
-            params = [cohesion_ids, B_values, C_values] + [
-                R_values
-            ] * number_of_segments
-            labels = ["cohesion_idx", "B", Cname] + [
-                f"R_seg{i + 1}" for i in range(number_of_segments)
-            ]
-            assert len(params) == number_of_segments + 3
+            Rvalues = np.array(parameters_structured["R"]).reshape(
+                (number_of_segments, -1)
+            )
+            labels = [name for name in names_no_cohesion if name != "R"]
+            for i in range(number_of_segments):
+                labels.append(f"R_{i+1}")
+                parameters_structured[f"R_{i+1}"] = Rvalues[i, :]
+            parameters_structured["cohesion_idx"] = cohesion_ids
+            labels = ["cohesion_idx"] + labels
+            params = [parameters_structured[name] for name in labels]
         else:
-            params = [cohesion_ids, B_values, C_values, R_values]
-            labels = ["cohesion_idx", "B", Cname, "R"]
-            assert len(params) == 4
+            labels = ["cohesion_idx"] + names_no_cohesion.copy()
+            parameters_structured["cohesion_idx"] = cohesion_ids
+            params = [parameters_structured[name] for name in labels]
 
         # Generate all combinations of parameter values
         param_combinations = list(itertools.product(*params))
@@ -126,15 +125,13 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
         # Convert combinations to numpy array and round to desired decimals
         pars = np.around(np.array(param_combinations), decimals=3)
     elif mode == "picked_models":
-        cohesion_values = input_config["cohesion"]
         n = len(cohesion_values)
-        assert len(B_values) == len(C_values) == len(R_values) == n
-        pars = [
-            [i, input_config["B"][i], input_config[Cname][i], input_config["R"][i]]
-            for i in range(n)
-        ]
+        for name in names:
+            assert len(parameters_structured[name]) == n
+        labels = ["cohesion_idx"] + names_no_cohesion.copy()
+        parameters_structured["cohesion_idx"] = cohesion_ids
+        pars = [[parameters_structured[name][i] for name in labels] for i in range(n)]
         pars = np.array(pars)
-        labels = ["cohesion_idx", "B", Cname, "R"]
     else:
         raise NotImplementedError(f"unkown mode {mode}")
 
@@ -248,8 +245,9 @@ def generate():
 
     with open("input_config.yaml", "r") as f:
         input_config |= yaml.safe_load(f)
-    input_config |= parse_parameter_string(input_config["parameters"])
-    cohesion_values = input_config["cohesion"]
+    parameters_structured = parse_parameter_string(input_config["parameters"])
+    input_config["parameters_structured"] = parameters_structured
+    cohesion_values = parameters_structured["cohesion"]
 
     with open("derived_config.yaml", "r") as f:
         derived_config = yaml.safe_load(f)
@@ -268,7 +266,7 @@ def generate():
 
     longer_and_more_frequent_output = mode == "picked_models"
 
-    if "C" in input_config:
+    if "C" in parameters_structured:
         constant_d_c = False
         Cname = "C"
     else:
