@@ -184,7 +184,7 @@ def run_step1():
         "fault_offsets",
         "seismic_moment",
     }
-    gof_components = args.gof_components.strip().split(",").split()[0]
+    gof_components = [v.strip() for v in args.gof_components.strip().split(",")]
     for comp in gof_components:
         if comp not in allowed_gof_components:
             raise ValueError(f"gof_component: {comp} not in {allowed_gof_components}")
