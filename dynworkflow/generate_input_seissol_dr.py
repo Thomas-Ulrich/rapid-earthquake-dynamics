@@ -228,17 +228,18 @@ def extract_template_params(
     if "sigman" in row:
         sigma_n = row["sigman"]
         template_param["sigma_n"] = f"-{sigma_n}e6"
+        row = row.rename({"sigman": "sn"})
 
         # Remove R-related keys
     row_cleaned = row.drop(row.index[row.index.str.match(r"^R(_\d+)?$")]).drop(
         ["cohesion_value", "cohesion_idx"]
     )
+
     code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_" + "_".join(
         [f"{var}{val}" for var, val in row_cleaned.items()]
     )
     if len(R_values) > 0:
         code += f"_R{sR}"
-    print(template_param)
     return template_param, code
 
 
