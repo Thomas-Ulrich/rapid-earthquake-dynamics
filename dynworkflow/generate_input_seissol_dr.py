@@ -200,12 +200,14 @@ def extract_template_params(
 
     cohi = int(row["cohesion_idx"])
     B = row["B"]
-    R = row.drop(["cohesion_idx", "cohesion_value", "B", Cname]).values
+
+    # Extract values for all keys matching "R", "R_1", "R_2", etc.
+    R_values = row[row.index.str.match(r"^R(_\d+)?$")].tolist()
 
     cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
 
     template_param = {
-        "R_yaml_block": generate_R_yaml_block(R),
+        "R_yaml_block": generate_R_yaml_block(R_values),
         "cohesion_const": cohesion_const * 1e6,
         "cohesion_lin": cohesion_lin * 1e6,
         "cohesion_depth": cohesion_depth * 1e3,
@@ -219,8 +221,15 @@ def extract_template_params(
         "CFS_code_placeholder": CFS_code_placeholder,
     }
 
-    sR = "_".join(map(str, R))
-    code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
+    sR = "_".join(map(str, R_values))
+    # Remove R-related keys
+    row_cleaned = row.drop(row.index[row.index.str.match(r"^R(_\d+)?$")]).drop(
+        ["cohesion_value", "cohesion_idx"]
+    )
+    code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_" + "_".join(
+        [f"{var}{val}" for var, val in row_cleaned.items()]
+    )
+    code += f"_R{sR}"
 
     return template_param, code
 
