@@ -178,7 +178,7 @@ def run_step1():
 
     allowed_gof_components = {
         "slip_distribution",
-        "telsesismic_body_wf",
+        "teleseismic_wf",
         "regional_wf",
         "moment_rate_function",
         "fault_offsets",
@@ -186,8 +186,9 @@ def run_step1():
     }
     gof_components = [v.strip() for v in args.gof_components.strip().split(",")]
     for comp in gof_components:
-        if comp not in allowed_gof_components:
-            raise ValueError(f"gof_component: {comp} not in {allowed_gof_components}")
+        comp_name = comp.split()[0]
+        if comp_name not in allowed_gof_components:
+            raise ValueError(f"gof_component: {comp_name} not in {allowed_gof_components}")
 
     os.chdir(derived_config["folder_name"])
     input_config = vars(args)
