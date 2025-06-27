@@ -21,6 +21,22 @@ pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
 
 
+def parse_parameter_string(param_str):
+    # todo: remove duplicated function
+    param_str = param_str.replace("_", "")
+    input_config = {}
+    for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
+        key, val = match.group(1), match.group(2)
+        if key == "cohesion":
+            input_config["cohesion"] = [
+                list(map(float, pair.split(","))) for pair in val.split(";")
+            ]
+        else:
+            input_config[key] = [float(v) for v in val.split(",") if v.strip()]
+    print(input_config)
+    return input_config
+
+
 def infer_duration(time, moment_rate):
     moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
     M0 = np.trapz(moment_rate[:], x=time[:])
@@ -377,6 +393,12 @@ if __name__ == "__main__":
 
     with open("input_config.yaml", "r") as f:
         input_config_dict = yaml.safe_load(f)
+
+    parameters_structured = parse_parameter_string(input_config_dict["parameters"])
+    parameter_names = list(parameters_structured.keys())
+    parameter_names = [name for name in parameter_names if name != "cohesion"]
+    parameter_names_with_coh = ["coh"] + parameter_names
+
     gof_components = input_config_dict["gof_components"].strip().split(",")
     gof_weights = {}
     for i, comp_and_weight in enumerate(gof_components):
@@ -455,9 +477,6 @@ if __name__ == "__main__":
     results = {
         "coh": [],
         "sim_id": [],
-        "B": [],
-        Cname: [],
-        "R0": [],
         "Mw": [],
         "duration": [],
         "gof_MRF": [],
@@ -465,6 +484,8 @@ if __name__ == "__main__":
         "gof_T": [],
         "faultfn": [],
     }
+    for name in parameter_names:
+        results[name] = []
 
     for i, fn in enumerate(energy_files):
         df = pd.read_csv(fn)
@@ -501,9 +522,9 @@ if __name__ == "__main__":
         results["duration"].append(duration)
         results["sim_id"].append(int(out["sim_id"]))
         results["coh"].append(out[coh_name])
-        results["B"].append(out["B"])
-        results[Cname].append(out[Cname])
-        results["R0"].append(out["R"])
+        for name in parameter_names:
+            results[name].append(out[name])
+
         results["faultfn"].append(faultfn)
         # max_shift = int(min(5, 0.25 * inferred_duration) / dt)
         max_shift = 0
@@ -621,22 +642,26 @@ if __name__ == "__main__":
 
     print(result_df.to_string())
 
-    coh = result_df["coh"].values
-    B = result_df["B"].values
-    C = result_df[Cname].values
-    R = result_df["R0"].values
+    required_keys = {"coh", "B", Cname, "R0"}
+    if required_keys.issubset(result_df.columns):
+        coh = result_df["coh"].values
+        B = result_df["B"].values
+        C = result_df[Cname].values
+        R = result_df["R0"].values
 
-    def are_all_elements_same(arr):
-        if arr.size == 0:
-            return True
-        return np.all([np.array_equal(x, arr[0]) for x in arr])
+        def are_all_elements_same(arr):
+            if arr.size == 0:
+                return True
+            return np.all([np.array_equal(x, arr[0]) for x in arr])
 
-    assert len(result_df) > 0
-    if are_all_elements_same(coh):
-        generate_BCR_plots(B, C, R)
-        generate_BCR_moment_plots(B, C, R)
+        assert len(result_df) > 0
+        if are_all_elements_same(coh):
+            generate_BCR_plots(B, C, R)
+            generate_BCR_moment_plots(B, C, R)
 
-    varying_param = [len(np.unique(x)) > 1 for x in [coh, B, C, R]]
+    varying_param = {}
+    for name in parameter_names_with_coh:
+        varying_param[name] = len(np.unique(result_df[name].values)) > 1
 
     combined_gof = result_df["combined_gof"].values
     Mw = result_df["Mw"].values
@@ -677,11 +702,10 @@ if __name__ == "__main__":
             label = "simulation"
         else:
             label = ""
-            names = ["coh", "B", Cname, "R"]
-            vals = [coh[i], B[i], C[i], R[i]]
-            for p, x in enumerate(varying_param):
-                if x:
-                    label += f"{names[p]}={vals[p]},"
+            for name, is_varying in varying_param.items():
+                if is_varying:
+                    value = result_df[name].values[i]
+                    label += f"{name}={value},"
             # remove the last ,
             label = label[0:-1]
         if i in selected_indices or i in indices_of_nlargest_values:
