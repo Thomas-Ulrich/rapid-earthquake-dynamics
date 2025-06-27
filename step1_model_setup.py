@@ -188,7 +188,9 @@ def run_step1():
     for comp in gof_components:
         comp_name = comp.split()[0]
         if comp_name not in allowed_gof_components:
-            raise ValueError(f"gof_component: {comp_name} not in {allowed_gof_components}")
+            raise ValueError(
+                f"gof_component: {comp_name} not in {allowed_gof_components}"
+            )
 
     os.chdir(derived_config["folder_name"])
     input_config = vars(args)
