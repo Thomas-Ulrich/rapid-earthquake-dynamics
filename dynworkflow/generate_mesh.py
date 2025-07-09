@@ -174,7 +174,9 @@ def generate(h_domain, h_fault, interactive, vertex_union_tolerance):
                 ipd = vtk.vtkImplicitPolyDataDistance()
                 ipd.SetInput(fault_mesh)
 
-                distances = np.array([ipd.EvaluateFunction(pt) for pt in surf_coords])
+                distances = np.abs(
+                    np.array([ipd.EvaluateFunction(pt) for pt in surf_coords])
+                )
                 if np.all(distances < vertex_union_tolerance):
                     tags[fault_id].append(stag)
                     tagged = True
