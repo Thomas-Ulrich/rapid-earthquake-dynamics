@@ -636,7 +636,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                     my_array[1:-1, 1:-1], self.spatial_zoom
                 )
                 print(arr.shape, block_average.shape)
-                correction = arr / block_average
+                correction = np.where(block_average != 0, arr / block_average, 0)
                 # having a misfit as misfit = np.linalg.norm(correction) does not make
                 # sense as for almost 0 slip, correction can be large
                 misfit = np.linalg.norm(arr - block_average) / len(arr)
