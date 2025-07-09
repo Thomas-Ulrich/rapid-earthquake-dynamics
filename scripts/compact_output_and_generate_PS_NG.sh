@@ -83,7 +83,7 @@ wait
 
 mv *_extracted* extracted_output 
 mv *_disp* extracted_output
-#mv output/*-receiver-* extracted_output
+mv output/*-*eceiver-* extracted_output
 find . -maxdepth 1 -name "*output/*-receiver-*" -exec mv {} extracted_output \; || echo "No files to move."
 wait
 
