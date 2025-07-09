@@ -66,6 +66,12 @@ def get_parser():
         default="usgs",
         help="Path to an alternative finite fault model file.",
     )
+    parser.add_argument(
+        "--gmsh_vertex_union_tolerance",
+        help="minimum distance below which vertices are merged",
+        type=float,
+        default=500.0,
+    )
 
     parser.add_argument(
         "--gof_components",
