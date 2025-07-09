@@ -59,6 +59,7 @@ def gridto2Dlocal(
     myAffineMap: AffineMap,
     ldataName: List[str],
     ids: np.ndarray,
+    use_median_of_n_time_steps: int,
     gaussian_kernel: Optional[List[float]],
     taper: Optional[List[float]],
 ) -> Tuple[Grid2D, List[np.ndarray]]:
@@ -91,9 +92,25 @@ def gridto2Dlocal(
     ndt = sx.ReadNdt()
 
     lgridded_myData = []
+    times = sx.ReadTimes()
+    print(
+        f"The fault tractions are evaluated from the median of the last "
+        f"{use_median_of_n_time_steps} time steps "
+        f"({times[ndt - use_median_of_n_time_steps]} to {times[ndt - 1]}s)"
+    )
     for dataName in ldataName:
         # Read Data
-        myData = sx.ReadData(dataName, ndt - 1)[ids]
+        use_median = use_median_of_n_time_steps > 1
+        if use_median:
+            data_list = [
+                sx.ReadData(dataName, t)[ids]
+                for t in range(ndt - use_median_of_n_time_steps, ndt)
+            ]
+            data_array = np.stack(data_list)
+            myData = np.median(data_array, axis=0)
+        else:
+            myData = sx.ReadData(dataName, ndt - 1)[ids]
+
         # grid data and tapper to 30MPa
         gridded_myData = griddata(xab, myData, (mygrid.ug, mygrid.vg), method="nearest")
         gridded_myData_lin = griddata(
@@ -161,6 +178,7 @@ def writeAllNetcdf(
 def generate_input_files(
     fault_filename: str,
     dx: float,
+    use_median_of_n_time_steps: int,
     gaussian_kernel: Optional[float] = None,
     taper: Optional[float] = None,
     paraview_readable: bool = False,
@@ -239,6 +257,7 @@ def generate_input_files(
             myAffineMap,
             ldataName,
             ids,
+            use_median_of_n_time_steps,
             gaussian_kernel,
             taper,
         )
@@ -275,21 +294,29 @@ def main() -> None:
     parser.add_argument("fault_filename", help="Fault.xdmf filename")
     parser.add_argument(
         "--dx",
-        nargs=1,
         help="Grid sampling",
         type=float,
-        default=[100.0],
+        default=100.0,
     )
     parser.add_argument(
         "--gaussian_kernel",
         metavar="sigma_m",
-        nargs=1,
         help="Apply a Gaussian kernel to smooth out input stresses",
         type=float,
     )
     parser.add_argument(
+        "--use_median_of_n_time_steps",
+        type=int,
+        metavar="N",
+        help=(
+            "Use the median of the last N time steps instead of the final snapshot. "
+            "This helps suppress transient effects in the data."
+        ),
+        default=7,
+    )
+
+    parser.add_argument(
         "--taper",
-        nargs=1,
         help="Taper stress value (MPa)",
         type=float,
     )
@@ -304,9 +331,10 @@ def main() -> None:
     args = parser.parse_args()
     generate_input_files(
         args.fault_filename,
-        args.dx[0],
-        args.gaussian_kernel[0] if args.gaussian_kernel else None,
-        args.taper[0] if args.taper else None,
+        args.dx,
+        args.use_median_of_n_time_steps,
+        args.gaussian_kernel,
+        args.taper,
         args.paraview_readable,
     )
 

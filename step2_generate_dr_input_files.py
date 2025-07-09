@@ -31,6 +31,7 @@ if __name__ == "__main__":
     project_fault_tractions_onto_asagi_grid.generate_input_files(
         fl33_file,
         fault_mesh_size / 2,
+        7,
         gaussian_kernel=fault_mesh_size,
         taper=None,
         paraview_readable=None,
