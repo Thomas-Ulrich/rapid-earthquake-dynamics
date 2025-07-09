@@ -89,6 +89,7 @@ def extract_dyn_number(filename):
 
 
 def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
+    plt.rc("font", size=12)
     fig = plt.figure(figsize=(7.5, 3.0))
     ax = fig.add_subplot(111)
     ax.set_xlabel("Distance along strike (km)")
@@ -103,7 +104,7 @@ def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
         acc_dist,
         df["offset"],
         yerr=df["error"],
-        color="royalblue",
+        color="k",
         linestyle="-",
         linewidth=lw / 2.0,
         label="Inferred offset",
@@ -125,6 +126,7 @@ def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
     plt.savefig(fname, dpi=200, bbox_inches="tight")
     print(f"done writing {fname}")
     plt.close(fig)
+    plt.rc("font", size=8)
 
 
 def init_all_offsets_figure(acc_dist, df):
@@ -182,7 +184,7 @@ def remove_spikes(data, threshold=5.0):
     return data
 
 
-def compute_rms_offset(folder, offset_data, threshold_z):
+def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     # Read optical offset
     df = pd.read_csv(offset_data, sep=",")
     df = df.sort_values(by=["lat", "lon"])
@@ -208,7 +210,6 @@ def compute_rms_offset(folder, offset_data, threshold_z):
     # Compute weighted RMS and plot individual figure of each model #
     #################################################################
 
-    plotIndiComp = False  # if True, individual figures are plotted for each model
     slip_at_traces = []
     results = {
         "faultfn": [],
@@ -240,8 +241,11 @@ def compute_rms_offset(folder, offset_data, threshold_z):
 
         slip_at_trace = remove_spikes(slip_at_trace, threshold=1.0)
 
-        if plotIndiComp:
-            fname = f"figures/comparison_offset_sentinel2_{base_name}.png"
+        if individual_figures:
+            if len(models) == 1:
+                fname = f"figures/comparison_selected_offset.svg"
+            else:
+                fname = f"figures/comparison_offset_sentinel2_{base_name}.svg"
             plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname)
 
         ax.plot(
@@ -302,6 +306,13 @@ if __name__ == "__main__":
         type=float,
         default=0,
     )
+    parser.add_argument(
+        "--individual_figures",
+        action="store_true",
+        help="plot one figure for each file",
+    )
 
     args = parser.parse_args()
-    compute_rms_offset(args.output_folder, args.offset_data, args.threshold_z)
+    compute_rms_offset(
+        args.output_folder, args.offset_data, args.threshold_z, args.individual_figures
+    )
