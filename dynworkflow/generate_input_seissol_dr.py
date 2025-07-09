@@ -110,8 +110,8 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
             )
             labels = [name for name in names_no_cohesion if name != "R"]
             for i in range(number_of_segments):
-                labels.append(f"R_{i+1}")
-                parameters_structured[f"R_{i+1}"] = Rvalues[i, :]
+                labels.append(f"R_{i + 1}")
+                parameters_structured[f"R_{i + 1}"] = Rvalues[i, :]
             parameters_structured["cohesion_idx"] = cohesion_ids
             labels = ["cohesion_idx"] + labels
             params = [parameters_structured[name] for name in labels]
