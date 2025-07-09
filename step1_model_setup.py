@@ -264,7 +264,10 @@ def run_step1():
 
     if args.mesh == "auto":
         generate_mesh.generate(
-            h_domain=20e3, h_fault=fault_mesh_size, interactive=False
+            h_domain=20e3,
+            h_fault=fault_mesh_size,
+            interactive=False,
+            vertex_union_tolerance=args.gmsh_vertex_union_tolerance,
         )
         result = os.system("pumgen -s msh4 tmp/mesh.msh")
         if result != 0:
