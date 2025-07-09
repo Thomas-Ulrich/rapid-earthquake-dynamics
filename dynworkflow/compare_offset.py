@@ -16,6 +16,7 @@ import matplotlib.colors as mcolors
 import re
 import argparse
 import glob
+import pyvista as pv
 
 # plt.rc("font", family="Poppins", size=8)
 plt.rc("font", size=8)
@@ -81,6 +82,50 @@ class seissolxdmfExtended(seissolxdmf.seissolxdmf):
         nodes = nodes[np.abs(grad[:, 2]) < 0.8]
 
         return nodes
+
+
+def get_fault_trace(mesh: pv.UnstructuredGrid, threshold_z=0.0):
+    # Step 1: Extract triangle cells (VTK cell type 5 = triangle)
+    triangles = mesh.extract_cells(mesh.celltypes == pv.CellType.TRIANGLE)
+    print(triangles.cells)
+    # Convert to face array: shape (n_faces, 4) → [3, i, j, k]
+    face_array = triangles.cells.reshape(-1, 4)
+    faces = face_array[:, 1:]  # Drop the leading '3'
+
+    points = triangles.points  # These are the actual point coordinates
+
+    # Step 2: Compute boundary edges
+    edges = np.vstack(
+        [
+            faces[:, [0, 1]],
+            faces[:, [1, 2]],
+            faces[:, [2, 0]],
+        ]
+    )
+    sorted_edges = np.sort(edges, axis=1)
+    unique_edges, counts = np.unique(sorted_edges, axis=0, return_counts=True)
+    boundary_edges = unique_edges[counts == 1]
+
+    # Step 3: Get unique boundary point coordinates
+    boundary_ids = np.unique(boundary_edges)
+    nodes = points[boundary_ids]
+
+    # Step 4: Filter points by z threshold
+    nodes = nodes[nodes[:, 2] >= threshold_z]
+
+    # Step 5: Sort by y (to trace top edge)
+    nodes = nodes[np.argsort(nodes[:, 1])]
+
+    # Step 6: Filter steep (near-vertical) segments
+    if len(nodes) >= 3:  # Ensure enough points for gradient
+        grad = np.gradient(nodes, axis=0)
+        norm = np.linalg.norm(grad, axis=1, keepdims=True)
+        norm[norm == 0] = 1  # avoid division by zero
+        grad /= norm
+        mask = np.abs(grad[:, 2]) < 0.8
+        nodes = nodes[mask]
+
+    return nodes
 
 
 def extract_dyn_number(filename):
@@ -203,7 +248,7 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
         os.makedirs("figures")
 
     # List all models in DR output folder
-    models = sorted(glob.glob(f"{folder}*-fault.xdmf"))
+    models = sorted(glob.glob(f"{folder}*-fault.xdmf") + glob.glob(f"{folder}*.vtk"))
     wrms = np.zeros(np.size(models))
 
     #################################################################
@@ -222,13 +267,26 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
         base_name = os.path.basename(fault).replace("_extracted-fault.xdmf", "")
 
         # Read SeisSol output
-        sx = seissolxdmfExtended(f"{fault}")
-        fault_centers = sx.compute_centers()
-        idt = sx.ReadNdt() - 1
-        Sls = np.abs(sx.ReadData("Sls", idt))
+
+        if fault.endswith(".xdmf"):
+            sx = seissolxdmfExtended(f"{fault}")
+            fault_centers = sx.compute_centers()
+            idt = sx.ReadNdt() - 1
+            Sls = np.abs(sx.ReadData("Sls", idt))
+            trace_nodes = sx.get_fault_trace(threshold_z)[::1]
+        elif fault.endswith(".vtk"):
+            # Load the VTK file
+            mesh = pv.read(fault)
+            print(mesh.cell_data.keys())
+            if "sls" in mesh.cell_data.keys():
+                Sls = -mesh.cell_data["sls"]
+                fault_centers = mesh.cell_centers().points
+            else:
+                Sls = -mesh.point_data["sls"]
+                fault_centers = mesh.points
+            trace_nodes = get_fault_trace(mesh, threshold_z)[::1]
 
         # Find indices of surface subfaults
-        trace_nodes = sx.get_fault_trace(threshold_z)[::1]
         tree = spatial.KDTree(fault_centers)
         dist, idsf = tree.query(trace_nodes)
         # Surface fault slip
@@ -243,7 +301,7 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
 
         if individual_figures:
             if len(models) == 1:
-                fname = f"figures/comparison_selected_offset.svg"
+                fname = "figures/comparison_selected_offset.svg"
             else:
                 fname = f"figures/comparison_offset_sentinel2_{base_name}.svg"
             plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname)
