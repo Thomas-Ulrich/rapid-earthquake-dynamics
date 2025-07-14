@@ -41,6 +41,7 @@ def is_slipnear_file(fn):
 def copy_files(overwrite_files, setup_dir):
     yaml_dir = os.path.join(setup_dir, "yaml_files")
     nc_dir = os.path.join(setup_dir, "ASAGI_files")
+    tmp_dir = os.path.join(setup_dir, "tmp")
 
     os.makedirs(yaml_dir, exist_ok=True)
     os.makedirs(nc_dir, exist_ok=True)
@@ -56,6 +57,8 @@ def copy_files(overwrite_files, setup_dir):
                 dest = Path(yaml_dir) / path.name
             elif ext == ".nc":
                 dest = Path(nc_dir) / path.name
+            elif ext == ".txt":
+                dest = Path(tmp_dir) / path.name
             elif ext == ".csv":
                 # offset file
                 dest = Path(setup_dir) / path.name
