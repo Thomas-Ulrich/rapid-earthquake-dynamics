@@ -378,8 +378,12 @@ def generate():
     try:
         fl33_file = next(f for f in fl33_file_candidates if os.path.exists(f))
     except StopIteration:
-        raise FileNotFoundError(("None of the fl33-fault.xdmf files were found "
-                                "in the expected directories."))
+        raise FileNotFoundError(
+            (
+                "None of the fl33-fault.xdmf files were found "
+                "in the expected directories."
+            )
+        )
 
     list_nucleation_size = compute_critical_nucleation(
         fl33_file,
