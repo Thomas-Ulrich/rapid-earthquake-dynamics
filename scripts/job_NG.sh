@@ -6,8 +6,8 @@
 # Job Name and Files (also --job-name)
 #SBATCH -J 2015_1.1
 #Output and error (also --output, --error):
-#SBATCH -o ./%j.%x.out
-#SBATCH -e ./%j.%x.out
+#SBATCH -o logs/%j.%x.out
+#SBATCH -e logs/%j.%x.out
 
 #Initial working directory:
 #SBATCH --chdir=./

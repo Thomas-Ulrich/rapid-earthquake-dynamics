@@ -6,8 +6,8 @@
 # Job Name and Files (also --job-name)
 #SBATCH -J aggregated
 #Output and error (also --output, --error):
-#SBATCH -o ./%j.%x.out
-#SBATCH -e ./%j.%x.out
+#SBATCH -o ./logs/%j.%x.out
+#SBATCH -e ./logs/%j.%x.out
 
 #Initial working directory:
 #SBATCH --chdir=./
@@ -74,7 +74,7 @@ for filename in "${files[@]}"; do
     modulo=$(( $counter % $ndivide ))
     counter0=$(printf "%05d" "$counter")
     id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
+    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./logs/$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
  
     # Increment counter
     counter=$((counter + 1))
@@ -102,7 +102,7 @@ for filename in "${files[@]}"; do
         echo "something went wrong? trying rerun seissol with file: $filename"
         modulo=$(( $counter % $ndivide ))
         counter0=$(printf "%05d" "$counter")
-        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
+        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./logs/$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
         counter=$((counter + 1))
     fi
 

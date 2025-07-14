@@ -310,8 +310,9 @@ def run_step1():
             np.savetxt(f, moment_rate, fmt="%g")
         print("done copying refMRF to {file_path}")
 
-    if not os.path.exists("output"):
-        os.makedirs("output")
+    os.makedirs("output", exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
+
     copy_files(custom_setup_files, ".")
 
     print("step1 completed")

@@ -26,7 +26,7 @@ get_scaled_walltime_and_ranks() {
   local scale_factor=${2:-120}
   local max_hours=${3:-2}
 
-  local kernel_time=$(grep "Total time spent in compute kernels" ${job1_id}*.out | awk '{print $(12)}')
+  local kernel_time=$(grep "Total time spent in compute kernels" logs/${job1_id}*.out | awk '{print $(12)}')
   if [[ -z "$kernel_time" ]]; then
     echo "Error: Could not extract kernel time from ${job1_id}*.out" >&2
     return 1
