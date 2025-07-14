@@ -61,7 +61,7 @@ def test_step2_workflow(step2_test_env):
     project_fault_tractions_onto_asagi_grid.generate_input_files(
         fl33_file,
         fault_mesh_size / 2,
-        use_median_of_n_time_steps=7,
+        use_median_of_n_time_steps=1,
         gaussian_kernel=fault_mesh_size,
         taper=None,
         paraview_readable=None,
