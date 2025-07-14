@@ -29,6 +29,7 @@
 #EAR may impact code performance
 #SBATCH --ear=off
 #SBATCH --mem=80G
+tasks_per_node=10  # Change this to how many parallel jobs you want per node
 
 set -euo pipefail
 mkdir -p extracted_output
@@ -137,4 +138,38 @@ wait
 
 # Collect output after all tasks complete
 mkdir -p mps_regional
+mv PointSource* mps_regional
 
+
+
+job_idx=0
+
+for filename in "${files[@]}"; do
+    # Determine node and local index
+    node_idx=$((job_idx / tasks_per_node % num_nodes))
+    node=${nodes[$node_idx]}
+
+    echo "[$job_idx] Launching on $node: $filename"
+
+    srun --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
+        "$script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py" \
+        spatial "$filename" yaml_files/material.yaml --DH 20 --proj "${proj}" --NZ 4 \
+        --slip_threshold " -1e10" --use_geometric_center &
+
+    job_idx=$((job_idx + 1))
+    # Wait when too many jobs are running in parallel
+    if (( job_idx % (num_nodes * tasks_per_node) == 0 )); then
+        echo "Waiting for a batch to complete..."
+        wait
+    fi
+done
+
+# Wait for remaining background jobs
+echo "Waiting for remaining tasks..."
+wait
+
+# Collect output after all tasks complete
+mkdir -p mps_teleseismic
+mv PointSource* mps_teleseismic
+
+echo "All tasks completed!"
