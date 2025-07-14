@@ -53,9 +53,21 @@ def test_step2_workflow(step2_test_env):
     fault_mesh_size = config_dict["fault_mesh_size"]
 
     # Find correct fl33_file
-    fl33_file = "output/fl33-fault.xdmf"
-    if not os.path.exists(fl33_file):
-        fl33_file = "extracted_output/fl33_extracted-fault.xdmf"
+    fl33_file_candidates = [
+        "output_fl33/fl33-fault.xdmf",
+        "output/fl33-fault.xdmf",
+        "extracted_output/fl33_extracted-fault.xdmf",
+    ]
+
+    try:
+        fl33_file = next(f for f in fl33_file_candidates if os.path.exists(f))
+    except StopIteration:
+        raise FileNotFoundError(
+            (
+                "None of the fl33-fault.xdmf files were found "
+                "in the expected directories."
+            )
+        )
 
     # Run the functions
     project_fault_tractions_onto_asagi_grid.generate_input_files(

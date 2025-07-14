@@ -369,15 +369,17 @@ def generate():
     for fn in fnames:
         shutil.copy(f"{input_file_dir}/{fn}", f"yaml_files/{fn}")
 
-    if os.path.exists("output/fl33-fault.xdmf"):
-        fl33_file = "output/fl33-fault.xdmf"
-    elif os.path.exists("extracted_output/fl33_extracted-fault.xdmf"):
-        fl33_file = "extracted_output/fl33_extracted-fault.xdmf"
-    else:
-        raise FileNotFoundError(
-            "The files output/fl33-fault.xdmf or "
-            "extracted_output/fl33_extracted-fault.xdmf were not found."
-        )
+    fl33_file_candidates = [
+        "output_fl33/fl33-fault.xdmf",
+        "output/fl33-fault.xdmf",
+        "extracted_output/fl33_extracted-fault.xdmf",
+    ]
+
+    try:
+        fl33_file = next(f for f in fl33_file_candidates if os.path.exists(f))
+    except StopIteration:
+        raise FileNotFoundError(("None of the fl33-fault.xdmf files were found "
+                                "in the expected directories."))
 
     list_nucleation_size = compute_critical_nucleation(
         fl33_file,
