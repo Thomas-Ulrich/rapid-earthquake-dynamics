@@ -17,6 +17,7 @@ import re
 import argparse
 import glob
 import pyvista as pv
+import yaml
 
 # plt.rc("font", family="Poppins", size=8)
 plt.rc("font", size=8)
@@ -242,6 +243,23 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     dist = np.linalg.norm(xy[1:, :] - xy[0:-1, :], axis=1)
     acc_dist = np.add.accumulate(dist) / 1e3
     acc_dist = np.insert(acc_dist, 0, 0)
+    if os.path.exists("derived_config.yaml"):
+        with open("derived_config.yaml", "r") as f:
+            derived_config = yaml.safe_load(f)
+        hypo = derived_config["hypocenter"][:]
+        hypo_x, hypo_y = transformer.transform(hypo[0], hypo[1])
+        hypo_xy = np.array([hypo_x, hypo_y])
+        # Compute distances to all points
+        dists = np.linalg.norm(xy - hypo_xy, axis=1)
+        nearest_idx = np.argmin(dists)
+        acc_dist = acc_dist - acc_dist[nearest_idx]
+
+        nearest_lat = df.iloc[nearest_idx]["lat"]
+        nearest_lon = df.iloc[nearest_idx]["lon"]
+        if np.abs(np.amin(acc_dist)) > np.abs(np.amax(acc_dist)):
+            acc_dist = -acc_dist
+    else:
+        print("derived_config.yaml not found: the x-axis won't be hypocenter centered")
 
     # Create figure folder
     if not os.path.exists("figures"):
