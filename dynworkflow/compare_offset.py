@@ -136,27 +136,7 @@ def extract_dyn_number(filename):
 
 def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
     plt.rc("font", size=12)
-    fig = plt.figure(figsize=(7.5, 3.0))
-    ax = fig.add_subplot(111)
-    ax.set_xlabel("Distance along strike (km)")
-    ax.set_ylabel("Fault offsets (m)")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
-
-    lw = 0.8
-    ax.errorbar(
-        acc_dist,
-        df["offset"],
-        yerr=df["error"],
-        color="k",
-        linestyle="-",
-        linewidth=lw / 2.0,
-        label="Inferred offset",
-        marker="o",
-        markersize=2,
-    )
+    fig, ax = init_all_offsets_figure(acc_dist, df)
 
     ax.plot(
         acc_dist,
@@ -165,9 +145,6 @@ def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
         linewidth=1,
         label="Predicted offset",
     )
-
-    ax.text(-10, 6.5, "South", fontweight="medium")
-    ax.text(500, 6.5, "North", fontweight="medium")
 
     plt.savefig(fname, dpi=200, bbox_inches="tight")
     print(f"done writing {fname}")
@@ -200,8 +177,15 @@ def init_all_offsets_figure(acc_dist, df):
         markersize=2,
         zorder=2,
     )
-    ax.text(-10, 6.5, "South", fontweight="medium")
-    ax.text(500, 6.5, "North", fontweight="medium")
+
+    if os.path.exists("derived_config.yaml"):
+        # add North and South (Myanmar specific)
+        with open("derived_config.yaml", "r") as f:
+            derived_config = yaml.safe_load(f)
+            if "2025-03-28" in derived_config["folder_name"]:
+                ax.text(np.amin(acc_dist), 6.5, "North")
+                ax.text(np.amax(acc_dist), 6.5, "South")
+
     return fig, ax
 
 
