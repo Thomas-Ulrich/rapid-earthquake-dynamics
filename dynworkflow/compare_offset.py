@@ -237,9 +237,6 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
         dists = np.linalg.norm(xy - hypo_xy, axis=1)
         nearest_idx = np.argmin(dists)
         acc_dist = acc_dist - acc_dist[nearest_idx]
-
-        nearest_lat = df.iloc[nearest_idx]["lat"]
-        nearest_lon = df.iloc[nearest_idx]["lon"]
         if np.abs(np.amin(acc_dist)) > np.abs(np.amax(acc_dist)):
             acc_dist = -acc_dist
     else:
