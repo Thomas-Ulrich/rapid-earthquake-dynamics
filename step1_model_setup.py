@@ -387,6 +387,7 @@ def select_station_and_download_waveforms():
     if mesh_file != "auto":
         print("custom mesh: did you think of placing receiver according to topography?")
 
+
 if __name__ == "__main__":
     folder_name = run_step1()
     select_station_and_download_waveforms()
