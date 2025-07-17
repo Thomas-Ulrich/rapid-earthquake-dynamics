@@ -186,6 +186,11 @@ def run_step1():
         derived_config["fault_output_type"] = 4
         derived_config["fault_receiver_file"] = ""
 
+    if args.template_folder:
+        os.makedirs("templates", exist_ok=True)
+        for tmpl_file in glob.glob(os.path.join(args.template_folder, "*.tmpl")):
+            shutil.copy2(tmpl_file, "templates")
+
     if args.hypocenter not in ["usgs", "finite_fault"]:
         hypocenter = [float(v) for v in args.hypocenter.strip().split(",")]
         assert len(hypocenter) == 3

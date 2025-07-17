@@ -240,6 +240,13 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--template_folder",
+        type=str,
+        default=None,
+        help="Path to a folder with customized fault or parameter templates",
+    )
+
+    parser.add_argument(
         "--terminator",
         type=str,
         default="auto",

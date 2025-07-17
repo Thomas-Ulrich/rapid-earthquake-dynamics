@@ -244,6 +244,13 @@ def extract_template_params(
 
 
 def generate():
+    # load first default arguments for backwards compatibility
+    args = step1_args.get_args()
+    input_config = vars(args)
+
+    with open("input_config.yaml", "r") as f:
+        input_config |= yaml.safe_load(f)
+
     if not os.path.exists("yaml_files"):
         os.makedirs("yaml_files")
 
@@ -256,15 +263,13 @@ def generate():
     script_path = os.path.abspath(__file__)
     script_directory = os.path.dirname(script_path)
     input_file_dir = f"{script_directory}/input_files"
+
+    if "template_folder" in input_config.keys():
+        input_file_dir = ["templates", input_file_dir]
+
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
 
-    # load first default arguments for backwards compatibility
-    args = step1_args.get_args()
-    input_config = vars(args)
-
-    with open("input_config.yaml", "r") as f:
-        input_config |= yaml.safe_load(f)
     parameters_structured = parse_parameter_string(input_config["parameters"])
     input_config["parameters_structured"] = parameters_structured
     cohesion_values = parameters_structured["cohesion"]
