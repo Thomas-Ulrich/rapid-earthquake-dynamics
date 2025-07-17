@@ -359,6 +359,14 @@ def generate():
         template_par["output_file"] = f"output/dyn_{code}"
         template_par["material_fname"] = "yaml_files/material.yaml"
         template_par["fault_print_time_interval"] = fault_sampling
+
+        fault_ref_args = list(map(float, input_config["fault_reference"].split(",")))
+        ref_x, ref_y, ref_z, ref_method = fault_ref_args
+        template_par["ref_x"] = ref_x
+        template_par["ref_y"] = ref_y
+        template_par["ref_z"] = ref_z
+        template_par["ref_method"] = int(ref_method)
+
         fn_param = f"parameters_dyn_{code}.par"
         render_file(templateEnv, template_par, "parameters_dyn.tmpl.par", fn_param)
 

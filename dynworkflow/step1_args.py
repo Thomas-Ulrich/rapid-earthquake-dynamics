@@ -51,6 +51,17 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--fault_reference",
+        type=str,
+        metavar="X,Y,Z,METHOD",
+        default="-0.1,0,1.0,1",
+        help="""
+        Comma-separated reference vector and method:
+         X,Y,Z,METHOD (method: 0=point, 1=direction)
+        """,
+    )
+
+    parser.add_argument(
         "--fault_mesh_size",
         type=str,
         default="auto",

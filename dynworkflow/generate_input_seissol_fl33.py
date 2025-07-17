@@ -44,8 +44,17 @@ def generate():
     template_par = {}
     # well in theory we would need to run for end_time, but practically
     # a portion of it may be sufficient
-    template_par["end_time"] = max(25.0, 0.6 * end_time)
+    template_par["end_time"] = max(30.0, 0.6 * end_time)
     template_par["material_fname"] = "yaml_files/material.yaml"
+
+    with open("input_config.yaml", "r") as f:
+        input_config = yaml.safe_load(f)
+    fault_ref_args = list(map(float, input_config["fault_reference"].split(",")))
+    ref_x, ref_y, ref_z, ref_method = fault_ref_args
+    template_par["ref_x"] = ref_x
+    template_par["ref_y"] = ref_y
+    template_par["ref_z"] = ref_z
+    template_par["ref_method"] = int(ref_method)
 
     with open("derived_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)

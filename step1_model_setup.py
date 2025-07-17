@@ -138,6 +138,10 @@ def run_step1():
                 )
             )
 
+    fault_ref_args = list(map(float, args.fault_reference.split(",")))
+    assert len(fault_ref_args) == 4
+    assert int(fault_ref_args[3]) in [0, 1]
+
     custom_setup_files = [os.path.abspath(file) for file in args.custom_setup_files]
 
     if args.CFS_code:

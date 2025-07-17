@@ -15,10 +15,10 @@ FL = 34                                        ! Friction law
 ModelFileName = 'yaml_files/FL33_34_fault_inst.yaml'
 
 !reference vector for defining strike and dip direction
-XRef = -0.1 
-YRef = 0.0
-ZRef = -1.0
-refPointMethod = 1
+XRef = {{ ref_x }}
+YRef = {{ ref_y }}
+ZRef = {{ ref_z }}
+refPointMethod = {{ ref_method }}
 
 OutputPointType = 4                            ! Type (0: no output, 3: ascii file, 4: paraview file, 5: 3+4)
 SlipRateOutputType=0        ! 0: (smoother) slip rate output evaluated from the difference between the velocity on both side of the fault
