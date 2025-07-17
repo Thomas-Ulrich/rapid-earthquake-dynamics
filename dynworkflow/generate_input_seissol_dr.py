@@ -256,7 +256,7 @@ def generate():
 
     fl33_file_candidates = [
         "output/dyn-kinmod-fault.xdmf",
-        "extracted_output/dyn-kinmod_extracted-fault.xdmf"
+        "extracted_output/dyn-kinmod_extracted-fault.xdmf",
         "output_fl33/fl33-fault.xdmf",
         "output/fl33-fault.xdmf",
         "extracted_output/fl33_extracted-fault.xdmf",
