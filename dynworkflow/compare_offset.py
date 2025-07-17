@@ -261,13 +261,12 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
             point = np.array([x, y])
             # Compute distances to all points
             dists = np.linalg.norm(xy - point, axis=1)
-            nearest_idx = np.argmin(dists)
             return np.argmin(dists)
 
         with open("derived_config.yaml", "r") as f:
             derived_config = yaml.safe_load(f)
         hypo = derived_config["hypocenter"][:]
-        nearest_idx = find_nearest_id(xy, hypo[0], hypo[1])
+        nearest_idx = find_nearest_id(xy, *hypo)
         acc_dist = acc_dist - acc_dist[nearest_idx]
         if np.abs(np.amin(acc_dist)) > np.abs(np.amax(acc_dist)):
             acc_dist = -acc_dist
