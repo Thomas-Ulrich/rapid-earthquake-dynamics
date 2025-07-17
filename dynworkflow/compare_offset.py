@@ -157,7 +157,7 @@ def init_all_offsets_figure(acc_dist, df):
 
     fig = plt.figure(figsize=(7.5, 3.0))
     ax = fig.add_subplot(111)
-    ax.set_xlabel("Distance along strike (km)")
+    ax.set_xlabel("Distance along strike from the epicenter (km)")
     ax.set_ylabel("Fault offsets (m)")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -182,9 +182,35 @@ def init_all_offsets_figure(acc_dist, df):
         # add North and South (Myanmar specific)
         with open("derived_config.yaml", "r") as f:
             derived_config = yaml.safe_load(f)
+            xlabel = "Distance along strike from the epicenter (km, positive southward)"
             if "2025-03-28" in derived_config["folder_name"]:
                 ax.text(np.amin(acc_dist), 6.5, "North")
-                ax.text(np.amax(acc_dist), 6.5, "South")
+                ax.text(np.amax(acc_dist) - 30, 6.5, "South")
+                ax.set_xlabel(xlabel)
+
+                # Get current ylim
+                ymin, ymax = ax.get_ylim()
+                ax.annotate(
+                    "CCTV",
+                    xy=(121.55, 0),
+                    xycoords=("data", "axes fraction"),
+                    xytext=(0, 10),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    arrowprops=dict(arrowstyle="-", color="black"),
+                )
+
+                ax.annotate(
+                    "NPW",
+                    xy=(245.32, 0),
+                    xycoords=("data", "axes fraction"),
+                    xytext=(0, 10),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    arrowprops=dict(arrowstyle="-", color="black"),
+                )
 
     return fig, ax
 
@@ -228,17 +254,33 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     acc_dist = np.add.accumulate(dist) / 1e3
     acc_dist = np.insert(acc_dist, 0, 0)
     if os.path.exists("derived_config.yaml"):
+
+        def find_nearest_id(xy, lon, lat):
+            x, y = transformer.transform(lon, lat)
+            print(x, y)
+            point = np.array([x, y])
+            # Compute distances to all points
+            dists = np.linalg.norm(xy - point, axis=1)
+            nearest_idx = np.argmin(dists)
+            return np.argmin(dists)
+
         with open("derived_config.yaml", "r") as f:
             derived_config = yaml.safe_load(f)
         hypo = derived_config["hypocenter"][:]
-        hypo_x, hypo_y = transformer.transform(hypo[0], hypo[1])
-        hypo_xy = np.array([hypo_x, hypo_y])
-        # Compute distances to all points
-        dists = np.linalg.norm(xy - hypo_xy, axis=1)
-        nearest_idx = np.argmin(dists)
+        nearest_idx = find_nearest_id(xy, hypo[0], hypo[1])
         acc_dist = acc_dist - acc_dist[nearest_idx]
         if np.abs(np.amin(acc_dist)) > np.abs(np.amax(acc_dist)):
             acc_dist = -acc_dist
+
+        """
+        CCTV = [96.0353, 20.8821]
+        nearest_idx = find_nearest_id(xy, *CCTV)
+        print(acc_dist[nearest_idx])
+        NPW = [96.1376, 19.7785]
+        nearest_idx = find_nearest_id(xy, *NPW)
+        print(acc_dist[nearest_idx])
+        """
+
     else:
         print("derived_config.yaml not found: the x-axis won't be hypocenter centered")
 
