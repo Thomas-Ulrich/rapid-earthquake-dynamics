@@ -265,9 +265,11 @@ def generate():
     input_file_dir = f"{script_directory}/input_files"
 
     if "template_folder" in input_config.keys():
-        input_file_dir = ["templates", input_file_dir]
+        search_path = ["templates", input_file_dir]
+    else:
+        search_path = input_file_dir
 
-    templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
+    templateLoader = jinja2.FileSystemLoader(searchpath=search_path)
     templateEnv = jinja2.Environment(loader=templateLoader)
 
     parameters_structured = parse_parameter_string(input_config["parameters"])
