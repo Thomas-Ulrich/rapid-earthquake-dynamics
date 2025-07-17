@@ -366,6 +366,8 @@ def generate():
         template_par["ref_y"] = ref_y
         template_par["ref_z"] = ref_z
         template_par["ref_method"] = int(ref_method)
+        template_par["fault_receiver_file"] = derived_config["fault_receiver_file"]
+        template_par["fault_output_type"] = derived_config["fault_output_type"]
 
         fn_param = f"parameters_dyn_{code}.par"
         render_file(templateEnv, template_par, "parameters_dyn.tmpl.par", fn_param)

@@ -51,6 +51,13 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--fault_receiver_file",
+        type=str,
+        default=None,
+        help="Path to a fault receiver file",
+    )
+
+    parser.add_argument(
         "--fault_reference",
         type=str,
         metavar="X,Y,Z,METHOD",

@@ -178,6 +178,14 @@ def run_step1():
     repo_info = get_repo_info.get_repo_info()
     derived_config["repository"] = repo_info
 
+    if args.fault_receiver_file:
+        derived_config["fault_output_type"] = 5
+        fault_receiver_file = shutil.copy(args.fault_receiver_file, "tmp")
+        derived_config["fault_receiver_file"] = fault_receiver_file
+    else:
+        derived_config["fault_output_type"] = 4
+        derived_config["fault_receiver_file"] = ""
+
     if args.hypocenter not in ["usgs", "finite_fault"]:
         hypocenter = [float(v) for v in args.hypocenter.strip().split(",")]
         assert len(hypocenter) == 3
@@ -376,7 +384,8 @@ def select_station_and_download_waveforms():
         print(f"{scommand}")
     if teleseismic_stations == "auto":
         raise NotImplementedError("please specify manually teleseismic stations")
-
+    if mesh_file != "auto":
+        print("custom mesh: did you think of placing receiver according to topography?")
 
 if __name__ == "__main__":
     folder_name = run_step1()
