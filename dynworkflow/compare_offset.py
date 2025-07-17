@@ -369,8 +369,10 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     )
     sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 
-    print("10 best models:")
-    for modeli in top10_indices[::-1]:
+    nbest = len(top10_indices)
+    print(f"{nbest} best models:")
+    for k, modeli in enumerate(top10_indices[::-1]):
+        print(nbest - k, models[modeli], wrms[modeli])
         col = cmap(norm(wrms[modeli]))
         ax.plot(
             acc_dist,

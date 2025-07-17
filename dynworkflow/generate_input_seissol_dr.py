@@ -254,9 +254,24 @@ def generate():
     if not os.path.exists("yaml_files"):
         os.makedirs("yaml_files")
 
-    kinmod_fn = "output/dyn-kinmod-fault.xdmf"
-    if not os.path.exists(kinmod_fn):
-        kinmod_fn = "extracted_output/dyn-kinmod_extracted-fault.xdmf"
+    fl33_file_candidates = [
+        "output/dyn-kinmod-fault.xdmf",
+        "extracted_output/dyn-kinmod_extracted-fault.xdmf"
+        "output_fl33/fl33-fault.xdmf",
+        "output/fl33-fault.xdmf",
+        "extracted_output/fl33_extracted-fault.xdmf",
+    ]
+
+    try:
+        kinmod_fn = next(f for f in fl33_file_candidates if os.path.exists(f))
+    except StopIteration:
+        raise FileNotFoundError(
+            (
+                "None of the dyn-kinmod or fl33-fault.xdmf files were found "
+                "in the expected directories."
+            )
+        )
+
     max_slip = compute_max_slip(kinmod_fn)
 
     # Get the directory of the script
@@ -296,7 +311,6 @@ def generate():
     first_simulation_id = derived_config["first_simulation_id"]
     param_df = generate_param_df(input_config, number_of_segments, first_simulation_id)
     param_df.to_csv("simulation_parameters.csv", index=True, index_label="id")
-
     nsample = len(param_df)
     print(f"parameter space has {nsample} samples")
 

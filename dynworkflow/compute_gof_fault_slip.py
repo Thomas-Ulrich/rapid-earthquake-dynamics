@@ -112,7 +112,9 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     if os.path.exists(args.output_folder):
         args.output_folder += "/"
     fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
-
+    fault_output_files = [
+        fn for fn in fault_output_files if "dyn-kinmod" not in fn and "fl33" not in fn
+    ]
     sx_ref = seissolxdmfExtended(reference_model)
     max_slip = sx_ref.asl.max()
     areas = sx_ref.compute_areas()

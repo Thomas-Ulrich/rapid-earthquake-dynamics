@@ -120,7 +120,7 @@ def extract_params_from_prefix(fname: str) -> dict:
             extract_BCR(out, match, 2)
             out["coh"] = np.nan
     if not out:
-        raise ValueError(f"No match found in the file name: {fname}")
+        out = {"coh": np.nan, "sim_id": -1, "B": np.nan, "C": np.nan, "R": np.nan}
     return out
 
 
@@ -423,6 +423,7 @@ if __name__ == "__main__":
     gof_component_to_name["regional_wf"] = "gof_reg_wf"
     gof_component_to_name["moment_rate_function"] = "gof_MRF"
     gof_component_to_name["fault_offsets"] = "gof_offsets"
+    gof_component_to_name["slip_rate"] = "gof_slip_rate"
     gof_component_to_name["seismic_moment"] = "gof_M0"
 
     if os.path.exists("derived_config.yaml"):
@@ -572,6 +573,18 @@ if __name__ == "__main__":
     else:
         print("rms_offset.csv could not be found")
 
+    fn = "rms_slip_rate.csv"
+    if os.path.exists(fn):
+        gofa = pd.read_csv(fn, sep=",")
+        gofa["sim_id"] = (
+            gofa["fault_receiver_fname"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
+        )
+        gofa["gof_slip_rate"] = np.exp(-gofa["slip_rate_rms"])
+        gofa = gofa[["gof_slip_rate", "sim_id"]]
+        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
+    else:
+        print(f"{fn} could not be found")
+
     pkl_file = "percentage_supershear.pkl"
     if os.path.exists(pkl_file):
         gofa = pickle.load(open(pkl_file, "rb"))
@@ -592,7 +605,15 @@ if __name__ == "__main__":
                 gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
             )
             if waveform_type == "regional":
-                gofa = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
+                filtered = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
+                if filtered.empty:
+                    # example only the N component is plotted
+                    gofa = gofa[
+                        gofa["gofa_name"].str.contains(r"surface_waves_.*", regex=True)
+                    ]
+                else:
+                    gofa = filtered
+
                 gofa = gofa[["gofa", "sim_id"]]
                 gofa = gofa.rename(columns={"gofa": "gofa_reg"})
             else:
@@ -606,7 +627,6 @@ if __name__ == "__main__":
                 gofaP["gof_tel_wf"] = (gofaP["gof_P"] + 0.5 * gofaP["gof_SH"]) / 1.5
 
                 gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "sim_id"]]
-
             # merge the two DataFrames by sim_id
             result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
 
