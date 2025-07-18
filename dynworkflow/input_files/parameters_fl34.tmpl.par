@@ -1,8 +1,8 @@
 &equations
 !yaml file defining spatial dependance of material properties
 MaterialFileName = '{{ material_fname }}'
-numflux = 'godunov' ! The numerical flux. Values: 'godunov', 'rusanov'
-numfluxnearfault = 'godunov' ! The numerical flux for faces of cells adjacent to the fault (on cells which have at least one DR face), excluding the DR faces themselves. Values: 'godunov', 'rusanov'
+numflux = 'rusanov' ! The numerical flux. Values: 'godunov', 'rusanov'
+numfluxnearfault = 'rusanov' ! The numerical flux for faces of cells adjacent to the fault (on cells which have at least one DR face), excluding the DR faces themselves. Values: 'godunov', 'rusanov'
 /
 
 &IniCondition

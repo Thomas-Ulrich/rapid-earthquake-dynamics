@@ -20,7 +20,7 @@ def update_file(input_file_path):
             modified_lines.append(
                 line.replace(
                     'rupture_rise_time = x["effective_rise_time"]',
-                    "rupture_rise_time = 0.1",
+                    "rupture_rise_time = 3.0",
                 )
             )
         else:
