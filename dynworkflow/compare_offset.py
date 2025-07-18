@@ -266,7 +266,7 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
         with open("derived_config.yaml", "r") as f:
             derived_config = yaml.safe_load(f)
         hypo = derived_config["hypocenter"][:]
-        nearest_idx = find_nearest_id(xy, *hypo)
+        nearest_idx = find_nearest_id(xy, *hypo[:2])
         acc_dist = acc_dist - acc_dist[nearest_idx]
         if np.abs(np.amin(acc_dist)) > np.abs(np.amax(acc_dist)):
             acc_dist = -acc_dist
