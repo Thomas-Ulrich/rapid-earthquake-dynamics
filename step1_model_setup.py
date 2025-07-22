@@ -178,18 +178,13 @@ def run_step1():
     repo_info = get_repo_info.get_repo_info()
     derived_config["repository"] = repo_info
 
+    fault_receiver_file = None
     if args.fault_receiver_file:
-        derived_config["fault_output_type"] = 5
-        fault_receiver_file = shutil.copy(args.fault_receiver_file, "tmp")
-        derived_config["fault_receiver_file"] = fault_receiver_file
-    else:
-        derived_config["fault_output_type"] = 4
-        derived_config["fault_receiver_file"] = ""
+        fault_receiver_file = str(Path(args.fault_receiver_file).resolve())
 
+    template_folder = None
     if args.template_folder:
-        os.makedirs("templates", exist_ok=True)
-        for tmpl_file in glob.glob(os.path.join(args.template_folder, "*.tmpl")):
-            shutil.copy2(tmpl_file, "templates")
+        template_folder = str(Path(args.template_folder).resolve())
 
     if args.hypocenter not in ["usgs", "finite_fault"]:
         hypocenter = [float(v) for v in args.hypocenter.strip().split(",")]
@@ -213,6 +208,19 @@ def run_step1():
             )
 
     os.chdir(derived_config["folder_name"])
+
+    if args.fault_receiver_file:
+        derived_config["fault_output_type"] = 5
+        derived_config["fault_receiver_file"] = shutil.copy(fault_receiver_file, "tmp")
+    else:
+        derived_config["fault_output_type"] = 4
+        derived_config["fault_receiver_file"] = ""
+
+    if args.template_folder:
+        os.makedirs("templates", exist_ok=True)
+        for tmpl_file in glob.glob(os.path.join(template_folder, "*.tmpl.*")):
+            shutil.copy2(tmpl_file, "templates")
+
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
 
