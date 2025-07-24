@@ -72,7 +72,7 @@ def C_Uenishi(x):
 
 def C_Uenishi_interp():
     "interpolated function based on C_Uenishi (much faster)"
-    x = np.arange(0.14, 0.35, 0.001)
+    x = np.arange(0.0, 0.5, 0.001)
     y = np.array([C_Uenishi(xi) for xi in x])
     return interpolate.interp1d(x, y)
 
