@@ -61,6 +61,7 @@ def gridto2Dlocal(
     ids: np.ndarray,
     use_median_of_n_time_steps: int,
     gaussian_kernel: Optional[List[float]],
+    edge_clearance: Optional[List[int]],
     taper: Optional[List[float]],
 ) -> Tuple[Grid2D, List[np.ndarray]]:
     """
@@ -120,6 +121,12 @@ def gridto2Dlocal(
         # using linear interpolation when possible, else nearest neighbor
         ids_in = ~np.isnan(gridded_myData_lin)
         gridded_myData[ids_in] = gridded_myData_lin[ids_in]
+
+        if edge_clearance:
+            gridded_myData[0:edge_clearance, :] = 0
+            gridded_myData[:, 0:edge_clearance] = 0
+            gridded_myData[:, -edge_clearance:] = 0
+
         if gaussian_kernel:
             gridded_myData = gaussian_filter(gridded_myData, sigma=gaussian_kernel / dx)
 
@@ -181,6 +188,7 @@ def generate_input_files(
     dx: float,
     use_median_of_n_time_steps: int,
     gaussian_kernel: Optional[float] = None,
+    edge_clearance: Optional[int] = None,
     taper: Optional[float] = None,
     paraview_readable: bool = False,
 ) -> None:
@@ -191,6 +199,8 @@ def generate_input_files(
     fault_filename (str): Filename of the fault data.
     dx (float): Grid spacing.
     gaussian_kernel (Optional[float]): Gaussian kernel for smoothing.
+    edge_clearance (Optional[int]): Number of samples to nullify near the left,
+      bottom, and right edges of the grid
     taper (Optional[float]): Taper values for clipping data.
     paraview_readable (bool): Whether to make the NetCDF files ParaView readable.
     """
@@ -260,6 +270,7 @@ def generate_input_files(
             ids,
             use_median_of_n_time_steps,
             gaussian_kernel,
+            edge_clearance,
             taper,
         )
 
@@ -306,6 +317,13 @@ def main() -> None:
         type=float,
     )
     parser.add_argument(
+        "--edge_clearance",
+        metavar="n_samples",
+        help="Nullify traction near the left, bottom, and right edges of the grid.",
+        type=int,
+    )
+
+    parser.add_argument(
         "--use_median_of_n_time_steps",
         type=int,
         metavar="N",
@@ -335,6 +353,7 @@ def main() -> None:
         args.dx,
         args.use_median_of_n_time_steps,
         args.gaussian_kernel,
+        args.edge_clearance,
         args.taper,
         args.paraview_readable,
     )
