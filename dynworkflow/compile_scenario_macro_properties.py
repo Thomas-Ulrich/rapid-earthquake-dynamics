@@ -167,7 +167,7 @@ def generate_XY_panel(
         label = "gof seismic moment"
     elif name_col == "gof_tel_wf":
         label = "gof teleseismic waveforms"
-    elif name_col == "gof_reg_wf":
+    elif name_col == "gof_reg":
         label = "gof regional waveforms"
     elif name_col == "combined_gof":
         label = "combined gof"
@@ -239,7 +239,7 @@ def generate_BCR_plots(B, C, R):
             axarr[row, col],
             cm.cmaps["acton_r"],
         )
-        if "gof_reg_wf" in result_df:
+        if "gof_reg" in result_df:
             generate_XY_panel(
                 "R0",
                 R,
@@ -247,7 +247,7 @@ def generate_BCR_plots(B, C, R):
                 C,
                 "B",
                 Bk,
-                "gof_reg_wf",
+                "gof_reg",
                 axarr[row, col + 1],
                 cm.cmaps["acton_r"],
             )
@@ -419,8 +419,8 @@ if __name__ == "__main__":
 
     gof_component_to_name = {}
     gof_component_to_name["slip_distribution"] = "gof_slip"
-    gof_component_to_name["teleseismic_wf"] = "gof_tel_wf"
-    gof_component_to_name["regional_wf"] = "gof_reg_wf"
+    gof_component_to_name["teleseismic_wf"] = "gof_tel"
+    gof_component_to_name["regional_wf"] = "gof_reg"
     gof_component_to_name["moment_rate_function"] = "gof_MRF"
     gof_component_to_name["fault_offsets"] = "gof_offsets"
     gof_component_to_name["slip_rate"] = "gof_slip_rate"
@@ -605,17 +605,22 @@ if __name__ == "__main__":
                 gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
             )
             if waveform_type == "regional":
-                filtered = gofa[gofa["gofa_name"].str.contains(r"surface_waves_ENZ\d+")]
-                if filtered.empty:
+                patterns = [
+                    r"generic_ENZ",
+                    r"surface_waves_ENZ\d+",
                     # example only the N component is plotted
-                    gofa = gofa[
-                        gofa["gofa_name"].str.contains(r"surface_waves_.*", regex=True)
-                    ]
-                else:
-                    gofa = filtered
+                    r"generic_",
+                    r"surface_waves_.*",
+                ]
+
+                for pattern in patterns:
+                    filtered = gofa[gofa["gofa_name"].str.contains(pattern, regex=True)]
+                    if not filtered.empty:
+                        gofa = filtered
+                        break
 
                 gofa = gofa[["gofa", "sim_id"]]
-                gofa = gofa.rename(columns={"gofa": "gofa_reg"})
+                gofa = gofa.rename(columns={"gofa": "gof_reg"})
             else:
                 gofaP = gofa[gofa["gofa_name"].str.contains(r"P_Z\d+")]
                 gofaP = gofaP.rename(columns={"gofa": "gof_P"})
@@ -636,19 +641,22 @@ if __name__ == "__main__":
 
     result_df = result_df[sorted(result_df.columns)]
     result_df["combined_gof"] = 0.0
-    ncomp = 0
+    sum_weights = 0
+    component_used = {}
     for comp in gof_components:
         col_name = gof_component_to_name[comp]
         if col_name in result_df.keys():
-            result_df["combined_gof"] += result_df[col_name]
-            ncomp += 1
+            result_df["combined_gof"] += result_df[col_name] * gof_weights[comp]
+            sum_weights += gof_weights[comp]
+            component_used[comp] = gof_weights[comp]
         else:
             Warning(
                 "{comp} given in 'gof_components' ({gof_components})"
                 "but {col_name} not found in result_df"
             )
-
-    result_df["combined_gof"] /= ncomp
+    if sum_weights != 0.0:
+        result_df["combined_gof"] /= sum_weights
+        component_used = {k: v * sum_weights for k, v in component_used.items()}
 
     result_df = result_df.sort_values(by="combined_gof", ascending=False).reset_index(
         drop=True
@@ -805,3 +813,4 @@ if __name__ == "__main__":
     print(f"done write {fn}")
     full_path = os.path.abspath(fn)
     print(f"full path: {full_path}")
+    print(f"components used for combined_gof: {component_used}")

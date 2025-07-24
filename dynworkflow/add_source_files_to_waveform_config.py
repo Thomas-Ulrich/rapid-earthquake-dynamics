@@ -33,7 +33,7 @@ def update_file(waveform_type="regional"):
             basename = os.path.basename(file)
             # Remove 'parameters_' prefix and '.par' suffix
             code = basename[len("parameters_") : -len(".par")]
-            seissol_outputs.append(f"output/{code}")
+            seissol_outputs.append(f"extracted_output/{code}")
         seissol_outputs.sort()
         template_par["source_files"] = " "
         template_par["seissol_outputs"] = ",".join(seissol_outputs)
