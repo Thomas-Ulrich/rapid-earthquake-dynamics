@@ -21,6 +21,7 @@ import yaml
 
 # plt.rc("font", family="Poppins", size=8)
 plt.rc("font", size=8)
+plt.rcParams["font.family"] = "sans"
 
 
 class seissolxdmfExtended(seissolxdmf.seissolxdmf):
@@ -136,6 +137,7 @@ def extract_dyn_number(filename):
 
 def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
     plt.rc("font", size=12)
+
     fig, ax = init_all_offsets_figure(acc_dist, df)
 
     ax.plot(
@@ -154,8 +156,7 @@ def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
 
 def init_all_offsets_figure(acc_dist, df):
     "init plot with every model"
-
-    fig = plt.figure(figsize=(7.5, 3.0))
+    fig = plt.figure(figsize=(7.5, 7.5 * 5.0 / 16))
     ax = fig.add_subplot(111)
     ax.set_xlabel("Distance along strike from the epicenter (km)")
     ax.set_ylabel("Fault offsets (m)")
@@ -372,7 +373,7 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     nbest = len(top10_indices)
     print(f"{nbest} best models:")
     for k, modeli in enumerate(top10_indices[::-1]):
-        print(nbest - k, models[modeli], wrms[modeli])
+        print(nbest - k, models[modeli], wrms[modeli], np.exp(-wrms[modeli]))
         col = cmap(norm(wrms[modeli]))
         ax.plot(
             acc_dist,
