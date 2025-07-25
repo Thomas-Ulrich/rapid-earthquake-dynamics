@@ -1,14 +1,11 @@
 !Switch
 
-[mu_d]: !Include 'yaml_files/mud.yaml'
-
 # static_strength, dynamic_strength, tau_0 are not used by seissol
 # but added for convenience for the compute_critical_nucleation python function
-[T_s, T_d, T_n, mu_s, cohesion, static_strength, dynamic_strength, tau_0]: !EvalModel
-    parameters: [Ts0, Td0, fault_tag, mu_d, x, y, z, rake_interp_low_slip, R]
+[T_s, T_d, T_n, mu_d, mu_s, cohesion, static_strength, dynamic_strength, tau_0]: !EvalModel
+    parameters: [Ts0, Td0, fault_tag, x, y, z, rake_interp_low_slip, R]
     model: !Switch
         [Ts0, Td0]: !Include 'yaml_files/Ts0Td0.yaml'
-        [mu_d]: !Include 'yaml_files/mud.yaml'
         [fault_tag]: !Include 'yaml_files/fault_tags.yaml'
         [rake_interp_low_slip]: !Include 'yaml_files/FL33_34_fault.yaml'
         [x, y, z]: !AffineMap
@@ -25,7 +22,7 @@
       returns: [T_s, T_d, T_n, cohesion, mu_s, static_strength, dynamic_strength, tau_0]
       function: |
        function f (x)
-
+        mu_d = 0.2
         -- ensure R>0.8 in the nucleation region
         xha = { {{ hypo_x }}, {{ hypo_y }}, {{ hypo_z }}}
         r_crita = {{ r_crit }}
@@ -48,26 +45,25 @@
         depthIncreasingCohesion = {{ cohesion_depth }}
         cohesion = coh0  -{{ cohesion_lin }} * math.max(0, (x['z'] + depthIncreasingCohesion) / depthIncreasingCohesion)
 
-        T_s = math.cos(x['rake_interp_low_slip']) * x['mu_d']*sigma_n - {{ B }} * x['Ts0']
-        T_d = math.sin(x['rake_interp_low_slip']) * x['mu_d']*sigma_n - {{ B }} * x['Td0']
+        T_s = math.cos(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Ts0']
+        T_d = math.sin(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Td0']
         Tau0 =  math.sqrt(T_s^2 + T_d^2)
         mu_smax = 0.75
-        Tau0_max = sigma_n * ( x['mu_d'] + (mu_smax - x['mu_d'] - cohesion/sigma_n) * R)
+        Tau0_max = sigma_n * ( mu_d + (mu_smax - mu_d - cohesion/sigma_n) * R)
         if (Tau0 > Tau0_max) then
           T_s = T_s * Tau0_max/Tau0
           T_d = T_d * Tau0_max/Tau0
           Tau0 =  math.sqrt(T_s^2 + T_d^2)
         end
-        mu_s =  x['mu_d'] + math.max({{ mu_delta_min }}, (Tau0/sigma_n - x['mu_d'])/R + cohesion/sigma_n)
-        mu_d = x['mu_d']
-
-        {{ CFS_code_placeholder }}
+        mu_delta_min = 0.01
+        mu_s =  mu_d + math.max(mu_delta_min, (Tau0/sigma_n - mu_d)/R + cohesion/sigma_n)
 
         return {
           T_s = T_s,
           T_d = T_d,
           T_n = T_n,
           cohesion = cohesion,
+          mu_d = mu_d,
           mu_s = mu_s,
           dynamic_strength = - mu_d * T_n - cohesion,
           static_strength = - mu_s * T_n - cohesion,  

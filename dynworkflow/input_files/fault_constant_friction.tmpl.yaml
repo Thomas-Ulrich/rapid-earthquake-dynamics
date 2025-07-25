@@ -52,12 +52,12 @@
         Tau0 =  math.sqrt(T_s^2 + T_d^2)
         Tau0_max = sigma_n * ( mu_d + (mu_smax - mu_d - cohesion/sigma_n) * R)
         if (Tau0 > Tau0_max) then
-          T_s = T_s * Tau0_max/Tau0
-          T_d = T_d * Tau0_max/Tau0
-          Tau0 =  math.sqrt(T_s^2 + T_d^2)
+          sigma_n_new = (Tau0 + cohesion*R)/ (mu_d + (mu_smax - mu_d)*R)
+          T_n = (sigma_n_new/sigma_n) * T_n
+          -- T_s = T_s * Tau0_max/Tau0
+          -- T_d = T_d * Tau0_max/Tau0
+          -- Tau0 =  math.sqrt(T_s^2 + T_d^2)
         end
-
-        {{ CFS_code_placeholder }}
 
         return {
           T_s = T_s,

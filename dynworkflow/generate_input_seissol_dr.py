@@ -187,7 +187,6 @@ def extract_template_params(
     max_slip,
     input_config,
     derived_config,
-    CFS_code_placeholder,
 ):
     if "C" in row:
         Cname = "C"
@@ -214,9 +213,7 @@ def extract_template_params(
         "hypo_x": hypo[0],
         "hypo_y": hypo[1],
         "hypo_z": hypo[2],
-        "mu_delta_min": input_config["mu_delta_min"],
         "mesh_file": derived_config["mesh_file"],
-        "CFS_code_placeholder": CFS_code_placeholder,
     }
     if len(R_values) > 0:
         template_param["R_yaml_block"] = generate_R_yaml_block(R_values)
@@ -296,16 +293,6 @@ def generate():
     number_of_segments = derived_config["number_of_segments"]
     mode = input_config["mode"]
 
-    if "CFS_code" in derived_config:
-        # useful for CFS calculation to set up, fault_tag-wise,
-        # cohesion, T_s and T_d (e.g. for Mendocino)
-
-        CFS_code_fn = derived_config["CFS_code"]
-        with open(CFS_code_fn, "r") as f:
-            CFS_code_placeholder = f.read()
-    else:
-        CFS_code_placeholder = ""
-
     longer_and_more_frequent_output = mode == "picked_models"
 
     first_simulation_id = derived_config["first_simulation_id"]
@@ -342,7 +329,6 @@ def generate():
             max_slip,
             input_config,
             derived_config,
-            CFS_code_placeholder,
         )
         template_par["r_crit"] = 3000.0
         fn_fault = f"yaml_files/fault_{code}.yaml"
@@ -393,9 +379,6 @@ def generate():
         fn_param = f"parameters_dyn_{code}.par"
         render_file(templateEnv, template_par, "parameters_dyn.tmpl.par", fn_param)
 
-    template_par = {"mu_d": input_config["mu_d"]}
-    render_file(templateEnv, template_par, "mud.tmpl.yaml", "yaml_files/mud.yaml")
-
     fnames = ["fault_slip.yaml"]
     for fn in fnames:
         shutil.copy(f"{input_file_dir}/{fn}", f"yaml_files/{fn}")
@@ -435,7 +418,6 @@ def generate():
                 max_slip,
                 input_config,
                 derived_config,
-                CFS_code_placeholder,
             )
             template_par["r_crit"] = list_nucleation_size[k]
             fn_fault = f"yaml_files/fault_{code}.yaml"

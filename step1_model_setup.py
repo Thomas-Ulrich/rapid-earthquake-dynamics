@@ -144,9 +144,6 @@ def run_step1():
 
     custom_setup_files = [os.path.abspath(file) for file in args.custom_setup_files]
 
-    if args.CFS_code:
-        CFS_code = os.path.abspath(args.CFS_code)
-
     vel_model = args.velocity_model
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
@@ -306,16 +303,10 @@ def run_step1():
         mesh_xdmf_file = args.mesh.split("puml.h5")[0] + ".xdmf"
         shutil.copy(mesh_xdmf_file, "tmp")
 
-    if args.CFS_code:
-        CFS_code = shutil.copy(CFS_code, "tmp")
-        derived_config["CFS_code"] = CFS_code
-
     derived_config |= {
         "mesh_file": mesh_file,
         "spatial_zoom": spatial_zoom,
         "fault_mesh_size": fault_mesh_size,
-        "mu_delta_min": input_config["mu_delta_min"],
-        "mu_d": input_config["mu_d"],
         "number_of_segments": number_of_segments,
     }
     save_config(derived_config, "derived_config.yaml")

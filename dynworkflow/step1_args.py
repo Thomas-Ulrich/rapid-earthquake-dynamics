@@ -20,15 +20,7 @@ def get_parser():
         type=str,
         help="Path to a YAML config file containing all input parameters.",
     )
-    parser.add_argument(
-        "--CFS_code",
-        type=str,
-        help="""
-        code to add at {{ CFS_code_placeholder }} in
-        dynworkflow/input_files/fault.tmpl.yaml
-        (e.g. for setting-up cohesion and shear stress on receiver faults
-        """,
-    )
+
     parser.add_argument(
         "--custom_setup_files",
         type=lambda s: s.split(";"),
@@ -129,20 +121,6 @@ def get_parser():
         choices=["grid_search", "latin_hypercube", "picked_models"],
         default="grid_search",
         help="Sampling strategy for DR input generation.",
-    )
-
-    parser.add_argument(
-        "--mu_d",
-        type=float,
-        default=0.2,
-        help="dynamic friction",
-    )
-
-    parser.add_argument(
-        "--mu_delta_min",
-        type=float,
-        default=0.01,
-        help="minimum allowed mu_s - mu_d",
     )
 
     parser.add_argument(
