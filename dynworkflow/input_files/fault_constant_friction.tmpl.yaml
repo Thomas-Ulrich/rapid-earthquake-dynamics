@@ -47,28 +47,26 @@
         depthIncreasingCohesion = {{ cohesion_depth }}
         cohesion = coh0  -{{ cohesion_lin }} * math.max(0, (x['z'] + depthIncreasingCohesion) / depthIncreasingCohesion)
 
-        T_s = math.cos(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Ts0']
-        T_d = math.sin(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Td0']
-        Tau0 =  math.sqrt(T_s^2 + T_d^2)
-        Tau0_max = sigma_n * ( mu_d + (mu_smax - mu_d - cohesion/sigma_n) * R)
-        if (Tau0 > Tau0_max) then
-          sigma_n_new = (Tau0 + cohesion*R)/ (mu_d + (mu_smax - mu_d)*R)
-          T_n = (sigma_n_new/sigma_n) * T_n
-          -- T_s = T_s * Tau0_max/Tau0
-          -- T_d = T_d * Tau0_max/Tau0
-          -- Tau0 =  math.sqrt(T_s^2 + T_d^2)
+        stress_drop =  {{ B }} * math.sqrt(x.Ts0^2 + x.Td0^2)
+        stress_drop_max = sigma_n * ( (mu_smax - mu_d - cohesion/sigma_n) * R)
+
+        if stress_drop > stress_drop_max then
+          -- Update sigma_n and rescale T_n accordingly
+          local sigma_n_new = (stress_drop + cohesion * R) / ((mu_smax - mu_d) * R)
+          T_n = (sigma_n_new / sigma_n) * T_n
+          sigma_n = sigma_n_new
         end
 
         return {
-          T_s = T_s,
-          T_d = T_d,
+          T_s = math.cos(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Ts0'],
+          T_d = math.sin(x['rake_interp_low_slip']) * mu_d * sigma_n - {{ B }} * x['Td0'],
           T_n = T_n,
           cohesion = cohesion,
           mu_d = mu_d,
           mu_s = mu_s,
           dynamic_strength = - mu_d * T_n - cohesion,
           static_strength = - mu_s * T_n - cohesion,  
-          tau_0 = Tau0
+          tau_0 = math.sqrt(T_s^2 + T_d^2)
         }
         end
 
