@@ -466,9 +466,13 @@ if __name__ == "__main__":
             mr_ref_interp, (0, added), "constant", constant_values=(0, 0)
         )
 
-    param_file = "simulation_parameters.csv"
-    if os.path.exists(param_file):
-        params = pd.read_csv(param_file)
+    param_files = sorted(glob.glob("simulation_parameter*.csv"))
+
+    # Initialize params and Cname
+    if param_files:
+        # Read and concatenate all parameter files
+        df_list = [pd.read_csv(f) for f in param_files]
+        params = pd.concat(df_list, ignore_index=True)
         params["sim_id"] = params["id"].astype(int)
         Cname = "dc" if "dc" in params.columns else "C"
     else:

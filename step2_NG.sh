@@ -67,7 +67,7 @@ get_scaled_walltime_and_ranks() {
 
 
 PARTITION=test
-export order=4
+export order=5
 
 if [[ -n "$1" ]]; then
   # If argument $1 is given, use it as job ID
@@ -80,8 +80,10 @@ else
   wait_for_job "$job1_id"
 fi
 
+simulation_batch_size=$(grep '^simulation_batch_size:' derived_config.yaml | cut -d ':' -f2 | xargs)
 
-read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" 120 2)
+
+read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" "$simulation_batch_size" 2)
 echo "Using walltime: $walltime"
 echo "Using ranks: $ranks"
 

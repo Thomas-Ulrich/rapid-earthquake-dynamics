@@ -295,10 +295,13 @@ def generate():
 
     longer_and_more_frequent_output = mode == "picked_models"
 
-    first_simulation_id = derived_config["first_simulation_id"]
-    param_df = generate_param_df(input_config, number_of_segments, first_simulation_id)
-    param_df.to_csv("simulation_parameters.csv", index=True, index_label="id")
+    first_sim_id = derived_config["first_simulation_id"]
+    param_df = generate_param_df(input_config, number_of_segments, first_sim_id)
+    param_df.to_csv(
+        f"simulation_parameters_{first_sim_id}.csv", index=True, index_label="id"
+    )
     nsample = len(param_df)
+    derived_config["simulation_batch_size"] = nsample
     print(f"parameter space has {nsample} samples")
 
     projection = derived_config["projection"]
