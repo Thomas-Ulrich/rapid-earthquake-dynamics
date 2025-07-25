@@ -411,30 +411,29 @@ def generate():
     )
     print(list_nucleation_size)
 
+    parameter_files = []
     for k, (idx, row) in enumerate(param_df.iterrows()):
+        template_par, code = extract_template_params(
+            idx,
+            row,
+            cohesion_values,
+            hypo,
+            max_slip,
+            input_config,
+            derived_config,
+        )
+        fn_fault = f"yaml_files/fault_{code}.yaml"
+        fn_param = f"parameters_dyn_{code}.par"
         if list_nucleation_size[k]:
-            template_par, code = extract_template_params(
-                idx,
-                row,
-                cohesion_values,
-                hypo,
-                max_slip,
-                input_config,
-                derived_config,
-            )
             template_par["r_crit"] = list_nucleation_size[k]
-            fn_fault = f"yaml_files/fault_{code}.yaml"
             render_file(templateEnv, template_par, fn_fault_template, fn_fault)
+            parameter_files.append(fn_param)
         else:
-            fn_param = f"parameters_dyn_{code}.par"
             print(f"removing {fn} and {fn_param} (nucleation too large)")
             os.remove(fn)
             os.remove(fn_param)
 
     # write parts.txt files
-    parameter_files = sorted(
-        [f for f in os.listdir(".") if f.startswith("parameters_dyn")]
-    )
     nfiles = len(parameter_files)
     n = 1
     parts = np.array_split(np.arange(nfiles), n)
