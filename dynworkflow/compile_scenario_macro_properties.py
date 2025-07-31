@@ -323,31 +323,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "--extension",
         help="figure extension (without the .)",
-        nargs=1,
-        default=["pdf"],
+        default="pdf",
     )
     parser.add_argument("--font_size", help="font size", nargs=1, default=[8], type=int)
 
     parser.add_argument(
         "--gof_threshold",
         help="gof threshold from which results are selected",
-        nargs=1,
         type=float,
-        default=[0.6],
+        default=0.6,
     )
     parser.add_argument(
         "--nmin",
         help="minimum number of synthetic moment rates drawn in color",
-        nargs=1,
         type=int,
-        default=[3],
+        default=3,
     )
     parser.add_argument(
         "--nmax",
         help="maximum number of synthetic moment rates drawn in color",
-        nargs=1,
         type=int,
-        default=[10],
+        default=10,
     )
 
     args = parser.parse_args()
@@ -370,7 +366,7 @@ if __name__ == "__main__":
 
     # remove fl33
     energy_files = [s for s in energy_files if "fl33" not in s]
-    one_model_shown = args.nmax[0] == 1
+    one_model_shown = args.nmax == 1
     matplotlib.rcParams["lines.linewidth"] = 0.5 if one_model_shown else 1.0
 
     centimeter = 1 / 2.54
@@ -558,6 +554,7 @@ if __name__ == "__main__":
         duration_gof = min(1, 1 - abs(duration - inferred_duration) / inferred_duration)
         results["gof_T"].append(duration_gof)
     result_df = pd.DataFrame(results)
+    result_df["Mw"] = result_df["Mw"].round(3)
 
     if os.path.exists("gof_slip.pkl"):
         gofa = pickle.load(open("gof_slip.pkl", "rb"))
@@ -576,6 +573,17 @@ if __name__ == "__main__":
         result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
     else:
         print("rms_offset.csv could not be found")
+
+    if os.path.exists("area_max_R.csv"):
+        gofa = pd.read_csv("area_max_R.csv", sep=",")
+        gofa["sim_id"] = (
+            gofa["faultfn"].str.extract(r"fault[/_-]([^_]+)_")[0].astype(int)
+        )
+        gofa = gofa[["area_max_R", "sim_id"]]
+        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
+        result_df["area_max_R"] = result_df["area_max_R"].round(1)
+    else:
+        print("area_max_R.csv could not be found")
 
     fn = "rms_slip_rate.csv"
     if os.path.exists(fn):
@@ -671,7 +679,7 @@ if __name__ == "__main__":
         .split("_extracted-fault.xdmf")[0]
         .split("-fault.xdmf")[0]
     )
-
+    result_df.to_pickle("compiled_results.pkl")
     print(result_df.to_string())
 
     required_keys = {"coh", "B", Cname, "R0"}
@@ -697,14 +705,12 @@ if __name__ == "__main__":
 
     combined_gof = result_df["combined_gof"].values
     Mw = result_df["Mw"].values
-    indices_of_nlargest_values = result_df["combined_gof"].nlargest(args.nmin[0]).index
-    indices_of_nmax_largest_values = (
-        result_df["combined_gof"].nlargest(args.nmax[0]).index
-    )
+    indices_of_nlargest_values = result_df["combined_gof"].nlargest(args.nmin).index
+    indices_of_nmax_largest_values = result_df["combined_gof"].nlargest(args.nmax).index
     indices_greater_than_threshold = result_df[
-        result_df["combined_gof"] > args.gof_threshold[0]
+        result_df["combined_gof"] > args.gof_threshold
     ].index
-    if len(indices_greater_than_threshold) > args.nmax[0]:
+    if len(indices_greater_than_threshold) > args.nmax:
         selected_indices = indices_of_nmax_largest_values
     else:
         selected_indices = indices_greater_than_threshold
@@ -737,7 +743,9 @@ if __name__ == "__main__":
             for name, is_varying in varying_param.items():
                 if is_varying:
                     value = result_df[name].values[i]
-                    label += f"{name}={value},"
+                    vname = r"$\sigma_n$" if name == "sigman" else name
+                    print(name, vname)
+                    label += f"{vname}={value},"
             # remove the last ,
             label = label[0:-1]
         if i in selected_indices or i in indices_of_nlargest_values:
@@ -758,12 +766,13 @@ if __name__ == "__main__":
             **labelargs,
         )
 
-    ax.plot(
-        mr_ref[:, 0],
-        mr_ref[:, 1] / 1e19,
-        label=f"{ref_name} (Mw={Mwref:.2f})",
-        color="black",
-    )
+    if refMRFfile != "tmp/moment_rate.mr":
+        ax.plot(
+            mr_ref[:, 0],
+            mr_ref[:, 1] / 1e19,
+            label=f"{ref_name} (Mw={Mwref:.2f})",
+            color="black",
+        )
 
     if ref_name != "usgs" and os.path.exists("tmp/moment_rate.mr"):
         mr_usgs = read_usgs_moment_rate("tmp/moment_rate.mr")
@@ -798,7 +807,7 @@ if __name__ == "__main__":
         fid.write("output/dyn-usgs-fault.xdmf\n")
     print(f"done writing {fname}")
 
-    col = 1 if one_model_shown else 2
+    col = 1 if args.nmax < 8 else 2
     kargs = {"bbox_to_anchor": (1.0, 1.28)}
     ax.legend(frameon=False, loc="upper right", ncol=col, fontsize=ps, **kargs)
     ax.set_ylim(bottom=0)
@@ -812,7 +821,7 @@ if __name__ == "__main__":
     ax.set_ylabel(r"moment rate (e19 $\times$ Nm/s)")
     ax.set_xlabel("time (s)")
 
-    fn = f"plots/moment_rate.{args.extension[0]}"
+    fn = f"plots/moment_rate.{args.extension}"
     fig.savefig(fn, bbox_inches="tight", transparent=True)
     print(f"done write {fn}")
     full_path = os.path.abspath(fn)
