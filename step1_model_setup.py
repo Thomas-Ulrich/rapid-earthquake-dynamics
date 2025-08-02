@@ -190,7 +190,8 @@ def run_step1():
 
     allowed_gof_components = {
         "slip_distribution",
-        "teleseismic_wf",
+        "teleseismic_body_wf",
+        "teleseismic_surface_wf",
         "regional_wf",
         "moment_rate_function",
         "fault_offsets",

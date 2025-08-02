@@ -415,7 +415,8 @@ if __name__ == "__main__":
 
     gof_component_to_name = {}
     gof_component_to_name["slip_distribution"] = "gof_slip"
-    gof_component_to_name["teleseismic_wf"] = "gof_tel"
+    gof_component_to_name["teleseismic_body_wf"] = "gof_tel"
+    gof_component_to_name["teleseismic_surface_wf"] = "gof_sw"
     gof_component_to_name["regional_wf"] = "gof_reg"
     gof_component_to_name["moment_rate_function"] = "gof_MRF"
     gof_component_to_name["fault_offsets"] = "gof_offsets"
@@ -640,10 +641,18 @@ if __name__ == "__main__":
                 gofaSH = gofa[gofa["gofa_name"].str.contains(r"SH_T\d+")]
                 gofaSH = gofaSH.rename(columns={"gofa": "gof_SH"})
                 gofaP = pd.merge(gofaP, gofaSH, on="sim_id")
+
+                gofaSW = gofa[gofa["gofa_name"].str.contains(r"generic_ENZ\d+")]
+                gofaSW = gofaSW.rename(columns={"gofa": "gof_sw"})
+                if not gofaSW.empty:
+                    gofaP = pd.merge(gofaP, gofaSW, on="sim_id")
+
                 # 50% weight for SH (as in wasp)
                 gofaP["gof_tel_wf"] = (gofaP["gof_P"] + 0.5 * gofaP["gof_SH"]) / 1.5
-
-                gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "sim_id"]]
+                if gofaSW.empty:
+                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "sim_id"]]
+                else:
+                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "gof_sw","sim_id"]]
             # merge the two DataFrames by sim_id
             result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
 
@@ -744,7 +753,6 @@ if __name__ == "__main__":
                 if is_varying:
                     value = result_df[name].values[i]
                     vname = r"$\sigma_n$" if name == "sigman" else name
-                    print(name, vname)
                     label += f"{vname}={value},"
             # remove the last ,
             label = label[0:-1]
