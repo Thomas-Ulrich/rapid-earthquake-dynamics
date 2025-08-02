@@ -652,7 +652,7 @@ if __name__ == "__main__":
                 if gofaSW.empty:
                     gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "sim_id"]]
                 else:
-                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "gof_sw","sim_id"]]
+                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "gof_sw", "sim_id"]]
             # merge the two DataFrames by sim_id
             result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
 
