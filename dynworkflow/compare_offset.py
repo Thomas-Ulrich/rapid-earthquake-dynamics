@@ -149,14 +149,15 @@ def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
     )
 
     plt.savefig(fname, dpi=200, bbox_inches="tight")
-    print(f"done writing {fname}")
+    full_path = os.path.abspath(fname)
+    print(f"full path: {full_path}")
     plt.close(fig)
     plt.rc("font", size=8)
 
 
 def init_all_offsets_figure(acc_dist, df):
     "init plot with every model"
-    fig = plt.figure(figsize=(7.5, 7.5 * 5.0 / 16))
+    fig = plt.figure(figsize=(10, 7.5 * 5.0 / 16))
     ax = fig.add_subplot(111)
     ax.set_xlabel("Distance along strike from the epicenter (km)")
     ax.set_ylabel("Fault offsets (m)")
@@ -400,12 +401,36 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
         fn = "figures/comparison_offset_all_models_best_model.pdf"
     plt.savefig(fn, dpi=200, bbox_inches="tight")
     print(f"done writing {fn}")
+
     full_path = os.path.abspath(fn)
     print(f"full path: {full_path}")
 
-    dfr = pd.DataFrame(results)
-    dfr.to_csv("rms_offset.csv", index=True, index_label="id")
 
+    # Load the existing CSV if it exists
+    try:
+        existing_dfr = pd.read_csv("rms_offset.csv")
+    except FileNotFoundError:
+        existing_dfr = pd.DataFrame(columns=["id", "faultfn", "offset_rms"])
+
+    # Create your current DataFrame (you already have this)
+    dfr = pd.DataFrame(results)
+
+    # Drop 'id' from existing so it doesn't conflict or become outdated
+    existing_dfr = existing_dfr.drop(columns=["id"], errors="ignore")
+
+    # Merge on 'faultfn', keeping new dfr values if they conflict
+    merged_dfr = pd.merge(existing_dfr, dfr, on="faultfn", how="outer", suffixes=("_old", ""))
+
+    # Prefer values from the new dfr where available
+    merged_dfr["offset_rms"] = merged_dfr["offset_rms"].combine_first(merged_dfr["offset_rms_old"])
+    merged_dfr = merged_dfr.drop(columns=["offset_rms_old"], errors="ignore")
+
+    # Reset id as a new column based on row number
+    merged_dfr = merged_dfr.sort_values("faultfn").reset_index(drop=True)
+    merged_dfr.insert(0, "id", merged_dfr.index)
+
+    # Save the result
+    merged_dfr.to_csv("rms_offset.csv", index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

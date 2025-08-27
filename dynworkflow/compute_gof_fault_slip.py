@@ -112,9 +112,11 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     if os.path.exists(args.output_folder):
         args.output_folder += "/"
     fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
+    """
     fault_output_files = [
         fn for fn in fault_output_files if "dyn-kinmod" not in fn and "fl33" not in fn
     ]
+    """
     sx_ref = seissolxdmfExtended(reference_model)
     max_slip = sx_ref.asl.max()
     areas = sx_ref.compute_areas()
@@ -124,9 +126,10 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     }
 
     for fo in tqdm.tqdm(fault_output_files):
+        print(fo)
         sx = seissolxdmfExtended(fo)
         if sx_ref.geometry.shape[0] != sx.geometry.shape[0]:
-            raise ValueError("meshes don't have the same number of nodes")
+            raise ValueError(f"meshes don't have the same number of nodes ({fo} and {reference_model})")
         ind1, ind2 = multidim_intersect(sx_ref.connect, sx.connect)
         id_pos = sx_ref.asl[ind1] > 0.05
         areas_pos = areas[ind1][id_pos]
@@ -140,6 +143,7 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
         results["faultfn"].append(fo)
         results["gof_slip"].append(gof)
     df = pd.DataFrame(results)
+    pd.set_option("display.max_colwidth", None)
     print(df)
     fname = "gof_slip.pkl"
     df.to_pickle(fname)

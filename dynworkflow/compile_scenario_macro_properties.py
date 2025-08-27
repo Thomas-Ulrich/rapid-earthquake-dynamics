@@ -583,6 +583,7 @@ if __name__ == "__main__":
         gofa = gofa[["area_max_R", "sim_id"]]
         result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
         result_df["area_max_R"] = result_df["area_max_R"].round(1)
+        result_df = result_df[result_df["area_max_R"]<1000.0]
     else:
         print("area_max_R.csv could not be found")
 
@@ -652,7 +653,7 @@ if __name__ == "__main__":
                 if gofaSW.empty:
                     gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "sim_id"]]
                 else:
-                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "gof_sw", "sim_id"]]
+                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "gof_sw","sim_id"]]
             # merge the two DataFrames by sim_id
             result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
 
@@ -732,6 +733,7 @@ if __name__ == "__main__":
         if not row_with_prefix.empty:
             i = row_with_prefix.index[0]
         else:
+            continue
             raise ValueError(
                 f"could not associate {fn} ({prefix_to_match}) with a ",
                 "fault filename from",
@@ -753,7 +755,8 @@ if __name__ == "__main__":
                 if is_varying:
                     value = result_df[name].values[i]
                     vname = r"$\sigma_n$" if name == "sigman" else name
-                    label += f"{vname}={value},"
+                    unit = " MPa" if name == "sigman" else ""
+                    label += f"{vname}={value}{unit},"
             # remove the last ,
             label = label[0:-1]
         if i in selected_indices or i in indices_of_nlargest_values:

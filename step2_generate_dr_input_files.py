@@ -47,6 +47,7 @@ if __name__ == "__main__":
         gaussian_kernel=fault_mesh_size,
         taper=None,
         paraview_readable=None,
+        edge_clearance=8,
     )
 
     generate_input_seissol_dr.generate()
