@@ -196,6 +196,7 @@ def run_step1():
         "moment_rate_function",
         "fault_offsets",
         "seismic_moment",
+        "slip_rate",
     }
     gof_components = [v.strip() for v in args.gof_components.strip().split(",")]
     for comp in gof_components:
