@@ -346,13 +346,21 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
             else:
                 fname = f"figures/comparison_offset_sentinel2_{base_name}.svg"
             plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname)
+        if args.bestmodel:
+            is_best_model = args.bestmodel in fault
+            zorder = 3 if is_best_model else 1
+            color = "blue" if is_best_model else "#edeeeeff"
+        else:
+            zorder = 1
+            color = "#edeeeeff"
 
         ax.plot(
             acc_dist,
             slip_at_trace,
-            "gainsboro",
+            color=color,
             linewidth=0.8,
             label="Predicted offset",
+            zorder=zorder,
         )
 
         residuals = df["offset"] - slip_at_trace
@@ -362,33 +370,38 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
         print(f"Model: {base_name} RMS = {wrms[i]:.5f} m")
         results["faultfn"].append(fault)
         results["offset_rms"].append(wrms[i])
-
-    top10_indices = np.argsort(wrms)[:10]
-    cmap = cm.viridis_r
-    norm = mcolors.Normalize(
-        vmin=min(wrms[top10_indices]), vmax=max(wrms[top10_indices])
-    )
-    sm = cm.ScalarMappable(cmap=cmap, norm=norm)
-
-    nbest = len(top10_indices)
-    print(f"{nbest} best models:")
-    for k, modeli in enumerate(top10_indices[::-1]):
-        print(nbest - k, models[modeli], wrms[modeli], np.exp(-wrms[modeli]))
-        col = cmap(norm(wrms[modeli]))
-        ax.plot(
-            acc_dist,
-            slip_at_traces[modeli],
-            color=col,
-            linewidth=0.8,
-            label="Predicted offset",
+    if not args.bestmodel:
+        top10_indices = np.argsort(wrms)[:10]
+        cmap = cm.viridis_r
+        norm = mcolors.Normalize(
+            vmin=min(wrms[top10_indices]), vmax=max(wrms[top10_indices])
         )
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 
-    sm = cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
-    plt.colorbar(sm, ax=ax, label="WRMS")
-    fn = "figures/comparison_offset_all_models_10bestOffset.pdf"
+        nbest = len(top10_indices)
+        print(f"{nbest} best models:")
+        for k, modeli in enumerate(top10_indices[::-1]):
+            print(nbest - k, models[modeli], wrms[modeli], np.exp(-wrms[modeli]))
+            col = cmap(norm(wrms[modeli]))
+            ax.plot(
+                acc_dist,
+                slip_at_traces[modeli],
+                color=col,
+                linewidth=0.8,
+                label="Predicted offset",
+            )
+
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        plt.colorbar(sm, ax=ax, label="WRMS")
+
+        fn = "figures/comparison_offset_all_models_10bestOffset.pdf"
+    else:
+        fn = "figures/comparison_offset_all_models_best_model.pdf"
     plt.savefig(fn, dpi=200, bbox_inches="tight")
     print(f"done writing {fn}")
+    full_path = os.path.abspath(fn)
+    print(f"full path: {full_path}")
 
     dfr = pd.DataFrame(results)
     dfr.to_csv("rms_offset.csv", index=True, index_label="id")
@@ -401,6 +414,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("output_folder", help="folder where the models lie")
     parser.add_argument("offset_data", help="path to offset data")
+    parser.add_argument(
+        "--bestmodel", type=str, help='Pattern for best model (e.g. "dyn_0073")'
+    )
+
     parser.add_argument(
         "--threshold_z",
         help="threshold depth used for selecting fault trace nodes",
