@@ -91,7 +91,7 @@ def get_parser():
             "Comma-separated list of goodness-of-fit components to use for model "
             "validation. Valid options: slip_distribution, teleseismic_body_wf, "
             "teleseismic_surface_wf, regional_wf, moment_rate_function, "
-            "fault_offsets, seismic_moment, teleseismic_surface_wf. "
+            "fault_offsets, seismic_moment. "
             "An optional weight can be assigned to each component (default is 1.0). "
             "Example: 'slip_distribution 2.0, teleseismic_body_wf' will assign double "
             "the weight to slip_distribution compared to teleseismic_body_wf."

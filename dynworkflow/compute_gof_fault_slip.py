@@ -129,7 +129,9 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
         print(fo)
         sx = seissolxdmfExtended(fo)
         if sx_ref.geometry.shape[0] != sx.geometry.shape[0]:
-            raise ValueError(f"meshes don't have the same number of nodes ({fo} and {reference_model})")
+            raise ValueError(
+                f"meshes don't have the same number of nodes ({fo} and {reference_model})"
+            )
         ind1, ind2 = multidim_intersect(sx_ref.connect, sx.connect)
         id_pos = sx_ref.asl[ind1] > 0.05
         areas_pos = areas[ind1][id_pos]

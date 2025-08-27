@@ -405,7 +405,6 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     full_path = os.path.abspath(fn)
     print(f"full path: {full_path}")
 
-
     # Load the existing CSV if it exists
     try:
         existing_dfr = pd.read_csv("rms_offset.csv")
@@ -419,10 +418,14 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     existing_dfr = existing_dfr.drop(columns=["id"], errors="ignore")
 
     # Merge on 'faultfn', keeping new dfr values if they conflict
-    merged_dfr = pd.merge(existing_dfr, dfr, on="faultfn", how="outer", suffixes=("_old", ""))
+    merged_dfr = pd.merge(
+        existing_dfr, dfr, on="faultfn", how="outer", suffixes=("_old", "")
+    )
 
     # Prefer values from the new dfr where available
-    merged_dfr["offset_rms"] = merged_dfr["offset_rms"].combine_first(merged_dfr["offset_rms_old"])
+    merged_dfr["offset_rms"] = merged_dfr["offset_rms"].combine_first(
+        merged_dfr["offset_rms_old"]
+    )
     merged_dfr = merged_dfr.drop(columns=["offset_rms_old"], errors="ignore")
 
     # Reset id as a new column based on row number
@@ -431,6 +434,7 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
 
     # Save the result
     merged_dfr.to_csv("rms_offset.csv", index=False)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

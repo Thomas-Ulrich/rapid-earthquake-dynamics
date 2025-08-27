@@ -123,7 +123,7 @@ def gridto2Dlocal(
         gridded_myData[ids_in] = gridded_myData_lin[ids_in]
 
         if edge_clearance:
-            gridded_myData[0:edge_clearance//2, :] = 0
+            gridded_myData[0 : edge_clearance // 2, :] = 0
             gridded_myData[:, 0:edge_clearance] = 0
             gridded_myData[:, -edge_clearance:] = 0
 
