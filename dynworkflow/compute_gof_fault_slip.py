@@ -104,8 +104,9 @@ def multidim_intersect(arr1, arr2):
     return ind1, ind2
 
 
-def l2_norm(areas, q):
-    return np.dot(areas, np.power(q, 2))
+def area_weighted_ssq(areas, q):
+    """Return area-weighted sum of squared values (∑ A_i q_i²)."""
+    return np.dot(areas, q**2)
 
 
 def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
@@ -119,7 +120,14 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     """
     sx_ref = seissolxdmfExtended(reference_model)
     max_slip = sx_ref.asl.max()
+    slip_threshold = 0.05
+    print(f"using slip threshold of {slip_threshold}m")
+    id_pos = sx_ref.asl > slip_threshold
     areas = sx_ref.compute_areas()
+    areas_pos = areas[id_pos]
+    total_area = areas_pos.sum()
+    ref_rms = np.sqrt(np.dot(areas_pos, sx_ref.asl[id_pos] ** 2) / total_area)
+
     results = {
         "faultfn": [],
         "gof_slip": [],
@@ -133,15 +141,15 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
                 f"meshes don't have the same number of nodes ({fo} and {reference_model})"
             )
         ind1, ind2 = multidim_intersect(sx_ref.connect, sx.connect)
-        id_pos = sx_ref.asl[ind1] > 0.05
+        id_pos = sx_ref.asl[ind1] > slip_threshold
         areas_pos = areas[ind1][id_pos]
 
         misfit = (
-            l2_norm(areas_pos, (sx_ref.asl[ind1] - sx.asl[ind2])[id_pos])
-            / areas_pos.sum()
+            area_weighted_ssq(areas_pos, (sx_ref.asl[ind1] - sx.asl[ind2])[id_pos])
+            / total_area
         )
         misfit = np.sqrt(misfit)
-        gof = max(0, 1 - misfit / max_slip)
+        gof = max(0, 1 - misfit / ref_rms)
         results["faultfn"].append(fo)
         results["gof_slip"].append(gof)
     df = pd.DataFrame(results)
