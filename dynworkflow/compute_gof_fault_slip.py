@@ -119,7 +119,6 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     ]
     """
     sx_ref = seissolxdmfExtended(reference_model)
-    max_slip = sx_ref.asl.max()
     slip_threshold = 0.05
     print(f"using slip threshold of {slip_threshold}m")
     id_pos = sx_ref.asl > slip_threshold
@@ -134,11 +133,15 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     }
 
     for fo in tqdm.tqdm(fault_output_files):
-        print(fo)
         sx = seissolxdmfExtended(fo)
         if sx_ref.geometry.shape[0] != sx.geometry.shape[0]:
+            n_ref = sx_ref.geometry.shape[0]
+            n_cur = sx.geometry.shape[0]
             raise ValueError(
-                f"meshes don't have the same number of nodes ({fo} and {reference_model})"
+                "Mesh node mismatch:\n"
+                f"  Reference model ({reference_model}): {n_ref} nodes\n"
+                f"  Current model ({fo}): {n_cur} nodes\n"
+                "Meshes must have the same number of nodes to compare."
             )
         ind1, ind2 = multidim_intersect(sx_ref.connect, sx.connect)
         id_pos = sx_ref.asl[ind1] > slip_threshold
@@ -149,7 +152,7 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
             / total_area
         )
         misfit = np.sqrt(misfit)
-        gof = max(0, 1 - misfit / ref_rms)
+        gof = np.exp(-misfit / ref_rms)
         results["faultfn"].append(fo)
         results["gof_slip"].append(gof)
     df = pd.DataFrame(results)
