@@ -25,8 +25,17 @@
 ##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
-# use a number of nodes multiple of 8!
-ndivide=$(( $SLURM_JOB_NUM_NODES / 8 ))
+# use a number of nodes multiple of 16!
+if (( SLURM_JOB_NUM_NODES % 16 != 0 )); then
+    echo "$SLURM_JOB_NUM_NODES not a multiple of 16"
+    exit 1
+fi
+
+if [ "$SLURM_JOB_NUM_NODES" -lt 208 ]; then
+    ndivide=$(( SLURM_JOB_NUM_NODES / 8 ))
+else
+    ndivide=$(( SLURM_JOB_NUM_NODES / 16 ))
+fi
 
 #Run the program:
 export MP_SINGLE_THREAD=no

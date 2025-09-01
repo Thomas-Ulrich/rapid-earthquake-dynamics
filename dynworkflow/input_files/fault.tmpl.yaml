@@ -19,7 +19,7 @@
             z: 0.0
 {{ R_yaml_block }}
     components: !LuaMap
-      returns: [T_s, T_d, T_n, cohesion, mu_s, static_strength, dynamic_strength, tau_0]
+      returns: [T_s, T_d, T_n, cohesion, mu_d, mu_s, static_strength, dynamic_strength, tau_0]
       function: |
        function f (x)
         mu_d = 0.2
