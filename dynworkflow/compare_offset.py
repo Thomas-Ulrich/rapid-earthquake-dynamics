@@ -20,7 +20,7 @@ import pyvista as pv
 import yaml
 
 # plt.rc("font", family="Poppins", size=8)
-plt.rc("font", size=8)
+plt.rc("font", size=12)
 plt.rcParams["font.family"] = "sans"
 
 
@@ -157,7 +157,7 @@ def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
 
 def init_all_offsets_figure(acc_dist, df):
     "init plot with every model"
-    fig = plt.figure(figsize=(10, 7.5 * 5.0 / 16))
+    fig = plt.figure(figsize=(9.5, 3))
     ax = fig.add_subplot(111)
     ax.set_xlabel("Distance along strike from the epicenter (km)")
     ax.set_ylabel("Fault offsets (m)")
@@ -398,7 +398,7 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
 
         fn = "figures/comparison_offset_all_models_10bestOffset.pdf"
     else:
-        fn = "figures/comparison_offset_all_models_best_model.pdf"
+        fn = "figures/comparison_offset_all_models_best_model.svg"
     plt.savefig(fn, dpi=200, bbox_inches="tight")
     print(f"done writing {fn}")
 

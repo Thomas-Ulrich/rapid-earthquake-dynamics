@@ -153,13 +153,19 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--reference_moment_rate_function",
-        type=str,
-        default="auto",
+        "--reference_moment_rate_functions",
+        type=lambda s: s.split(";"),
+        nargs="+",
+        default=[["auto"]],
         help="""
-        Reference moment rate function (used for model ranking).
-        - 'auto': download STF from USGS if available, or infer from finite fault model.
-        - OR: path to a 2-column STF file in USGS format (2 lines header).
+            One or more reference moment rate functions.
+            
+            Each entry can be:
+              - 'auto': download STF from USGS if available, or infer from finite fault model.
+              - 'path;label': explicit file with custom legend label.
+
+            The first reference is used for model ranking.
+            Any additional references are plotted for comparison.
         """,
     )
 

@@ -147,9 +147,16 @@ def run_step1():
     vel_model = args.velocity_model
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
-    refMRF = args.reference_moment_rate_function
-    if refMRF not in ["auto"]:
-        refMRF = os.path.abspath(refMRF)
+
+    processed_MRFs = []
+    for mrf in args.reference_moment_rate_functions:
+        if mrf[0] == "auto":
+            processed_MRFs.append(mrf)
+        else:
+            mrf_file, mrf_label = mrf
+            mrf_file = os.path.abspath(mrf_file)
+            processed_MRFs.append((mrf_file, mrf_label))
+
     finite_fault_model = args.finite_fault_model
 
     suffix = ""
@@ -223,22 +230,22 @@ def run_step1():
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
 
-    refMRFfile = ""
-    print(refMRF)
-    if refMRF == "auto":
-        if finite_fault_model == "usgs":
-            refMRFfile = "tmp/moment_rate.mr"
+    for kkk, MRF_pair in enumerate(processed_MRFs):
+        if MRF_pair[0] == "auto":
+            if finite_fault_model == "usgs":
+                processed_MRFs[kkk] = ["tmp/moment_rate.mr", "USGS"]
+            else:
+                processed_MRFs[kkk] = [
+                    "tmp/moment_rate_from_finite_source_file.txt",
+                    "finite source model",
+                ]
         else:
-            refMRFfile = "tmp/moment_rate_from_finite_source_file.txt"
-    elif os.path.exists(refMRF):
-        # test loading
-        np.loadtxt(refMRF, skiprows=2)
-        refMRFfile = os.path.join("tmp", refMRF)
-        refMRFfile = shutil.copy(refMRF, "tmp")
-    else:
-        raise FileNotFoundError(f"{refMRF} does not exists")
+            mrf_file, label = MRF_pair
+            copied_file = shutil.copy(mrf_file, "tmp")
+            processed_MRFs[kkk] = [copied_file, label]
 
-    derived_config["reference_STF"] = refMRFfile
+    derived_config["reference_STFs"] = processed_MRFs
+
     derived_config["first_simulation_id"] = args.first_simulation_id
     projection = args.projection
     if projection == "auto":

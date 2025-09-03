@@ -426,12 +426,26 @@ if __name__ == "__main__":
     if os.path.exists("derived_config.yaml"):
         with open("derived_config.yaml", "r") as f:
             config_dict = yaml.safe_load(f)
-        refMRFfile = config_dict["reference_STF"]
+
+        ref_stfs = config_dict.get("reference_STFs", None)
+        if not ref_stfs:
+            raise ValueError(
+                "reference_STFs not found in derived_config.yaml. "
+                "If using an old setup, change the reference_STF entry to a "
+                "reference_STFs: [[file_name, label]] format."
+            )
+        else:
+            # Take the first reference STF for ranking
+            first_ref = ref_stfs[0]
+            refMRFfile, ref_name = first_ref
+
     elif os.path.exists(fn):
+        ref_stfs = []
         # for backwards compatibility
         with open("tmp/reference_STF.txt", "r") as fid:
             refMRFfile = fid.read().strip()
     else:
+        ref_stfs = []
         # for backwards compatibility
         print(f"{fn} does not exists!")
         if os.path.exists("tmp/moment_rate_from_finite_source_file_usgs.txt"):
@@ -792,10 +806,34 @@ if __name__ == "__main__":
         ax.plot(
             mr_usgs[:, 0],
             mr_usgs[:, 1] / 1e19,
-            label=f"usgs (Mw={Mwusgs:.2f})",
+            label=f"USGS (Mw={Mwusgs:.2f})",
             color="k",
             linestyle="--",
         )
+
+    ls = ["-", ":", "-."]
+
+    if len(ref_stfs) > 1:
+        for kkk, mrfdata in enumerate(ref_stfs[1:]):
+            mrf_file, mrf_label = mrfdata
+            if not os.path.exists(mrf_file):
+                print(f"Warning: file {mrf_file} does not exist, skipping.")
+                continue
+
+            ext = os.path.splitext(mrf_file.lower())[1]
+            if ext == ".csv":
+                mrf = np.genfromtxt(mrf_file, delimiter=",", skip_header=1)
+            else:
+                mrf = np.loadtxt(mrf_file)
+
+            M0, Mw = computeMw(mrf_label, mrf[:, 0], mrf[:, 1])
+            ax.plot(
+                mrf[:, 0],
+                mrf[:, 1] / 1e19,
+                label=f"{mrf_label} (Mw={Mw:.2f})",
+                color="k",
+                linestyle=ls[kkk % len(ls)],
+            )
 
     selected_rows = result_df[result_df["Mw"] > 6]
     selected_rows = selected_rows.sort_values(
