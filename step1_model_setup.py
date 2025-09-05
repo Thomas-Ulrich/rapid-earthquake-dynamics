@@ -327,10 +327,12 @@ def run_step1():
 
     file_path = "tmp/moment_rate_from_finite_source_file.txt"
     if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
+        # todo: update for possibility of csv MRF
         print(f"{file_path} is empty (static solution?).")
-        assert refMRF != file_path
+        for kkk, MRF_pair in enumerate(processed_MRFs):
+            assert processed_MRFs[kkk][0] != file_path
         assert args.hypocenter != "finite_fault"
-        moment_rate = np.loadtxt(refMRF, skiprows=2)
+        moment_rate = np.loadtxt(processed_MRFs[0][0], skiprows=2)
         with open(file_path, "w") as f:
             np.savetxt(f, moment_rate, fmt="%g")
         print("done copying refMRF to {file_path}")

@@ -159,11 +159,10 @@ def get_parser():
         default=[["auto"]],
         help="""
             One or more reference moment rate functions.
-            
             Each entry can be:
-              - 'auto': download STF from USGS if available, or infer from finite fault model.
+              - 'auto': download STF from USGS if available, or infer
+                 from finite fault model.
               - 'path;label': explicit file with custom legend label.
-
             The first reference is used for model ranking.
             Any additional references are plotted for comparison.
         """,
