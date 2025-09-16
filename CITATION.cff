@@ -1,0 +1,17 @@
+cff-version: 0.2.0
+title: rapid earthquake dynamics
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file, or cite this preprint
+  Ulrich, T., Magen, Y., & Gabriel, A. A. (2025). The complex rupture dynamics of 
+  an oceanic transform fault: supershear rupture and deep slip during the 2024 
+  Mw7.0 Cape Mendocino Earthquake. https://doi.org/10.31223/X5XT7Q
+type: software
+authors:
+  - given-names: Thomas
+    family-names: Ulrich
+repository-code: 'https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics'
+abstract: >-
+  Workflows for automated generation of dynamic rupture scenarios from earthquake 
+  kinematic models, enabling rapid source characterization
+license: MIT
