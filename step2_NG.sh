@@ -26,19 +26,18 @@ get_scaled_walltime_and_ranks() {
   local scale_factor=${2:-120}
   local max_hours=${3:-2}
 
-  local kernel_time=$(grep "Total time spent in compute kernels" ${job1_id}*.out | awk '{print $(12)}')
+  local kernel_time=$(grep "Total time spent in compute kernels" logs/${job1_id}*.out | awk '{print $(12)}')
   if [[ -z "$kernel_time" ]]; then
     echo "Error: Could not extract kernel time from ${job1_id}*.out" >&2
     return 1
   fi
 
-  local candidates=($(seq 24 8 400))
-  local chosen_ranks=400
+  local candidates=($(seq 32 16 416))
+  local chosen_ranks=416
   local walltime=""
   local safety_factor=3
 
   for ranks in "${candidates[@]}"; do
-    # 3.0 is a safety factor
     local target_time=$(echo "$safety_factor * $kernel_time * $scale_factor / ( 2 * $ranks )" | bc)
 
     local hours=$(echo "$target_time/3600" | bc)
@@ -67,7 +66,7 @@ get_scaled_walltime_and_ranks() {
 
 
 PARTITION=test
-export order=4
+export order=5
 
 if [[ -n "$1" ]]; then
   # If argument $1 is given, use it as job ID
@@ -80,8 +79,9 @@ else
   wait_for_job "$job1_id"
 fi
 
+simulation_batch_size=$(python  ${script_dir}/dynworkflow/compute_simulation_batch_size.py | grep "simulation_batch_size=" | cut -d '=' -f2)
 
-read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" 120 2)
+read walltime ranks <<< $(get_scaled_walltime_and_ranks "$job1_id" "$simulation_batch_size" 2)
 echo "Using walltime: $walltime"
 echo "Using ranks: $ranks"
 

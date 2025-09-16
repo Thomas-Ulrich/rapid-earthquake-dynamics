@@ -13,6 +13,7 @@ from dynworkflow import (
     generate_waveform_config_from_usgs,
     vizualizeBoundaryConditions,
     get_repo_info,
+    step1_args,
 )
 from kinematic_models import (
     generate_FL33_input_files,
@@ -37,199 +38,10 @@ def is_slipnear_file(fn):
         return "RECTANGULAR DISLOCATION MODEL" in first_line
 
 
-def get_parser():
-    parser = argparse.ArgumentParser(
-        description="""
-        Automatically set up an ensemble of dynamic rupture models from a kinematic
-        finite fault model.
-
-        You can either:
-        1. Provide all parameters via command-line arguments, or
-        2. Use the --config option to load parameters from a YAML config file.
-        """,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
-    parser.add_argument(
-        "--config",
-        type=str,
-        help="Path to a YAML config file containing all input parameters.",
-    )
-    parser.add_argument(
-        "--CFS_code",
-        type=str,
-        help="""
-        code to add at {{ CFS_code_placeholder }} in
-        dynworkflow/input_files/fault.tmpl.yaml
-        (e.g. for setting-up cohesion and shear stress on receiver faults
-        """,
-    )
-    parser.add_argument(
-        "--custom_setup_files",
-        type=lambda s: s.split(";"),
-        default=[],
-        help="""
-           Semicolon-separated list of files (e.g., material.yaml;data.nc) to
-           overwrite default files in the earthquake setup folder. yaml files
-           will be copied to yaml_files folder. nc files to ASAGI_files folder
-        """,
-    )
-
-    parser.add_argument(
-        "--event_id",
-        type=str,
-        help="""
-        Earthquake event identifier.
-        - If using USGS, this is the event ID (e.g., 'us6000d3zh').
-        - If using a custom model, this can be a local event dictionary name.
-        """,
-    )
-
-    parser.add_argument(
-        "--fault_mesh_size",
-        type=str,
-        default="auto",
-        help="""
-        auto: inferred from fault dimensions
-        else provide a value
-        """,
-    )
-
-    parser.add_argument(
-        "--finite_fault_model",
-        type=str,
-        default="usgs",
-        help="Path to an alternative finite fault model file.",
-    )
-
-    parser.add_argument(
-        "--hypocenter",
-        type=str,
-        default="finite_fault",
-        help="""
-        Specify the hypocenter location. Options:
-        - finite_fault: use the first rupturing point in the finite-fault model.
-        - usgs: use the most recent origin coordinates from the USGS.
-        - lon,lat,depth_km: manually provide coordinates (e.g., '86.08,27.67,15').
-        """,
-    )
-
-    parser.add_argument(
-        "--mesh",
-        type=str,
-        default="auto",
-        help="Path to an alternative mesh file",
-    )
-
-    parser.add_argument(
-        "--mode",
-        choices=["grid_search", "latin_hypercube", "picked_models"],
-        default="grid_search",
-        help="Sampling strategy for DR input generation.",
-    )
-
-    parser.add_argument(
-        "--mu_d",
-        type=float,
-        default=0.2,
-        help="dynamic friction",
-    )
-
-    parser.add_argument(
-        "--mu_delta_min",
-        type=float,
-        default=0.01,
-        help="minimum allowed mu_s - mu_d",
-    )
-
-    parser.add_argument(
-        "--parameters",
-        type=str,
-        default=(
-            "B=0.9,1.0,1.1,1.2 C=0.1,0.2,0.3,0.4,0.5 "
-            "R=0.55,0.6,0.65,0.7,0.8,0.9 cohesion=0.25,1,6"
-        ),
-        help=(
-            "Parameter definitions in 'key=val1,val2 ...' format. "
-            "Separate key-value pairs with spaces. For cohesion, use "
-            "semicolon-separated tuples, with 3 values K0,K1 (MPa) and d_coh (km)"
-            "K(z)  = K0 + K1 max(d-d_coh/d_coh))"
-            "e.g. B=0.2,0.3 C=0.1,0.2,0.3 R=0.7,0.8 cohesion=0.25,0,6;0.3,1,6"
-        ),
-    )
-
-    parser.add_argument(
-        "--projection",
-        type=str,
-        default="auto",
-        help="""
-        Map projection specification.
-        - 'auto': transverse Mercator centered on the USGS first estimated hypocenter.
-        - OR: custom projection string in Proj4 format
-        (e.g., '+proj=utm +zone=33 +datum=WGS84').
-        """,
-    )
-
-    parser.add_argument(
-        "--reference_moment_rate_function",
-        type=str,
-        default="auto",
-        help="""
-        Reference moment rate function (used for model ranking).
-        - 'auto': download STF from USGS if available, or infer from finite fault model.
-        - OR: path to a 2-column STF file in USGS format (2 lines header).
-        """,
-    )
-
-    parser.add_argument(
-        "--regional_seismic_stations",
-        type=str,
-        default="auto",
-        help="""
-        regional seismic stations for validating the models
-        - 'auto': would be automatically determined.
-        - OR: list of coma separated station, e.g.
-        "NC.KRP,BK.SBAR,BK.THOM,BK.DMOR,NC.KMPB,BK.HUNT,BK.ETSL,BK.HALS,BK.MNDO"
-        """,
-    )
-
-    parser.add_argument(
-        "--first_simulation_id",
-        type=int,
-        default=0,
-        help="""
-        first simulation id to be use in the ensemble
-        """,
-    )
-
-    parser.add_argument(
-        "--tmax",
-        type=float,
-        default=None,
-        help="""
-        Maximum rupture time in seconds.
-        Slip contributions with t_rupt > tmax will be ignored.
-        """,
-    )
-
-    parser.add_argument(
-        "--velocity_model",
-        type=str,
-        default="auto",
-        help="""
-        Velocity model to use.
-        - 'auto': choose based on finite fault model (e.g., Slipnear or USGS).
-        - 'usgs': extract from the USGS FSP file.
-        - OR: provide a velocity model in Axitra format.
-        """,
-    )
-
-    return parser
-
-
 def copy_files(overwrite_files, setup_dir):
     yaml_dir = os.path.join(setup_dir, "yaml_files")
     nc_dir = os.path.join(setup_dir, "ASAGI_files")
+    tmp_dir = os.path.join(setup_dir, "tmp")
 
     os.makedirs(yaml_dir, exist_ok=True)
     os.makedirs(nc_dir, exist_ok=True)
@@ -245,6 +57,11 @@ def copy_files(overwrite_files, setup_dir):
                 dest = Path(yaml_dir) / path.name
             elif ext == ".nc":
                 dest = Path(nc_dir) / path.name
+            elif ext == ".txt":
+                dest = Path(tmp_dir) / path.name
+            elif ext == ".csv":
+                # offset file
+                dest = Path(setup_dir) / path.name
             else:
                 raise ValueError(f"Skipping unsupported file type: {path}")
 
@@ -264,8 +81,7 @@ def copy_files(overwrite_files, setup_dir):
 
 
 def process_parser():
-    parser = get_parser()
-    args = parser.parse_args()
+    args = step1_args.get_args()
 
     if args.config:
         # First, keep the defaults from argparse
@@ -306,17 +122,41 @@ def run_step1():
         sys.exit(1)
 
     args = process_parser()
-    custom_setup_files = [os.path.abspath(file) for file in args.custom_setup_files]
 
-    if args.CFS_code:
-        CFS_code = os.path.abspath(args.CFS_code)
+    assert args.terminator.lower() in ["auto", "true", "false"], (
+        f"Invalid value for --terminator: {args.terminator}."
+        " Must be 'auto', 'True', or 'False'."
+    )
+    if args.seissol_end_time != "auto":
+        try:
+            float(args.seissol_end_time)
+        except ValueError:
+            raise ValueError(
+                (
+                    "Invalid value for --seissol_end_time: "
+                    f"'{args.seissol_end_time}'. Must be 'auto' or a float."
+                )
+            )
+
+    fault_ref_args = list(map(float, args.fault_reference.split(",")))
+    assert len(fault_ref_args) == 4
+    assert int(fault_ref_args[3]) in [0, 1]
+
+    custom_setup_files = [os.path.abspath(file) for file in args.custom_setup_files]
 
     vel_model = args.velocity_model
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
-    refMRF = args.reference_moment_rate_function
-    if refMRF not in ["auto"]:
-        refMRF = os.path.abspath(refMRF)
+
+    processed_MRFs = []
+    for mrf in args.reference_moment_rate_functions:
+        if mrf[0] == "auto":
+            processed_MRFs.append(mrf)
+        else:
+            mrf_file, mrf_label = mrf
+            mrf_file = os.path.abspath(mrf_file)
+            processed_MRFs.append((mrf_file, mrf_label))
+
     finite_fault_model = args.finite_fault_model
 
     suffix = ""
@@ -342,31 +182,70 @@ def run_step1():
     repo_info = get_repo_info.get_repo_info()
     derived_config["repository"] = repo_info
 
+    fault_receiver_file = None
+    if args.fault_receiver_file:
+        fault_receiver_file = str(Path(args.fault_receiver_file).resolve())
+
+    template_folder = None
+    if args.template_folder:
+        template_folder = str(Path(args.template_folder).resolve())
+
     if args.hypocenter not in ["usgs", "finite_fault"]:
         hypocenter = [float(v) for v in args.hypocenter.strip().split(",")]
         assert len(hypocenter) == 3
         derived_config["hypocenter"] = hypocenter
 
+    allowed_gof_components = {
+        "slip_distribution",
+        "teleseismic_body_wf",
+        "teleseismic_surface_wf",
+        "regional_wf",
+        "moment_rate_function",
+        "fault_offsets",
+        "seismic_moment",
+        "slip_rate",
+    }
+    gof_components = [v.strip() for v in args.gof_components.strip().split(",")]
+    for comp in gof_components:
+        comp_name = comp.split()[0]
+        if comp_name not in allowed_gof_components:
+            raise ValueError(
+                f"gof_component: {comp_name} not in {allowed_gof_components}"
+            )
+
     os.chdir(derived_config["folder_name"])
+
+    if args.fault_receiver_file:
+        derived_config["fault_output_type"] = 5
+        derived_config["fault_receiver_file"] = shutil.copy(fault_receiver_file, "tmp")
+    else:
+        derived_config["fault_output_type"] = 4
+        derived_config["fault_receiver_file"] = ""
+
+    if args.template_folder:
+        os.makedirs("templates", exist_ok=True)
+        for tmpl_file in glob.glob(os.path.join(template_folder, "*.tmpl.*")):
+            shutil.copy2(tmpl_file, "templates")
+
     input_config = vars(args)
     save_config(input_config, "input_config.yaml")
 
-    refMRFfile = ""
-    print(refMRF)
-    if refMRF == "auto":
-        if finite_fault_model == "usgs":
-            refMRFfile = "tmp/moment_rate.mr"
+    for kkk, MRF_pair in enumerate(processed_MRFs):
+        if MRF_pair[0] == "auto":
+            if finite_fault_model == "usgs":
+                processed_MRFs[kkk] = ["tmp/moment_rate.mr", "USGS"]
+            else:
+                processed_MRFs[kkk] = [
+                    "tmp/moment_rate_from_finite_source_file.txt",
+                    "finite source model",
+                ]
         else:
-            refMRFfile = "tmp/moment_rate_from_finite_source_file.txt"
-    elif os.path.exists(refMRF):
-        # test loading
-        np.loadtxt(refMRF, skiprows=2)
-        refMRFfile = os.path.join("tmp", refMRF)
-        refMRFfile = shutil.copy(refMRF, "tmp")
-    else:
-        raise FileNotFoundError(f"{refMRF} does not exists")
+            mrf_file, label = MRF_pair
+            copied_file = shutil.copy(mrf_file, "tmp")
+            processed_MRFs[kkk] = [copied_file, label]
 
-    derived_config["reference_STF"] = refMRFfile
+    derived_config["reference_STFs"] = processed_MRFs
+
     derived_config["first_simulation_id"] = args.first_simulation_id
     projection = args.projection
     if projection == "auto":
@@ -419,7 +298,10 @@ def run_step1():
 
     if args.mesh == "auto":
         generate_mesh.generate(
-            h_domain=20e3, h_fault=fault_mesh_size, interactive=False
+            h_domain=20e3,
+            h_fault=fault_mesh_size,
+            interactive=False,
+            vertex_union_tolerance=args.gmsh_vertex_union_tolerance,
         )
         result = os.system("pumgen -s msh4 tmp/mesh.msh")
         if result != 0:
@@ -430,16 +312,10 @@ def run_step1():
         mesh_xdmf_file = args.mesh.split("puml.h5")[0] + ".xdmf"
         shutil.copy(mesh_xdmf_file, "tmp")
 
-    if args.CFS_code:
-        CFS_code = shutil.copy(CFS_code, "tmp")
-        derived_config["CFS_code"] = CFS_code
-
     derived_config |= {
         "mesh_file": mesh_file,
         "spatial_zoom": spatial_zoom,
         "fault_mesh_size": fault_mesh_size,
-        "mu_delta_min": input_config["mu_delta_min"],
-        "mu_d": input_config["mu_d"],
         "number_of_segments": number_of_segments,
     }
     save_config(derived_config, "derived_config.yaml")
@@ -451,16 +327,19 @@ def run_step1():
 
     file_path = "tmp/moment_rate_from_finite_source_file.txt"
     if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
+        # todo: update for possibility of csv MRF
         print(f"{file_path} is empty (static solution?).")
-        assert refMRF != file_path
+        for kkk, MRF_pair in enumerate(processed_MRFs):
+            assert processed_MRFs[kkk][0] != file_path
         assert args.hypocenter != "finite_fault"
-        moment_rate = np.loadtxt(refMRF, skiprows=2)
+        moment_rate = np.loadtxt(processed_MRFs[0][0], skiprows=2)
         with open(file_path, "w") as f:
             np.savetxt(f, moment_rate, fmt="%g")
         print("done copying refMRF to {file_path}")
 
-    if not os.path.exists("output"):
-        os.makedirs("output")
+    os.makedirs("output", exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
+
     copy_files(custom_setup_files, ".")
 
     print("step1 completed")
@@ -473,6 +352,7 @@ def select_station_and_download_waveforms():
         config_dict = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]
     regional_seismic_stations = config_dict["regional_seismic_stations"]
+    teleseismic_stations = config_dict["teleseismic_stations"]
     if mesh_file == "auto":
         mesh_xdmf_file = "tmp/mesh.xdmf"
     else:
@@ -495,7 +375,9 @@ def select_station_and_download_waveforms():
         0.5,
     )
     generate_waveform_config_from_usgs.generate_waveform_config_file(
-        stations=regional_seismic_stations, ignore_source_files=True
+        regional_stations=regional_seismic_stations,
+        teleseismic_stations=teleseismic_stations,
+        ignore_source_files=True,
     )
 
     if regional_seismic_stations == "auto":
@@ -504,17 +386,21 @@ def select_station_and_download_waveforms():
                 current_script_dir,
                 "submodules/seismic-waveform-factory/scripts/select_stations.py",
             ),
-            "waveforms_config.ini",
+            "waveforms_config_regional.ini",
             "14",
             "7",
         ]
         subprocess.run(command, check=True)
         print(
             "Done selecting stations. If you are not satisfied, change "
-            "waveforms_config.ini and rerun:"
+            "waveforms_config_regional.ini and rerun:"
         )
         scommand = " ".join(command)
         print(f"{scommand}")
+    if teleseismic_stations == "auto":
+        raise NotImplementedError("please specify manually teleseismic stations")
+    if mesh_file != "auto":
+        print("custom mesh: did you think of placing receiver according to topography?")
 
 
 if __name__ == "__main__":

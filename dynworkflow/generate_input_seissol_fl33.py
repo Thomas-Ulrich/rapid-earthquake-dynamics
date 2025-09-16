@@ -13,10 +13,19 @@ import yaml
 
 
 def generate():
+    with open("derived_config.yaml", "r") as f:
+        config_dict = yaml.safe_load(f)
+    with open("input_config.yaml", "r") as f:
+        input_config = yaml.safe_load(f)
+
     # Get the directory of the script
     script_path = os.path.abspath(__file__)
     script_directory = os.path.dirname(script_path)
     input_file_dir = f"{script_directory}/input_files"
+
+    if "template_folder" in input_config.keys():
+        input_file_dir = ["templates", input_file_dir]
+
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
 
@@ -44,11 +53,16 @@ def generate():
     template_par = {}
     # well in theory we would need to run for end_time, but practically
     # a portion of it may be sufficient
-    template_par["end_time"] = max(25.0, 0.6 * end_time)
+    template_par["end_time"] = max(30.0, 0.6 * end_time)
     template_par["material_fname"] = "yaml_files/material.yaml"
 
-    with open("derived_config.yaml", "r") as f:
-        config_dict = yaml.safe_load(f)
+    fault_ref_args = list(map(float, input_config["fault_reference"].split(",")))
+    ref_x, ref_y, ref_z, ref_method = fault_ref_args
+    template_par["ref_x"] = ref_x
+    template_par["ref_y"] = ref_y
+    template_par["ref_z"] = ref_z
+    template_par["ref_method"] = int(ref_method)
+
     mesh_file = config_dict["mesh_file"]
     template_par["mesh_file"] = mesh_file
 

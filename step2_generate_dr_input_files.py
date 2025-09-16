@@ -24,16 +24,30 @@ if __name__ == "__main__":
         config_dict = yaml.safe_load(f)
     fault_mesh_size = config_dict["fault_mesh_size"]
 
-    fl33_file = "output/fl33-fault.xdmf"
-    if not os.path.exists(fl33_file):
-        fl33_file = "extracted_output/fl33_extracted-fault.xdmf"
+    fl33_file_candidates = [
+        "output_fl33/fl33-fault.xdmf",
+        "output/fl33-fault.xdmf",
+        "extracted_output/fl33_extracted-fault.xdmf",
+    ]
+
+    try:
+        fl33_file = next(f for f in fl33_file_candidates if os.path.exists(f))
+    except StopIteration:
+        raise FileNotFoundError(
+            (
+                "None of the fl33-fault.xdmf files were found "
+                "in the expected directories."
+            )
+        )
 
     project_fault_tractions_onto_asagi_grid.generate_input_files(
         fl33_file,
         fault_mesh_size / 2,
+        7,
         gaussian_kernel=fault_mesh_size,
         taper=None,
         paraview_readable=None,
+        edge_clearance=8,
     )
 
     generate_input_seissol_dr.generate()

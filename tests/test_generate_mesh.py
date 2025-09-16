@@ -24,7 +24,9 @@ def test_generate_mesh(mock_input, tmp_path):
 
     try:
         # Act
-        generate(h_domain=20e3, h_fault=20e3, interactive=False)
+        generate(
+            h_domain=20e3, h_fault=20e3, interactive=False, vertex_union_tolerance=500.0
+        )
         assert os.path.exists("tmp/mesh2d.stl")
         assert os.path.exists("tmp/mesh.msh")
     finally:

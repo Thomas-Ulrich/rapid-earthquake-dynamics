@@ -6,8 +6,8 @@
 # Job Name and Files (also --job-name)
 #SBATCH -J aggregated
 #Output and error (also --output, --error):
-#SBATCH -o ./%j.%x.out
-#SBATCH -e ./%j.%x.out
+#SBATCH -o ./logs/%j.%x.out
+#SBATCH -e ./logs/%j.%x.out
 
 #Initial working directory:
 #SBATCH --chdir=./
@@ -25,8 +25,17 @@
 ##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
-# use a number of nodes multiple of 8!
-ndivide=$(( $SLURM_JOB_NUM_NODES / 8 ))
+# use a number of nodes multiple of 16!
+if (( SLURM_JOB_NUM_NODES % 16 != 0 )); then
+    echo "$SLURM_JOB_NUM_NODES not a multiple of 16"
+    exit 1
+fi
+
+if [ "$SLURM_JOB_NUM_NODES" -lt 208 ]; then
+    ndivide=$(( SLURM_JOB_NUM_NODES / 8 ))
+else
+    ndivide=$(( SLURM_JOB_NUM_NODES / 16 ))
+fi
 
 #Run the program:
 export MP_SINGLE_THREAD=no
@@ -74,7 +83,7 @@ for filename in "${files[@]}"; do
     modulo=$(( $counter % $ndivide ))
     counter0=$(printf "%05d" "$counter")
     id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
+    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./logs/$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
  
     # Increment counter
     counter=$((counter + 1))
@@ -102,7 +111,7 @@ for filename in "${files[@]}"; do
         echo "something went wrong? trying rerun seissol with file: $filename"
         modulo=$(( $counter % $ndivide ))
         counter0=$(printf "%05d" "$counter")
-        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
+        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./logs/$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
         counter=$((counter + 1))
     fi
 

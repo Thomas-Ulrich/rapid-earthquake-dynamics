@@ -3,6 +3,8 @@
 MaterialFileName = '{{ material_fname }}'
 numflux = 'rusanov' ! The numerical flux. Values: 'godunov', 'rusanov'
 numfluxnearfault = 'rusanov' ! The numerical flux for faces of cells adjacent to the fault (on cells which have at least one DR face), excluding the DR faces themselves. Values: 'godunov', 'rusanov'
+!1: Compute average materials for each cell, 0: sample material values at element barycenters
+UseCellHomogenizedMaterial = 0
 /
 
 &IniCondition
@@ -15,12 +17,12 @@ FL = 16                                        ! Friction law
 ModelFileName = '{{ fault_fname }}'
 
 !reference vector for defining strike and dip direction
-XRef = -0.1 
-YRef = 0.0
-ZRef = -1.0
-refPointMethod = 1
+XRef = {{ ref_x }}
+YRef = {{ ref_y }}
+ZRef = {{ ref_z }}
+refPointMethod = {{ ref_method }}
 t_0=0.5
-OutputPointType = 4                            ! Type (0: no output, 3: ascii file, 4: paraview file, 5: 3+4)
+OutputPointType = {{ fault_output_type }}   ! Type (0: no output, 3: ascii file, 4: paraview file, 5: 3+4)
 SlipRateOutputType=0        ! 0: (smoother) slip rate output evaluated from the difference between the velocity on both side of the fault
                             ! 1: slip rate output evaluated from the fault tractions and the failure criterion (less smooth but usually more accurate where the rupture front is well developped)
 /
@@ -32,6 +34,13 @@ printtimeinterval_sec = {{ fault_print_time_interval }}      ! Time interval at 
 OutputMask = 1 1 0 1 1 1 1 1 1 1 1             ! turn on and off fault outputs
 refinement_strategy = 2
 refinement = 0
+/
+
+! parameterize ascii fault file outputs
+&Pickpoint
+printtimeinterval = 30       ! Index of printed info at timesteps
+OutputMask = 1 1 1 1 1 1 1 1 1 1 1 1  ! turn on and off fault outputs
+PPFileName = '{{ fault_receiver_file }}'
 /
 
 &SourceType
@@ -82,7 +91,7 @@ EnergyOutput = 1 ! Computation of energy, written in csv file
 EnergyTerminalOutput = 1 ! Write energy to standard output
 EnergyOutputInterval = 0.25
 
-ReceiverOutput = 0
+ReceiverOutput = {{ enable_receiver_output }}
 RFileName = 'tmp/seissol_station_5.txt'
 pickdt = 0.05
 ReceiverOutputInterval = 5
@@ -92,6 +101,8 @@ ReceiverOutputInterval = 5
 EndTime = {{ end_time }}
 terminatorMaxTimePostRupture = 5.0   ! Stops SeisSol x sec after slip rate everywhere on the fault or seismic moment rate is below
                                      ! the given threshold
+terminatorSlipRateThreshold = -10.0  ! Slip rate threshold for the above criteria (the proposed value should filter out locally high SR
+                                     ! in "creeping" fronts (numerical artifacts when rupture dies out).
 terminatorMomentRateThreshold = {{ terminatorMomentRateThreshold }} ! Seismic moment rate threshold for the above criteria
 /
 

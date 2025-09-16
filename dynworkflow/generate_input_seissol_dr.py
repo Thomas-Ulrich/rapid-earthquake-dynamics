@@ -12,6 +12,7 @@ from scipy.stats import qmc
 import random
 import itertools
 from dynworkflow.compile_scenario_macro_properties import infer_duration
+from dynworkflow import step1_args
 import seissolxdmf as sx
 from pyproj import Transformer
 import yaml
@@ -31,6 +32,7 @@ def compute_max_slip(fn):
 
 
 def parse_parameter_string(param_str):
+    param_str = param_str.replace("_", "")
     input_config = {}
     for match in re.finditer(r"(\w+)=([^\s]+)", param_str):
         key, val = match.group(1), match.group(2)
@@ -55,33 +57,29 @@ def render_file(templateEnv, template_par, template_fname, out_fname, verbose=Tr
 
 def generate_param_df(input_config, number_of_segments, first_simulation_id):
     mode = input_config["mode"]
-    if "C" in input_config:
-        Cname = "C"
-        C_values = input_config["C"]
-    elif "d_c" in input_config:
-        Cname = "dc"
-        C_values = input_config["d_c"]
-    else:
+    parameters_structured = input_config["parameters_structured"]
+    names = sorted(parameters_structured.keys())
+    names_no_cohesion = [name for name in names if name != "cohesion"]
+
+    if ("C" not in names) and ("dc" not in names):
         raise ValueError("nor C nor d_c given in parameters")
-    if ("C" in input_config) and ("d_c" in input_config):
+    if ("C" in names) and ("d_c" in names):
         raise ValueError("both C and d_c given in parameters")
 
-    B_values = input_config["B"]
-    R_values = input_config["R"]
-
-    cohesion_values = input_config["cohesion"]
+    cohesion_values = parameters_structured["cohesion"]
     cohesion_ids = list(range(len(cohesion_values)))
 
     if mode == "latin_hypercube":
-        R0, R1 = min(R_values), max(R_values)
-        B0, B1 = min(B_values), max(B_values)
-        C0, C1 = min(C_values), max(C_values)
+        bounds = {}
+        for name in names_no_cohesion:
+            values = parameters_structured[name]
+            bounds[name] = (min(values), max(values))
 
-        l_bounds = [R0, B0, C0]
-        u_bounds = [R1, B1, C1]
+        l_bounds = [bounds[name][0] for name in names_no_cohesion]
+        u_bounds = [bounds[name][1] for name in names_no_cohesion]
 
         # cohesion is fixed in this appraoch
-        cohesion_values = input_config["cohesion"]
+        cohesion_values = parameters_structured["cohesion"]
         assert len(cohesion_values) == 1
 
         if not os.path.exists("tmp/seed.txt"):
@@ -101,23 +99,26 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
         pars = np.around(pars, decimals=3)
         column_of_zeros = np.zeros((1, nsample))
         pars = np.insert(pars, 0, column_of_zeros, axis=1)
-        labels = ["B", Cname, "R"]
+        labels = names_no_cohesion
 
     elif mode == "grid_search":
         use_R_segment_wise = False
 
         if use_R_segment_wise:
-            params = [cohesion_ids, B_values, C_values] + [
-                R_values
-            ] * number_of_segments
-            labels = ["cohesion_idx", "B", Cname] + [
-                f"R_seg{i + 1}" for i in range(number_of_segments)
-            ]
-            assert len(params) == number_of_segments + 3
+            Rvalues = np.array(parameters_structured["R"]).reshape(
+                (number_of_segments, -1)
+            )
+            labels = [name for name in names_no_cohesion if name != "R"]
+            for i in range(number_of_segments):
+                labels.append(f"R_{i + 1}")
+                parameters_structured[f"R_{i + 1}"] = Rvalues[i, :]
+            parameters_structured["cohesion_idx"] = cohesion_ids
+            labels = ["cohesion_idx"] + labels
+            params = [parameters_structured[name] for name in labels]
         else:
-            params = [cohesion_ids, B_values, C_values, R_values]
-            labels = ["cohesion_idx", "B", Cname, "R"]
-            assert len(params) == 4
+            labels = ["cohesion_idx"] + names_no_cohesion.copy()
+            parameters_structured["cohesion_idx"] = cohesion_ids
+            params = [parameters_structured[name] for name in labels]
 
         # Generate all combinations of parameter values
         param_combinations = list(itertools.product(*params))
@@ -125,15 +126,13 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
         # Convert combinations to numpy array and round to desired decimals
         pars = np.around(np.array(param_combinations), decimals=3)
     elif mode == "picked_models":
-        cohesion_values = input_config["cohesion"]
         n = len(cohesion_values)
-        assert len(B_values) == len(C_values) == len(R_values) == n
-        pars = [
-            [i, input_config["B"][i], input_config[Cname][i], input_config["R"][i]]
-            for i in range(n)
-        ]
+        for name in names:
+            assert len(parameters_structured[name]) == n
+        labels = ["cohesion_idx"] + names_no_cohesion.copy()
+        parameters_structured["cohesion_idx"] = cohesion_ids
+        pars = [[parameters_structured[name][i] for name in labels] for i in range(n)]
         pars = np.array(pars)
-        labels = ["cohesion_idx", "B", Cname, "R"]
     else:
         raise NotImplementedError(f"unkown mode {mode}")
 
@@ -183,29 +182,29 @@ def generate_R_yaml_block(Rvalues):
 def extract_template_params(
     i,
     row,
-    Cname,
     cohesion_values,
     hypo,
     max_slip,
-    constant_d_c,
     input_config,
     derived_config,
-    CFS_code_placeholder,
 ):
+    if "C" in row:
+        Cname = "C"
+        C = row[Cname]
+        d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
+    else:
+        Cname = "dc"
+        C = row[Cname]
+        d_c = str(C)
+
     cohi = int(row["cohesion_idx"])
     B = row["B"]
-    C = row[Cname]
-    R = row.drop(["cohesion_idx", "cohesion_value", "B", Cname]).values
 
+    # Extract values for all keys matching "R", "R_1", "R_2", etc.
+    R_values = row[row.index.str.match(r"^R(_\d+)?$")].tolist()
     cohesion_const, cohesion_lin, cohesion_depth = cohesion_values[cohi]
 
-    if constant_d_c:
-        d_c = str(C)
-    else:
-        d_c = f'{C} * math.max({0.15 * max_slip}, x["fault_slip"])'
-
     template_param = {
-        "R_yaml_block": generate_R_yaml_block(R),
         "cohesion_const": cohesion_const * 1e6,
         "cohesion_lin": cohesion_lin * 1e6,
         "cohesion_depth": cohesion_depth * 1e3,
@@ -214,67 +213,95 @@ def extract_template_params(
         "hypo_x": hypo[0],
         "hypo_y": hypo[1],
         "hypo_z": hypo[2],
-        "mu_delta_min": input_config["mu_delta_min"],
         "mesh_file": derived_config["mesh_file"],
-        "CFS_code_placeholder": CFS_code_placeholder,
     }
+    if len(R_values) > 0:
+        template_param["R_yaml_block"] = generate_R_yaml_block(R_values)
+        sR = "_".join(map(str, R_values))
+    if "mus" in row:
+        template_param["mu_s"] = row["mus"]
+    if "mud" in row:
+        template_param["mu_d"] = row["mud"]
+    if "sigman" in row:
+        sigma_n = row["sigman"]
+        template_param["sigma_n"] = f"-{sigma_n}e6"
+        row = row.rename({"sigman": "sn"})
 
-    sR = "_".join(map(str, R))
-    code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_B{B}_{Cname}{C}_R{sR}"
+        # Remove R-related keys
+    row_cleaned = row.drop(row.index[row.index.str.match(r"^R(_\d+)?$")]).drop(
+        ["cohesion_value", "cohesion_idx"]
+    )
 
+    code = f"{i:04}_coh{cohesion_const}_{cohesion_lin}_" + "_".join(
+        [f"{var}{val}" for var, val in row_cleaned.items()]
+    )
+    if len(R_values) > 0:
+        code += f"_R{sR}"
     return template_param, code
 
 
 def generate():
+    # load first default arguments for backwards compatibility
+    args = step1_args.get_args()
+    input_config = vars(args)
+
+    with open("input_config.yaml", "r") as f:
+        input_config |= yaml.safe_load(f)
+
     if not os.path.exists("yaml_files"):
         os.makedirs("yaml_files")
 
-    kinmod_fn = "output/dyn-kinmod-fault.xdmf"
-    if not os.path.exists(kinmod_fn):
-        kinmod_fn = "extracted_output/dyn-kinmod_extracted-fault.xdmf"
+    fl33_file_candidates = [
+        "output/dyn-kinmod-fault.xdmf",
+        "extracted_output/dyn-kinmod_extracted-fault.xdmf",
+        "output_fl33/fl33-fault.xdmf",
+        "output/fl33-fault.xdmf",
+        "extracted_output/fl33_extracted-fault.xdmf",
+    ]
+
+    try:
+        kinmod_fn = next(f for f in fl33_file_candidates if os.path.exists(f))
+    except StopIteration:
+        raise FileNotFoundError(
+            (
+                "None of the dyn-kinmod or fl33-fault.xdmf files were found "
+                "in the expected directories."
+            )
+        )
+
     max_slip = compute_max_slip(kinmod_fn)
 
     # Get the directory of the script
     script_path = os.path.abspath(__file__)
     script_directory = os.path.dirname(script_path)
     input_file_dir = f"{script_directory}/input_files"
-    templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
+
+    if "template_folder" in input_config.keys():
+        search_path = ["templates", input_file_dir]
+    else:
+        search_path = input_file_dir
+
+    templateLoader = jinja2.FileSystemLoader(searchpath=search_path)
     templateEnv = jinja2.Environment(loader=templateLoader)
 
-    with open("input_config.yaml", "r") as f:
-        input_config = yaml.safe_load(f)
-    input_config |= parse_parameter_string(input_config["parameters"])
-    cohesion_values = input_config["cohesion"]
+    parameters_structured = parse_parameter_string(input_config["parameters"])
+    input_config["parameters_structured"] = parameters_structured
+    cohesion_values = parameters_structured["cohesion"]
 
     with open("derived_config.yaml", "r") as f:
         derived_config = yaml.safe_load(f)
     number_of_segments = derived_config["number_of_segments"]
     mode = input_config["mode"]
 
-    if "CFS_code" in derived_config:
-        # useful for CFS calculation to set up, fault_tag-wise,
-        # cohesion, T_s and T_d (e.g. for Mendocino)
-
-        CFS_code_fn = derived_config["CFS_code"]
-        with open(CFS_code_fn, "r") as f:
-            CFS_code_placeholder = f.read()
-    else:
-        CFS_code_placeholder = ""
-
     longer_and_more_frequent_output = mode == "picked_models"
 
-    if "C" in input_config:
-        constant_d_c = False
-        Cname = "C"
-    else:
-        constant_d_c = True
-        Cname = "dc"
-
-    first_simulation_id = derived_config["first_simulation_id"]
-    param_df = generate_param_df(input_config, number_of_segments, first_simulation_id)
-    param_df.to_csv("simulation_parameters.csv", index=True, index_label="id")
-
+    first_sim_id = derived_config["first_simulation_id"]
+    param_df = generate_param_df(input_config, number_of_segments, first_sim_id)
+    param_df.to_csv(
+        f"simulation_parameters_{first_sim_id}.csv", index=True, index_label="id"
+    )
     nsample = len(param_df)
+    derived_config["simulation_batch_size"] = nsample
     print(f"parameter space has {nsample} samples")
 
     projection = derived_config["projection"]
@@ -290,55 +317,89 @@ def generate():
     fault_sampling = compute_fault_sampling(kinmod_duration)
 
     list_fault_yaml = []
+    if "mud" in parameters_structured.keys():
+        fn_fault_template = "fault_constant_friction.tmpl.yaml"
+    else:
+        fn_fault_template = "fault.tmpl.yaml"
+    print(fn_fault_template)
 
     for idx, row in param_df.iterrows():
         template_par, code = extract_template_params(
             idx,
             row,
-            Cname,
             cohesion_values,
             hypo,
             max_slip,
-            constant_d_c,
             input_config,
             derived_config,
-            CFS_code_placeholder,
         )
         template_par["r_crit"] = 3000.0
         fn_fault = f"yaml_files/fault_{code}.yaml"
         list_fault_yaml.append(fn_fault)
+        render_file(templateEnv, template_par, fn_fault_template, fn_fault)
 
-        render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
+        if input_config["seissol_end_time"] == "auto":
+            template_par["end_time"] = kinmod_duration + max(
+                20.0, 0.25 * kinmod_duration
+            )
+            use_terminator = True
+        else:
+            template_par["end_time"] = float(input_config["seissol_end_time"])
+            use_terminator = False
+
+        terminator = input_config["terminator"].lower()
+        if terminator != "auto":
+            use_terminator = True if terminator == "true" else False
 
         if longer_and_more_frequent_output:
             template_par["terminatorMomentRateThreshold"] = -1
             template_par["surface_output_interval"] = 1.0
         else:
-            template_par["terminatorMomentRateThreshold"] = 1e17
+            template_par["terminatorMomentRateThreshold"] = (
+                1e17 if use_terminator else -1
+            )
             template_par["surface_output_interval"] = 5.0
-        template_par["end_time"] = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
+
+        if input_config["regional_synthetics_generator"] == "seissol":
+            template_par["enable_receiver_output"] = 1
+        else:
+            template_par["enable_receiver_output"] = 0
+
         template_par["fault_fname"] = fn_fault
         template_par["output_file"] = f"output/dyn_{code}"
         template_par["material_fname"] = "yaml_files/material.yaml"
         template_par["fault_print_time_interval"] = fault_sampling
+
+        fault_ref_args = list(map(float, input_config["fault_reference"].split(",")))
+        ref_x, ref_y, ref_z, ref_method = fault_ref_args
+        template_par["ref_x"] = ref_x
+        template_par["ref_y"] = ref_y
+        template_par["ref_z"] = ref_z
+        template_par["ref_method"] = int(ref_method)
+        template_par["fault_receiver_file"] = derived_config["fault_receiver_file"]
+        template_par["fault_output_type"] = derived_config["fault_output_type"]
+
         fn_param = f"parameters_dyn_{code}.par"
         render_file(templateEnv, template_par, "parameters_dyn.tmpl.par", fn_param)
-
-    template_par = {"mu_d": input_config["mu_d"]}
-    render_file(templateEnv, template_par, "mud.tmpl.yaml", "yaml_files/mud.yaml")
 
     fnames = ["fault_slip.yaml"]
     for fn in fnames:
         shutil.copy(f"{input_file_dir}/{fn}", f"yaml_files/{fn}")
 
-    if os.path.exists("output/fl33-fault.xdmf"):
-        fl33_file = "output/fl33-fault.xdmf"
-    elif os.path.exists("extracted_output/fl33_extracted-fault.xdmf"):
-        fl33_file = "extracted_output/fl33_extracted-fault.xdmf"
-    else:
+    fl33_file_candidates = [
+        "output_fl33/fl33-fault.xdmf",
+        "output/fl33-fault.xdmf",
+        "extracted_output/fl33_extracted-fault.xdmf",
+    ]
+
+    try:
+        fl33_file = next(f for f in fl33_file_candidates if os.path.exists(f))
+    except StopIteration:
         raise FileNotFoundError(
-            "The files output/fl33-fault.xdmf or "
-            "extracted_output/fl33_extracted-fault.xdmf were not found."
+            (
+                "None of the fl33-fault.xdmf files were found "
+                "in the expected directories."
+            )
         )
 
     list_nucleation_size = compute_critical_nucleation(
@@ -350,33 +411,29 @@ def generate():
     )
     print(list_nucleation_size)
 
+    parameter_files = []
     for k, (idx, row) in enumerate(param_df.iterrows()):
+        template_par, code = extract_template_params(
+            idx,
+            row,
+            cohesion_values,
+            hypo,
+            max_slip,
+            input_config,
+            derived_config,
+        )
+        fn_fault = f"yaml_files/fault_{code}.yaml"
+        fn_param = f"parameters_dyn_{code}.par"
         if list_nucleation_size[k]:
-            template_par, code = extract_template_params(
-                idx,
-                row,
-                Cname,
-                cohesion_values,
-                hypo,
-                max_slip,
-                constant_d_c,
-                input_config,
-                derived_config,
-                CFS_code_placeholder,
-            )
             template_par["r_crit"] = list_nucleation_size[k]
-            fn_fault = f"yaml_files/fault_{code}.yaml"
-            render_file(templateEnv, template_par, "fault.tmpl.yaml", fn_fault)
+            render_file(templateEnv, template_par, fn_fault_template, fn_fault)
+            parameter_files.append(fn_param)
         else:
-            fn_param = f"parameters_dyn_{code}.par"
             print(f"removing {fn} and {fn_param} (nucleation too large)")
             os.remove(fn)
             os.remove(fn_param)
 
     # write parts.txt files
-    parameter_files = sorted(
-        [f for f in os.listdir(".") if f.startswith("parameters_dyn")]
-    )
     nfiles = len(parameter_files)
     n = 1
     parts = np.array_split(np.arange(nfiles), n)

@@ -9,9 +9,11 @@ import glob
 import re
 import argparse
 import os
+import pyvista as pv
+import vtk
 
 
-def generate(h_domain, h_fault, interactive):
+def generate(h_domain, h_fault, interactive, vertex_union_tolerance):
     # domain dimensions
     length_added = 200e3
     z0, z1 = -length_added, 0
@@ -34,7 +36,7 @@ def generate(h_domain, h_fault, interactive):
     faults = []
 
     # Function to find nearest point or add a new one
-    def get_point_id(x, y, z, tolerance=500):
+    def get_point_id(x, y, z, tolerance=vertex_union_tolerance):
         # Check if a nearby point exists
         for (ex, ey, ez), point_id in vertex_dict.items():
             dist2 = (x - ex) ** 2 + (y - ey) ** 2 + (z - ez) ** 2
@@ -53,6 +55,9 @@ def generate(h_domain, h_fault, interactive):
     ts_files = sorted(glob.glob("tmp/*.ts"))
     print("generating mesh based on the following ts_files", ts_files)
 
+    fault_meshes = []
+    faces = np.hstack([[3, 0, 1, 2], [3, 0, 2, 3]])
+
     for i, fn in enumerate(ts_files):
         file_vertices = []
         with open(fn, "r") as file:
@@ -66,6 +71,9 @@ def generate(h_domain, h_fault, interactive):
                     # Get or create the point ID and get the actual coordinates used
                     point_id, coords = get_point_id(x, y, z)
                     file_vertices.append(coords)
+
+        fault_mesh = pv.PolyData(file_vertices, faces)
+        fault_meshes.append(fault_mesh)
 
         # Add unique vertices to allv
         allv.extend(file_vertices)
@@ -117,7 +125,6 @@ def generate(h_domain, h_fault, interactive):
     box = gmsh.model.occ.addBox(x0, y0, z0, x1 - x0, y1 - y0, z1 - z0)
 
     gmsh.model.occ.synchronize()
-
     ov, ovv = gmsh.model.occ.fragment([(3, box)], faults)
     gmsh.model.occ.synchronize()
 
@@ -161,27 +168,21 @@ def generate(h_domain, h_fault, interactive):
             tags[5].append(stag)
         else:
             tagged = False
-            for i, fn in enumerate(ts_files):
+            for i, fault_mesh in enumerate(fault_meshes):
                 fault_id = 3 if i == 0 else 64 + i
-                j = i * 4
-                nb_match = 0
-                num_vertices = len(pts)
 
-                for k in range(4):
-                    if j + k < len(allv):  # Ensure index is in bounds
-                        v1 = allv[j + k, :]
-                        dist = np.min(np.linalg.norm(surf_coords - v1, axis=1))
-                        # print(i,k, dist)
-                        if dist < 500:
-                            nb_match += 1
-                if nb_match == num_vertices:
+                ipd = vtk.vtkImplicitPolyDataDistance()
+                ipd.SetInput(fault_mesh)
+
+                distances = np.abs(
+                    np.array([ipd.EvaluateFunction(pt) for pt in surf_coords])
+                )
+                if np.all(distances < vertex_union_tolerance):
                     tags[fault_id].append(stag)
                     tagged = True
                     break
             if not tagged:
-                raise ValueError(
-                    f"surface {stag} could not be tagged, {nb_match}, {surf_coords}"
-                )
+                raise ValueError(f"surface {stag} could not be tagged, {surf_coords}")
     print(tags)
 
     for key in tags.keys():
@@ -228,17 +229,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "--domain_mesh_size",
         help="mesh size in the domain",
-        nargs=1,
         type=float,
-        default=[20000],
+        default=20000,
     )
     parser.add_argument(
         "--fault_mesh_size",
         help="mesh size on the faults",
-        nargs=1,
         type=float,
-        default=[1000],
+        default=1000,
     )
+
+    parser.add_argument(
+        "--vertex_union_tolerance",
+        help="minimum distance below which vertices are merged",
+        type=float,
+        default=500,
+    )
+
     parser.add_argument(
         "--interactive",
         dest="interactive",
@@ -248,6 +255,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    h_domain = args.domain_mesh_size[0]
-    h_fault = args.fault_mesh_size[0]
-    generate(h_domain, h_fault, args.interactive)
+    h_domain = args.domain_mesh_size
+    h_fault = args.fault_mesh_size
+    generate(h_domain, h_fault, args.interactive, args.vertex_union_tolerance)

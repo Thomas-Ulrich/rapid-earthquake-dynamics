@@ -6,8 +6,8 @@
 # Job Name and Files (also --job-name)
 #SBATCH -J gen_dr_input
 #Output and error (also --output, --error):
-#SBATCH -o ./%j.%x.out
-#SBATCH -e ./%j.%x.out
+#SBATCH -o logs/%j.%x.out
+#SBATCH -e logs/%j.%x.out
 
 #Initial working directory:
 #SBATCH --chdir=./
@@ -41,8 +41,5 @@ export SLURM_EAR_LOAD_MPI_VERSION="intel"
 
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
-
-module load seissol/master-intel23-o4-elas-dunav-single-impi
-
 
 srun -u python ../rapid-earthquake-dynamics/step2_generate_dr_input_files.py

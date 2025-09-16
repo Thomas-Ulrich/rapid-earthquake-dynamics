@@ -104,18 +104,29 @@ def multidim_intersect(arr1, arr2):
     return ind1, ind2
 
 
-def l2_norm(areas, q):
-    return np.dot(areas, np.power(q, 2))
+def area_weighted_ssq(areas, q):
+    """Return area-weighted sum of squared values (∑ A_i q_i²)."""
+    return np.dot(areas, q**2)
 
 
 def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     if os.path.exists(args.output_folder):
         args.output_folder += "/"
     fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
-
+    """
+    fault_output_files = [
+        fn for fn in fault_output_files if "dyn-kinmod" not in fn and "fl33" not in fn
+    ]
+    """
     sx_ref = seissolxdmfExtended(reference_model)
-    max_slip = sx_ref.asl.max()
+    slip_threshold = 0.05
+    print(f"using slip threshold of {slip_threshold}m")
+    id_pos = sx_ref.asl > slip_threshold
     areas = sx_ref.compute_areas()
+    areas_pos = areas[id_pos]
+    total_area = areas_pos.sum()
+    ref_rms = np.sqrt(np.dot(areas_pos, sx_ref.asl[id_pos] ** 2) / total_area)
+
     results = {
         "faultfn": [],
         "gof_slip": [],
@@ -124,20 +135,28 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     for fo in tqdm.tqdm(fault_output_files):
         sx = seissolxdmfExtended(fo)
         if sx_ref.geometry.shape[0] != sx.geometry.shape[0]:
-            raise ValueError("meshes don't have the same number of nodes")
+            n_ref = sx_ref.geometry.shape[0]
+            n_cur = sx.geometry.shape[0]
+            raise ValueError(
+                "Mesh node mismatch:\n"
+                f"  Reference model ({reference_model}): {n_ref} nodes\n"
+                f"  Current model ({fo}): {n_cur} nodes\n"
+                "Meshes must have the same number of nodes to compare."
+            )
         ind1, ind2 = multidim_intersect(sx_ref.connect, sx.connect)
-        id_pos = sx_ref.asl[ind1] > 0.05
+        id_pos = sx_ref.asl[ind1] > slip_threshold
         areas_pos = areas[ind1][id_pos]
 
         misfit = (
-            l2_norm(areas_pos, (sx_ref.asl[ind1] - sx.asl[ind2])[id_pos])
-            / areas_pos.sum()
+            area_weighted_ssq(areas_pos, (sx_ref.asl[ind1] - sx.asl[ind2])[id_pos])
+            / total_area
         )
         misfit = np.sqrt(misfit)
-        gof = max(0, 1 - misfit / max_slip)
+        gof = np.exp(-misfit / ref_rms)
         results["faultfn"].append(fo)
         results["gof_slip"].append(gof)
     df = pd.DataFrame(results)
+    pd.set_option("display.max_colwidth", None)
     print(df)
     fname = "gof_slip.pkl"
     df.to_pickle(fname)
@@ -162,4 +181,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     atol = args.atol[0]
+    print(
+        (
+            "computing the gof to the reference fault slip distribution"
+            f" {args.reference_model}..."
+        )
+    )
     compute_gof_fault_slip(args.output_folder, args.reference_model, atol)
