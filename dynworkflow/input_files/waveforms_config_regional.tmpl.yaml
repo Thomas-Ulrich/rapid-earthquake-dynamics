@@ -1,0 +1,51 @@
+general:
+  setup_name: {{ setup_name }}_regional
+  figure_extension: "pdf"
+  font_size: 8
+  line_widths: [1]
+  line_colors: [grey, r, b, pink, g]
+  path_observations: "./observations"
+  fault_file: "output/dyn-kinmod-fault.xdmf"
+  projection: {{ projection }}
+  misfit: "cross-correlation"
+  #misfit: "min_shifted_normalized_rms"
+  client: "iris"
+  hypocenter:
+      lon: {{ lon }}
+      lat: {{ lat }}
+      depth_in_km: {{ depth }}
+      onset: {{ onset }}
+
+synthetics:
+  - type: "seissol"
+    name: "seissol_1"
+    outputs: 
+    outputs: [{{ seissol_outputs }}]
+  - type: "axitra"
+    name: "axitra_1"
+    path:
+      - "/dss/dsshome1/0A/di73yeq4/axitra/MOMENT_DISP_F90_OPENMP/src"
+      - "/export/dump/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
+      - "/home/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
+    fmax: 1.0
+    duration: 200.0
+    velocity_model: "tmp/axitra_velocity_model.txt"
+    source_files: [{{ source_files }}]
+
+waveform_plots:
+  - type: "generic"
+    enabled: true
+    stations: [{{ stations }}]
+    kind: "velocity"
+    synthetics: ["axitra_1"]
+    t_before: 0.0
+    t_after: 150.0
+    normalize: false
+    shift_match_correlation: false
+    filter_tmin: 10.0
+    filter_tmax: 100.0
+    ncol_per_component: 1
+    components:
+      - E
+      - N
+      - Z
