@@ -15,6 +15,9 @@ from dynworkflow import (
     get_repo_info,
     step1_args,
 )
+
+from submodules.seismic-waveform-factory.scripts import select_stations
+
 from kinematic_models import (
     generate_FL33_input_files,
     compute_moment_rate_from_finite_fault_file,
@@ -381,24 +384,31 @@ def select_station_and_download_waveforms():
     )
 
     if regional_seismic_stations == "auto":
-        command = [
-            os.path.join(
-                current_script_dir,
-                "submodules/seismic-waveform-factory/scripts/select_stations.py",
-            ),
-            "waveforms_config_regional.ini",
-            "14",
-            "7",
-        ]
-        subprocess.run(command, check=True)
+        select_station(
+            config_file="waveforms_config_regional.yaml",
+            number_stations=14,
+            closest_stations=7,
+            distance_range=None,
+            channel=None,
+            store_format="mseed",
+            azimuthal=False,
+            station_kind="regional",
+        )
         print(
             "Done selecting stations. If you are not satisfied, change "
-            "waveforms_config_regional.ini and rerun:"
+            "waveforms_config_regional.yaml"
         )
-        scommand = " ".join(command)
-        print(f"{scommand}")
     if teleseismic_stations == "auto":
-        raise NotImplementedError("please specify manually teleseismic stations")
+        select_station(
+            config_file="waveforms_config_teleseismic.yaml",
+            number_stations=10,
+            closest_stations=0,
+            distance_range=None,
+            channel=None,
+            store_format="mseed",
+            azimuthal=True,
+            station_kind="global",
+        )
     if mesh_file != "auto":
         print("custom mesh: did you think of placing receiver according to topography?")
 
