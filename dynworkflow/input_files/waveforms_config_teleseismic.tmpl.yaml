@@ -1,5 +1,5 @@
 general:
-  setup_name: {{ setup_name }}
+  setup_name: {{ setup_name }}_global
   figure_extension: "pdf"
   font_size: 8
   line_widths: [1]
@@ -9,7 +9,7 @@ general:
   projection: {{ projection }}
   misfit: "cross-correlation"
   #misfit: "min_shifted_normalized_rms"
-  client: "iris"
+  client: "earthscope"
   hypocenter:
       lon: {{ lon }}
       lat: {{ lat }}
