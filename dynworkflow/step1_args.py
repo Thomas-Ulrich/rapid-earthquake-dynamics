@@ -86,7 +86,10 @@ def get_parser():
     parser.add_argument(
         "--gof_components",
         type=str,
-        default="slip_distribution,regional_wf,moment_rate_function",
+        default=(
+            "slip_distribution,teleseismic_body_wf,teleseismic_surface_wf,",
+            "regional_wf,moment_rate_function",
+        ),
         help=(
             "Comma-separated list of goodness-of-fit components to use for model "
             "validation. Valid options: slip_distribution, teleseismic_body_wf, "
