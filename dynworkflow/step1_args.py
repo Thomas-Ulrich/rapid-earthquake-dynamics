@@ -88,7 +88,7 @@ def get_parser():
         type=str,
         default=(
             "slip_distribution,teleseismic_body_wf,teleseismic_surface_wf,"
-            "regional_wf,moment_rate_function",
+            "regional_wf,moment_rate_function"
         ),
         help=(
             "Comma-separated list of goodness-of-fit components to use for model "
