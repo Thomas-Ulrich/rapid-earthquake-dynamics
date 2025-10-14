@@ -87,7 +87,7 @@ def get_parser():
         "--gof_components",
         type=str,
         default=(
-            "slip_distribution,teleseismic_body_wf,teleseismic_surface_wf,",
+            "slip_distribution,teleseismic_body_wf,teleseismic_surface_wf,"
             "regional_wf,moment_rate_function",
         ),
         help=(
