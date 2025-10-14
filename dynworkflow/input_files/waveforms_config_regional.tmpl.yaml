@@ -4,7 +4,7 @@ general:
   font_size: 8
   line_widths: [1]
   line_colors: [grey, r, b, pink, g]
-  path_observations: "./observations"
+  path_observations: "./regional_observations"
   fault_file: "output/dyn-kinmod-fault.xdmf"
   projection: {{ projection }}
   misfit: "cross-correlation"
@@ -14,13 +14,12 @@ general:
       lon: {{ lon }}
       lat: {{ lat }}
       depth_in_km: {{ depth }}
-      onset: {{ onset }}
+      onset: "{{ onset }}"
 
 synthetics:
   - type: "seissol"
     name: "seissol_1"
-    outputs: 
-    outputs: [{{ seissol_outputs }}]
+    outputs: []
   - type: "axitra"
     name: "axitra_1"
     path:
@@ -30,7 +29,7 @@ synthetics:
     fmax: 1.0
     duration: 200.0
     velocity_model: "tmp/axitra_velocity_model.txt"
-    source_files: [{{ source_files }}]
+    source_files: []
 
 waveform_plots:
   - type: "generic"
