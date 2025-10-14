@@ -24,7 +24,7 @@ synthetics:
     name: "axitra_1"
     path:
       - "/dss/dsshome1/0A/di73yeq4/axitra/MOMENT_DISP_F90_OPENMP/src"
-      - "/export/dump/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
+      - "/import/cachemiss-dump/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
       - "/home/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
     fmax: 1.0
     duration: 200.0
