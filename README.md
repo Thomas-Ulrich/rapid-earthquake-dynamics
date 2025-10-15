@@ -1,11 +1,11 @@
-[![codecov](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics/branch/main/graph/badge.svg)](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics)
-
 # rapid earthquake dynamics
 
-workflows for automated generation of dynamic rupture scenarios from earthquake kinematic models, enabling rapid source characterization
+[![codecov](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics/branch/main/graph/badge.svg)](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics)
 
+Workflows for automated generation of dynamic rupture scenarios from earthquake
+kinematic models, enabling rapid source characterization.
 
-# Cloning the repository
+## Cloning the repository
 
 ```bash
 git clone --recursive https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics
@@ -14,21 +14,23 @@ git lfs install      # Enables Git LFS support for handling large binary files
 git lfs pull         # Downloads large files tracked by Git LFS (e.g., .h5, .nc)
 ```
 
-# Installing requirements
+## Installing requirements
 
-## easi library with python bindings
+### easi library with python bindings
 
 Install and load the easi library with python binding
 This can be done, e.g. by installing seissol with:
 
 ```bash
-spack install -j 8 seissol@master convergence_order=4 dr_quad_rule=dunavant equations=elastic precision=single ^easi +python
+spack install -j 8 seissol@master convergence_order=4 dr_quad_rule=dunavant \
+    equations=elastic precision=single ^easi +python
 # now create a module:
 spack module tcl refresh $(spack find -d --format "{name}{/hash:5}" seissol)
-module load seissol
+# now add the path to the python_wrapper to the python path, e.g. with:
+export PYTHONPATH=path_to_spack_installation/linux-sles15-skylake_avx512/easi/1.6.1-gcc-15.1.0-efuzmvl/lib/python3.10/site-packages/easilib/cmake/easi/python_wrapper/:$PYTHONPATH
 ```
 
-## other python requirements
+### other python requirements
 
 Then install other requirements:
 
@@ -36,13 +38,13 @@ Then install other requirements:
 python -m pip install -r rapid-earthquake-dynamics/requirements.txt
 ```
 
-## axitra
+### axitra
 
-```
-git clone https://github.com/coutanto/axitra
+```bash
+git clone --branch thomas/build_meson https://github.com/Thomas-Ulrich/axitra
 cd axitra/MOMENT_DISP_F90_OPENMP
 make all python
 ```
 
-Finally update axitra_path in
-https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics/blob/main/dynworkflow/input_files/waveforms_config.tmpl.ini
+Finally update `path` under `synthetics` type `axitra` in:
+[this file](https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics/blob/main/dynworkflow/input_files/waveforms_config_regional.tmpl.yaml)

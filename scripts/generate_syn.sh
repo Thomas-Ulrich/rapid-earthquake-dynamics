@@ -54,5 +54,3 @@ if [ -f waveforms_config_teleseismic_sources.ini ]; then
     $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_teleseismic_sources.ini
 fi
 $script_dir/dynworkflow/compile_scenario_macro_properties.py $output_dir
-
-

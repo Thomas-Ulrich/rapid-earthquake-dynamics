@@ -82,7 +82,7 @@ for current_file in output/dyn_*-energy.csv; do
 done
 wait
 
-mv *_extracted* extracted_output 
+mv *_extracted* extracted_output
 mv *_disp* extracted_output
 mv output/*-*eceiver-* extracted_output
 find . -maxdepth 1 -name "*output/*-receiver-*" -exec mv {} extracted_output \; || echo "No files to move."
@@ -93,7 +93,7 @@ echo "generating point source representation"
 
 proj=$(grep '^projection:' derived_config.yaml | cut -d ':' -f2 | xargs)
 script_dir=../rapid-earthquake-dynamics/
-echo $script_dir   
+echo $script_dir
 
 # Create an indexed list of files
 files=(extracted_output/dyn*-fault.xdmf)

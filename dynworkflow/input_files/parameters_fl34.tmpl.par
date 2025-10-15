@@ -11,7 +11,7 @@ UseCellHomogenizedMaterial = 0
 /
 
 &DynamicRupture
-FL = 34                                        ! Friction law  
+FL = 34                                        ! Friction law
 !0: none, 16:LSW, 103: RS with strong velocity weakening
 !yaml file defining spatial dependance of fault properties
 ModelFileName = 'yaml_files/FL33_34_fault_inst.yaml'
@@ -41,7 +41,7 @@ refinement = 1
 
 &SpongeLayer
 /
-            
+
 &MeshNml
 MeshFile = '{{ mesh_file }}'
 pumlboundaryformat = 'i32'

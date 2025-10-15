@@ -1,5 +1,5 @@
 !Switch
-# smoothed PREM model without 
+# smoothed PREM model without
 [rho, mu, lambda]: !LayeredModel
     map: !AffineMap
       matrix:

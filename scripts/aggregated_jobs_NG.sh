@@ -21,7 +21,7 @@
 #SBATCH --ntasks-per-node=2
 #EAR may impact code performance
 #SBATCH --ear=off
-#SBATCH --partition=general 
+#SBATCH --partition=general
 ##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
@@ -84,10 +84,10 @@ for filename in "${files[@]}"; do
     counter0=$(printf "%05d" "$counter")
     id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
     srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./logs/$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
- 
+
     # Increment counter
     counter=$((counter + 1))
-    
+
     # Ensure we don’t exceed max concurrent jobs
     if (( $counter >= $ndivide )); then
         wait -n  # Wait for the first finished job before launching a new one
@@ -120,5 +120,3 @@ for filename in "${files[@]}"; do
         wait -n  # Wait for the first finished job before launching a new one
     fi
 done
-
-

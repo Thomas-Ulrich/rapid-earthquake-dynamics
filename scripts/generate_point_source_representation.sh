@@ -26,7 +26,7 @@ ulimit -Ss 2097152
 
 proj=$(cat "tmp/projection.txt")
 script_dir=../rapid-earthquake-dynamics/
-echo $script_dir   
+echo $script_dir
 
 # Create an indexed list of files
 files=(extracted_output/dyn*-fault.xdmf)
@@ -37,15 +37,15 @@ echo "Found $num_files files to process."
 counter=0
 for filename in "${files[@]}"; do
     echo "Processing file: $filename"
-    
+
     # Launch task in the background
     srun --nodes=1 -n 1 -c 1 --exclusive --mem-per-cpu 8G \
         $script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py \
         spatial "$filename" 1 tmp/depth_vs_rigidity.txt --DH 10 --proj "${proj}" --NZ 4 &
-    
+
     # Increment counter
     counter=$((counter + 1))
-    
+
     # Wait after every SLURM_NTASKS tasks
     if (( $counter % $SLURM_NTASKS == 0 )); then
         echo "Waiting for batch of $SLURM_NTASKS tasks to finish..."
@@ -60,4 +60,3 @@ wait
 # Collect output after all tasks complete
 mv PointSource* tmp
 echo "All tasks completed!"
-
