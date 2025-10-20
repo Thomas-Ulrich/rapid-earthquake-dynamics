@@ -26,7 +26,7 @@ from config_utils import yaml_dump
 
 
 def update_file(waveform_type="regional"):
-    config_file = f"waveforms_config_{waveform_type}.yaml"
+    config_file = f"waveforms_config_{waveform_type}_sources.yaml"
     cfg = ConfigLoader(config_file, CONFIG_SCHEMA)
 
     # load first default arguments for backwards compatibility
