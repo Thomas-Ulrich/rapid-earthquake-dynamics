@@ -1,8 +1,8 @@
 # External Files from SeisSol
 
-This folder contains files copied from the SeisSol repository.
-url: https://github.com/SeisSol/SeisSol/tree/thomas/automated_DR_workflow/preprocessing/science/kinematic_models
-
+This folder contains files copied from and updated based on the
+[kinematic_models](https://github.com/SeisSol/SeisSol/tree/master/preprocessing/science/kinematic_models)
+subfolder of the SeisSol repository.
 
 ## License
 

@@ -37,7 +37,7 @@
         end
         mu_s = {{ mu_s }}
         mu_d = {{ mu_d }}
-        mu_smax = mu_s 
+        mu_smax = mu_s
 
         -- T_n constant at -40 MPa below ~4km depth (e.g. Suppe, 2014)
         T_n = math.min(-10^6, math.max( {{ sigma_n }}, 0.4*2700*9.8*x['z']))
@@ -65,7 +65,7 @@
           mu_d = mu_d,
           mu_s = mu_s,
           dynamic_strength = - mu_d * T_n - cohesion,
-          static_strength = - mu_s * T_n - cohesion,  
+          static_strength = - mu_s * T_n - cohesion,
           tau_0 = math.sqrt(T_s^2 + T_d^2)
         }
         end

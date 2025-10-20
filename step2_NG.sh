@@ -88,7 +88,7 @@ echo "Using ranks: $ranks"
 job2_id=$(sbatch --partition=$PARTITION ${script_dir}/scripts/job_NG_create_parameters.sh | awk '{print $NF}')
 
 PARTITION=micro
- 
+
 job3_id=$(sbatch --time=$walltime --nodes=$ranks --dependency=afterok:$job2_id ${script_dir}/scripts/aggregated_jobs_NG.sh part_1.txt | awk '{print $NF}')
 job4_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job3_id ${script_dir}/scripts/compact_output_and_generate_PS_NG.sh | awk '{print $NF}')
 job5_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job4_id ${script_dir}/scripts/generate_syn.sh | awk '{print $NF}')

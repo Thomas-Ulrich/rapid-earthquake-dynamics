@@ -74,6 +74,6 @@ for current_file in output/dyn_*-energy.csv; do
 done
 wait
 
-mv *_extracted* extracted_output 
+mv *_extracted* extracted_output
 mv *_disp* extracted_output
 mv output/*-receiver-* extracted_output
