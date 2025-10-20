@@ -28,7 +28,6 @@ module load slurm_setup
 
 #Run the program:
 export MP_SINGLE_THREAD=no
-unset KMP_AFFINITY
 export OMP_NUM_THREADS=46
 export OMP_PLACES="cores(23)"
 #Prevents errors such as experience in Issue #691
@@ -48,7 +47,9 @@ echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
 ORDER=${order:-4}
-module load seissol/1.3.1-intel23-o${ORDER}-elas-dunav-single-impi
+module load seissol/1.3.1-oneapi25-o${ORDER}-elas-dunav-single-impi
+#module load seissol/master-oneapi25-o${ORDER}-elas-dunav-single-impi
+unset KMP_AFFINITY
 
 part_file=$1
 
