@@ -408,7 +408,7 @@ def select_station_and_download_waveforms():
             number_stations=10,
             closest_stations=0,
             distance_range=None,
-            channel="*",
+            channel="B*",
             store_format="mseed",
             azimuthal=True,
             station_kind="global",
