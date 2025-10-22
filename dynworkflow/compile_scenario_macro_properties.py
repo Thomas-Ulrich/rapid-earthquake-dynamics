@@ -52,7 +52,7 @@ def computeMw(label, time, moment_rate):
 
 def plot_gof_xy(df, gof1, gof2):
     if gof1 in df.keys() and gof2 in df.keys():
-        print("skipping plot_gof_xy with {gof1} {gof2} as not found in {df.keys()}")
+        print(f"skipping plot_gof_xy with {gof1} {gof2} as not found in {df.keys()}")
         return
 
     # Plot
@@ -165,7 +165,7 @@ def generate_XY_panel(
         label = "gof moment rate function"
     elif name_col == "gof_M0":
         label = "gof seismic moment"
-    elif name_col == "gof_tel_wf":
+    elif name_col == "gof_body_wf":
         label = "gof teleseismic waveforms"
     elif name_col == "gof_reg":
         label = "gof regional waveforms"
@@ -395,28 +395,31 @@ if __name__ == "__main__":
     parameter_names = [name for name in parameter_names if name != "cohesion"]
     parameter_names_with_coh = ["coh"] + parameter_names
 
-    gof_components = input_config_dict["gof_components"].strip().split(",")
-    gof_weights = {}
-    for i, comp_and_weight in enumerate(gof_components):
-        parts = comp_and_weight.split()
-        if len(parts) > 2:
-            raise ValueError("did not understand format of gof_component: {comp}")
-        elif len(parts) == 2:
-            comp = parts[0]
-            gof_weights[comp] = float(parts[1])
-        elif len(parts) == 1:
-            gof_weights[comp_and_weight] = 1.0
+    def unpack_gof_components_and_weights(gof_components_descr):
+        gof_components = gof_components_descr.strip().split(",")
+        gof_weights = {}
+        for i, comp_and_weight in enumerate(gof_components):
+            parts = comp_and_weight.split()
+            if len(parts) > 2:
+                raise ValueError("did not understand format of gof_component: {comp}")
+            elif len(parts) == 2:
+                comp = parts[0]
+                gof_weights[comp] = float(parts[1])
+            elif len(parts) == 1:
+                gof_weights[comp_and_weight] = 1.0
+        # Normalize the weights so they sum to 1
+        total_weight = sum(gof_weights.values())
+        gof_weights = {k: v / total_weight for k, v in gof_weights.items()}
+        return gof_weights
 
+    gof_weights = unpack_gof_components_and_weights(input_config_dict["gof_components"])
     gof_components = gof_weights.keys()
-    # Normalize the weights so they sum to 1
-    total_weight = sum(gof_weights.values())
-    gof_weights = {k: v / total_weight for k, v in gof_weights.items()}
     print(gof_weights)
 
     gof_component_to_name = {}
     gof_component_to_name["slip_distribution"] = "gof_slip"
-    gof_component_to_name["teleseismic_body_wf"] = "gof_tel"
-    gof_component_to_name["teleseismic_surface_wf"] = "gof_sw"
+    gof_component_to_name["teleseismic_body_wf"] = "gof_body_wf"
+    gof_component_to_name["teleseismic_surface_wf"] = "gof_surf_wf"
     gof_component_to_name["regional_wf"] = "gof_reg"
     gof_component_to_name["moment_rate_function"] = "gof_MRF"
     gof_component_to_name["fault_offsets"] = "gof_offsets"
@@ -604,6 +607,7 @@ if __name__ == "__main__":
     fn = "rms_slip_rate.csv"
     if os.path.exists(fn):
         gofa = pd.read_csv(fn, sep=",")
+
         gofa["sim_id"] = (
             gofa["fault_receiver_fname"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
         )
@@ -622,58 +626,68 @@ if __name__ == "__main__":
     else:
         print(f"{pkl_file} could not be found")
 
-    for waveform_type in ["regional", "teleseismic"]:
-        fname = f"gof_{waveform_type}_waveforms_average.pkl"
-        print(fname)
-        if os.path.exists(fname):
+    def compute_weighted_wf_gof(gof_df, gof_wf_weights, gof_name):
+        df_all = None
+        for pattern, weight in gof_wf_weights.items():
+            # Filter for the pattern
+            df_pattern = gof_df[gof_df["gofa_name"].str.contains(rf"{pattern}\d+")]
+            assert not df_pattern.empty
+
+            # Rename 'gofa' column to keep it separate
+            df_pattern = df_pattern.rename(columns={"gofa": f"gofa_{pattern}"})
+
+            # Merge on 'sim_id'
+            if df_all is None:
+                df_all = df_pattern
+            else:
+                df_all = pd.merge(df_all, df_pattern, on="sim_id", how="outer")
+
+        # Compute weighted sum
+        weighted_cols = [f"gofa_{pattern}" for pattern in gof_wf_weights]
+        df_all[gof_name] = sum(
+            df_all[col] * gof_wf_weights[pattern]
+            for col, pattern in zip(weighted_cols, gof_wf_weights)
+        )
+        return df_all[[gof_name, "sim_id"]]
+
+    # read weights
+    gof_weights_reg = unpack_gof_components_and_weights(
+        input_config_dict["regional_wf_components"]
+    )
+    gof_weights_body = unpack_gof_components_and_weights(
+        input_config_dict["teleseismic_body_wf_components"]
+    )
+    gof_weights_surf = unpack_gof_components_and_weights(
+        input_config_dict["teleseismic_surface_wf_components"]
+    )
+
+    for waveform_type in ["regional", "global"]:
+        pattern = f"gof_*_{waveform_type}_waveforms_average.pkl"
+        matching_files = glob.glob(pattern)
+        if len(matching_files) > 0:
+            fname = matching_files[0]
             print(f"{fname} detected: merging with results dataframe")
             gofa = pickle.load(open(fname, "rb"))
-            gofa = gofa[~gofa["source_file"].str.contains(r"kinmod")]
-            gofa["sim_id"] = (
-                gofa["source_file"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
-            )
+            gofa = gofa[~gofa["src"].str.contains(r"kinmod")]
+
             if waveform_type == "regional":
-                patterns = [
-                    r"generic_ENZ",
-                    r"surface_waves_ENZ\d+",
-                    # example only the N component is plotted
-                    r"generic_",
-                    r"surface_waves_.*",
-                ]
-
-                for pattern in patterns:
-                    filtered = gofa[gofa["gofa_name"].str.contains(pattern, regex=True)]
-                    if not filtered.empty:
-                        gofa = filtered
-                        break
-
-                gofa = gofa[["gofa", "sim_id"]]
-                gofa = gofa.rename(columns={"gofa": "gof_reg"})
+                processed_gof = compute_weighted_wf_gof(
+                    gofa, gof_weights_reg, "gof_reg"
+                )
+                result_df = pd.merge(result_df, processed_gof, on="sim_id", how="left")
             else:
-                gofaP = gofa[gofa["gofa_name"].str.contains(r"P_Z\d+")]
-                gofaP = gofaP.rename(columns={"gofa": "gof_P"})
-                # print(gofaP)
-                gofaSH = gofa[gofa["gofa_name"].str.contains(r"SH_T\d+")]
-                gofaSH = gofaSH.rename(columns={"gofa": "gof_SH"})
-                gofaP = pd.merge(gofaP, gofaSH, on="sim_id")
+                processed_gof = compute_weighted_wf_gof(
+                    gofa, gof_weights_body, "gof_body_wf"
+                )
+                result_df = pd.merge(result_df, processed_gof, on="sim_id", how="left")
+                processed_gof = compute_weighted_wf_gof(
+                    gofa, gof_weights_surf, "gof_surf_wf"
+                )
+                result_df = pd.merge(result_df, processed_gof, on="sim_id", how="left")
 
-                gofaSW = gofa[gofa["gofa_name"].str.contains(r"generic_ENZ\d+")]
-                gofaSW = gofaSW.rename(columns={"gofa": "gof_sw"})
-                if not gofaSW.empty:
-                    gofaP = pd.merge(gofaP, gofaSW, on="sim_id")
-
-                # 50% weight for SH (as in wasp)
-                gofaP["gof_tel_wf"] = (gofaP["gof_P"] + 0.5 * gofaP["gof_SH"]) / 1.5
-                if gofaSW.empty:
-                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "sim_id"]]
-                else:
-                    gofa = gofaP[["gof_P", "gof_SH", "gof_tel_wf", "gof_sw", "sim_id"]]
-            # merge the two DataFrames by sim_id
-            result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
-
-    if "gof_tel_wf" in result_df.keys():
-        plot_gof_xy(result_df, "gof_tel_wf", "gof_MRF")
-        plot_gof_xy(result_df, "gof_tel_wf", "duration")
+    if "gof_body_wf" in result_df.keys():
+        plot_gof_xy(result_df, "gof_body_wf", "gof_MRF")
+        plot_gof_xy(result_df, "gof_body_wf", "duration")
 
     result_df = result_df[sorted(result_df.columns)]
     result_df["combined_gof"] = 0.0
@@ -687,8 +701,8 @@ if __name__ == "__main__":
             component_used[comp] = gof_weights[comp]
         else:
             Warning(
-                "{comp} given in 'gof_components' ({gof_components})"
-                "but {col_name} not found in result_df"
+                f"{comp} given in 'gof_components' ({gof_components})"
+                f"but {col_name} not found in result_df"
             )
     if sum_weights != 0.0:
         result_df["combined_gof"] /= sum_weights
@@ -876,3 +890,9 @@ if __name__ == "__main__":
     full_path = os.path.abspath(fn)
     print(f"full path: {full_path}")
     print(f"components used for combined_gof: {component_used}")
+    if "regional_wf" in component_used.keys():
+        print(f"components used for regional_wf: {gof_weights_reg}")
+    if "teleseismic_body_wf" in component_used.keys():
+        print(f"components used for teleseismic_body_wf: {gof_weights_body}")
+    if "teleseismic_surface_wf" in component_used.keys():
+        print(f"components used for teleseismic_surface_wf: {gof_weights_surf}")
