@@ -16,6 +16,7 @@ from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
 from cmcrameri import cm
 import pickle
+import step1_args
 
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
@@ -347,6 +348,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    args.nmin = min(args.nmin, args.nmax)
 
     ps = args.font_size[0]
     matplotlib.rcParams.update({"font.size": ps})
@@ -387,8 +389,11 @@ if __name__ == "__main__":
 
     fn = "tmp/reference_STF.txt"
 
+    # load first default arguments for backwards compatibility
+    input_config_dict = vars(step1_args.get_args())
+
     with open("input_config.yaml", "r") as f:
-        input_config_dict = yaml.safe_load(f)
+        input_config_dict |= yaml.safe_load(f)
 
     parameters_structured = parse_parameter_string(input_config_dict["parameters"])
     parameter_names = list(parameters_structured.keys())
