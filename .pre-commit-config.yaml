@@ -14,7 +14,10 @@ repos:
       name: '[GENERIC] detect OS file naming case conflicts'
     - id: check-executables-have-shebangs
       name: '[GENERIC] check for shebangs in executable files'
-
+    - id: check-illegal-windows-names
+      name: '[GENERIC] detect illegal Windows file names'
+    - id: check-yaml
+      name: '[YAML] check'
 
   - repo: https://github.com/psf/black
     rev: 22.10.0
@@ -28,7 +31,7 @@ repos:
     - id: flake8
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.13.0
+    rev: v0.18.1
     hooks:
     - id: markdownlint-cli2
       name: '[MARKDOWN] lint'
