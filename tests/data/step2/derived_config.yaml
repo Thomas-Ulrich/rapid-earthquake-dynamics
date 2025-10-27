@@ -25,5 +25,5 @@ repository:
   owner: Thomas-Ulrich
   repo: rapid-earthquake-dynamics
 spatial_zoom: 3
-fault_receiver_file: 
+fault_receiver_file:
 fault_output_type: 4

@@ -60,15 +60,19 @@ def generate_waveform_config_file(
     }
 
     if not ignore_source_files:
-        point_source_files = ",".join(sorted(glob.glob("tmp/PointSou*.h5")))
+        point_source_files = ", ".join(sorted(glob.glob("tmp/PointSou*.h5")))
         template_par["source_files"] = point_source_files
     else:
+        template_par["source_files"] = ""
+        template_par["seissol_outputs"] = ""
+        """
         template_par[
             "source_files"
         ] = "{{ source_files | default('{{ source_files }}', true) }}"
         template_par[
             "seissol_outputs"
         ] = "{{ seissol_outputs | default('{{ seissol_outputs }}', true) }}"
+        """
 
     def render_file(template_par, template_fname, out_fname, verbose=True):
         template = templateEnv.get_template(template_fname)
@@ -82,13 +86,11 @@ def generate_waveform_config_file(
         ("regional", regional_stations),
         ("teleseismic", teleseismic_stations),
     ]:
-        template_par["stations"] = (
-            "{{ stations }}" if user_stations == "auto" else user_stations
-        )
+        template_par["stations"] = "" if user_stations == "auto" else user_stations
         render_file(
             template_par,
-            f"waveforms_config_{name}.tmpl.ini",
-            f"waveforms_config_{name}.ini",
+            f"waveforms_config_{name}.tmpl.yaml",
+            f"waveforms_config_{name}.yaml",
         )
 
 

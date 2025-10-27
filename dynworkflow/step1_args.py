@@ -86,7 +86,10 @@ def get_parser():
     parser.add_argument(
         "--gof_components",
         type=str,
-        default="slip_distribution,regional_wf,moment_rate_function",
+        default=(
+            "slip_distribution,teleseismic_body_wf,teleseismic_surface_wf,"
+            "regional_wf,moment_rate_function"
+        ),
         help=(
             "Comma-separated list of goodness-of-fit components to use for model "
             "validation. Valid options: slip_distribution, teleseismic_body_wf, "
@@ -95,6 +98,41 @@ def get_parser():
             "An optional weight can be assigned to each component (default is 1.0). "
             "Example: 'slip_distribution 2.0, teleseismic_body_wf' will assign double "
             "the weight to slip_distribution compared to teleseismic_body_wf."
+        ),
+    )
+    parser.add_argument(
+        "--regional_wf_components",
+        type=str,
+        default="g0_ENZ",
+        help=(
+            "Comma-separated list of regional waveform components used to compute "
+            "the aggregated goodness-of-fit. "
+            "Each component can optionally be assigned a weight (default weight 1.0). "
+            "Default: 'g0_ENZ' — the three-component GoF from the generic plot panel 0."
+        ),
+    )
+
+    parser.add_argument(
+        "--teleseismic_body_wf_components",
+        type=str,
+        default="p0_Z, s1_T 0.5",
+        help=(
+            "Comma-separated list of teleseismic body-wave components used to compute "
+            "the aggregated goodness-of-fit. "
+            "Each component can optionally be assigned a weight (default weight 1.0). "
+            "Default: 'p0_Z, s1_T 0.5' — P-wave GoF and SH-wave GoF with weight 0.5."
+        ),
+    )
+
+    parser.add_argument(
+        "--teleseismic_surface_wf_components",
+        type=str,
+        default="g2_ENZ",
+        help=(
+            "Comma-separated list of teleseismic surface-wave components used to "
+            "compute the aggregated goodness-of-fit. "
+            "Each component can optionally be assigned a weight (default weight 1.0). "
+            "Default: 'g2_ENZ' — the three-component GoF from the generic plot panel 2."
         ),
     )
 

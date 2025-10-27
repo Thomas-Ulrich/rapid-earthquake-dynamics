@@ -3,33 +3,41 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-from dynworkflow import (
-    get_usgs_finite_fault_data,
-    infer_fault_mesh_size_and_spatial_zoom,
-    modify_FL33_34_fault_instantaneous_slip,
-    generate_mesh,
-    generate_input_seissol_fl33,
-    prepare_velocity_model_files,
-    generate_waveform_config_from_usgs,
-    vizualizeBoundaryConditions,
-    get_repo_info,
-    step1_args,
-)
-from kinematic_models import (
-    generate_FL33_input_files,
-    compute_moment_rate_from_finite_fault_file,
-    generate_fault_output_from_fl33_input_files,
-)
-
 import argparse
+import glob
 import os
 import shutil
 import sys
-import glob
-import subprocess
+from pathlib import Path
+
 import numpy as np
 import yaml
-from pathlib import Path
+from dynworkflow import (
+    generate_input_seissol_fl33,
+    generate_mesh,
+    generate_waveform_config_from_usgs,
+    get_repo_info,
+    get_usgs_finite_fault_data,
+    infer_fault_mesh_size_and_spatial_zoom,
+    modify_FL33_34_fault_instantaneous_slip,
+    prepare_velocity_model_files,
+    step1_args,
+    vizualizeBoundaryConditions,
+)
+from kinematic_models import (
+    compute_moment_rate_from_finite_fault_file,
+    generate_fault_output_from_fl33_input_files,
+    generate_FL33_input_files,
+)
+
+script_dir = (
+    Path(__file__).resolve().parent
+    / "submodules"
+    / "seismic-waveform-factory"
+    / "scripts"
+)
+sys.path.insert(0, str(script_dir))
+from select_stations import select_stations
 
 
 def is_slipnear_file(fn):
@@ -347,7 +355,6 @@ def run_step1():
 
 
 def select_station_and_download_waveforms():
-    current_script_dir = os.path.dirname(os.path.abspath(__file__))
     with open("input_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]
@@ -381,24 +388,31 @@ def select_station_and_download_waveforms():
     )
 
     if regional_seismic_stations == "auto":
-        command = [
-            os.path.join(
-                current_script_dir,
-                "submodules/seismic-waveform-factory/scripts/select_stations.py",
-            ),
-            "waveforms_config_regional.ini",
-            "14",
-            "7",
-        ]
-        subprocess.run(command, check=True)
+        select_stations(
+            config_file="waveforms_config_regional.yaml",
+            number_stations=14,
+            closest_stations=7,
+            distance_range=None,
+            channel="*",
+            store_format="mseed",
+            azimuthal=False,
+            station_kind="regional",
+        )
         print(
             "Done selecting stations. If you are not satisfied, change "
-            "waveforms_config_regional.ini and rerun:"
+            "waveforms_config_regional.yaml"
         )
-        scommand = " ".join(command)
-        print(f"{scommand}")
     if teleseismic_stations == "auto":
-        raise NotImplementedError("please specify manually teleseismic stations")
+        select_stations(
+            config_file="waveforms_config_teleseismic.yaml",
+            number_stations=10,
+            closest_stations=0,
+            distance_range=None,
+            channel="B*",
+            store_format="mseed",
+            azimuthal=True,
+            station_kind="global",
+        )
     if mesh_file != "auto":
         print("custom mesh: did you think of placing receiver according to topography?")
 

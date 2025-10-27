@@ -15,6 +15,6 @@ export SEISSOL_ASAGI_MPI_MODE=OFF
 export OMP_NUM_THREADS=31
 export OMP_PLACES="cores"
 export OMP_PROC_BIND=spread
-export par_file=parameters_fl34.par  
+export par_file=parameters_fl34.par
 
 mpirun -n 2 --map-by ppr:2:numa:pe=$OMP_NUM_THREADS SeisSol_Release_srome_4_elastic $par_file >&1 | tee logs/$par_file.out

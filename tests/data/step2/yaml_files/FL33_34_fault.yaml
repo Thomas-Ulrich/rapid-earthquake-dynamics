@@ -125,4 +125,3 @@
           rake_interp_low_slip = math.pi - x["rake_interp_low_slip"]
           }
         end
-        

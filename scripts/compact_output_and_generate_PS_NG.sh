@@ -82,10 +82,9 @@ for current_file in output/dyn_*-energy.csv; do
 done
 wait
 
-mv *_extracted* extracted_output 
+mv *_extracted* extracted_output
 mv *_disp* extracted_output
-mv output/*-*eceiver-* extracted_output
-find . -maxdepth 1 -name "*output/*-receiver-*" -exec mv {} extracted_output \; || echo "No files to move."
+find . -maxdepth 1 -name "*output/*receiver-*" -exec mv {} extracted_output \; || echo "No files to move."
 wait
 
 
@@ -93,7 +92,7 @@ echo "generating point source representation"
 
 proj=$(grep '^projection:' derived_config.yaml | cut -d ':' -f2 | xargs)
 script_dir=../rapid-earthquake-dynamics/
-echo $script_dir   
+echo $script_dir
 
 # Create an indexed list of files
 files=(extracted_output/dyn*-fault.xdmf)
@@ -120,7 +119,7 @@ for filename in "${files[@]}"; do
 
     echo "[$job_idx] Launching on $node: $filename"
 
-    srun --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
+    srun --nodes=1 --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
         "$script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py" \
         spatial "$filename" yaml_files/material.yaml --DH 20 --proj "${proj}" --NZ 4 &
 
@@ -151,7 +150,7 @@ for filename in "${files[@]}"; do
 
     echo "[$job_idx] Launching on $node: $filename"
 
-    srun --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
+    srun --nodes=1 --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
         "$script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py" \
         spatial "$filename" yaml_files/material.yaml --DH 20 --proj "${proj}" --NZ 4 \
         --slip_threshold " -1e10" --use_geometric_center &

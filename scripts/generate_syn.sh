@@ -39,20 +39,18 @@ export OMP_NUM_THREADS=48
 
 output_dir=extracted_output
 script_dir=../rapid-earthquake-dynamics/
-$script_dir/dynworkflow/compute_gof_fault_slip.py $output_dir/dyn_ $output_dir/dyn-kinmod_extracted-fault.xdmf
-$script_dir/dynworkflow/compute_percentage_supershear.py $output_dir/dyn_ yaml_files/material.yaml
+#$script_dir/dynworkflow/compute_gof_fault_slip.py $output_dir/dyn_ $output_dir/dyn-kinmod_extracted-fault.xdmf
+#$script_dir/dynworkflow/compute_percentage_supershear.py $output_dir/dyn_ yaml_files/material.yaml
 if [ -f offsets.csv ]; then
   $script_dir/dynworkflow/compare_offset.py $output_dir/dyn_ offsets.csv
 fi
 
 $script_dir/dynworkflow/add_source_files_to_waveform_config.py
 export OMP_NUM_THREADS=$(grep -c ^processor /proc/cpuinfo)
-if [ -f waveforms_config_regional_sources.ini ]; then
-    $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_regional_sources.ini
+if [ -f waveforms_config_regional_sources.yaml ]; then
+    $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_regional_sources.yaml
 fi
-if [ -f waveforms_config_teleseismic_sources.ini ]; then
-    $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_teleseismic_sources.ini
+if [ -f waveforms_config_teleseismic_sources.yaml ]; then
+    $script_dir/submodules/seismic-waveform-factory/scripts/generate_figure_synthetics.py waveforms_config_teleseismic_sources.yaml
 fi
 $script_dir/dynworkflow/compile_scenario_macro_properties.py $output_dir
-
-
