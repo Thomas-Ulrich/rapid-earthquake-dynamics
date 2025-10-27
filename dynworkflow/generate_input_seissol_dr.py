@@ -16,6 +16,7 @@ import seissolxdmf as sx
 import yaml
 from pyproj import Transformer
 from scipy.stats import qmc
+from scipy import integrate
 
 from dynworkflow import step1_args
 from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
@@ -26,6 +27,7 @@ def infer_duration(time, moment_rate):
     moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
     M0 = np.trapz(moment_rate[:], x=time[:])
     return np.amax(time[moment < 0.99 * M0])
+
 
 def compute_max_slip(fn):
     sx0 = sx.seissolxdmf(fn)
