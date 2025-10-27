@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import json
-import yaml
-import os
 import glob
-import jinja2
+import json
+import os
 
+import jinja2
+import yaml
 
 try:
     # Try relative import if called from the full package

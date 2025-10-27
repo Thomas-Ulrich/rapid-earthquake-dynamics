@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import yaml
+import operator
 import re
 from functools import reduce
-import operator
+
+import yaml
 
 
 def parse_parameter_string(param_str):

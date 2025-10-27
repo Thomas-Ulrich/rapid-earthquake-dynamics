@@ -3,10 +3,12 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-from dynworkflow import generate_input_seissol_dr
-import sys
 import os
+import sys
+
 import yaml
+
+from dynworkflow import generate_input_seissol_dr
 
 # Append kinematic_models folder to path
 # Get the directory of the current script
@@ -17,7 +19,6 @@ if absolute_path not in sys.path:
     sys.path.append(absolute_path)
 
 import project_fault_tractions_onto_asagi_grid
-
 
 if __name__ == "__main__":
     with open("derived_config.yaml", "r") as f:

@@ -3,21 +3,22 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich, Mathilde Marchandon
 
-import pandas as pd
-from pyproj import Transformer
-import numpy as np
-import matplotlib.pylab as plt
-import trimesh
-import seissolxdmf
-from scipy import spatial
-import os
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-import re
 import argparse
 import glob
+import os
+import re
+
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+import matplotlib.pylab as plt
+import numpy as np
+import pandas as pd
 import pyvista as pv
+import seissolxdmf
+import trimesh
 import yaml
+from pyproj import Transformer
+from scipy import spatial
 
 # plt.rc("font", family="Poppins", size=8)
 plt.rc("font", size=12)
