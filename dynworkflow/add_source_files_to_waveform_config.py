@@ -8,7 +8,7 @@ import os
 
 import step1_args
 import yaml
-from config_utils import yaml_dump
+from seismic_waveform_factory.config.utils import yaml_dump
 from seismic_waveform_factory.config.loader import ConfigLoader
 from seismic_waveform_factory.config.schema import CONFIG_SCHEMA
 
