@@ -120,8 +120,8 @@ for filename in "${files[@]}"; do
     echo "[$job_idx] Launching on $node: $filename"
 
     srun --nodes=1 --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
-        "$script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py" \
-        spatial "$filename" yaml_files/material.yaml --DH 20 --proj "${proj}" --NZ 4 &
+        swf compute-multi-cmt spatial "$filename" yaml_files/material.yaml \
+        --DH 20 --proj "${proj}" --NZ 4 &
 
     job_idx=$((job_idx + 1))
     # Wait when too many jobs are running in parallel
@@ -151,9 +151,9 @@ for filename in "${files[@]}"; do
     echo "[$job_idx] Launching on $node: $filename"
 
     srun --nodes=1 --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
-        "$script_dir/submodules/seismic-waveform-factory/scripts/compute_multi_cmt.py" \
-        spatial "$filename" yaml_files/material.yaml --DH 20 --proj "${proj}" --NZ 4 \
-        --slip_threshold " -1e10" --use_geometric_center &
+        swf compute-multi-cmt spatial "$filename" yaml_files/material.yaml \
+        --DH 20 --proj "${proj}" --NZ 4 --slip_threshold " -1e10" \
+        --use_geometric_center &
 
     job_idx=$((job_idx + 1))
     # Wait when too many jobs are running in parallel
