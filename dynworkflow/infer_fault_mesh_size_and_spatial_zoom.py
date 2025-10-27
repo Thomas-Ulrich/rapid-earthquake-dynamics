@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import os
 import argparse
+import os
 import os.path
-from sklearn.decomposition import PCA
-import numpy as np
 import sys
+
+import numpy as np
+from sklearn.decomposition import PCA
 
 # Append kinematic_models folder to path
 # Get the directory of the current script

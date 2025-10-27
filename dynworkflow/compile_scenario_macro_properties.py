@@ -3,20 +3,22 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import yaml
-import pandas as pd
+import argparse
+import glob
+import os
+import pickle
+import re
+
+import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
-import argparse
-import matplotlib
-import os
-import glob
-import re
+import pandas as pd
+import yaml
+from cmcrameri import cm
 from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
-from cmcrameri import cm
-import pickle
-import step1_args
+
+from dynworkflow import step1_args
 
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)

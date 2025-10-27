@@ -3,14 +3,15 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import numpy as np
 import argparse
-from scipy import interpolate
-import easi
-import seissolxdmf
 import os
 import time
 from multiprocessing import cpu_count
+
+import easi
+import numpy as np
+import seissolxdmf
+from scipy import interpolate
 from sklearn.decomposition import PCA
 
 

@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import seissolxdmf
-import seissolxdmfwriter as sxw
-import numpy as np
 import argparse
 import os
+
+import numpy as np
+import seissolxdmf
+import seissolxdmfwriter as sxw
 
 
 def remove_unused_nodes(xyz, connect):

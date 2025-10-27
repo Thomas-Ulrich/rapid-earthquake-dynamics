@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import pandas as pd
 import io
 import os
+
+import pandas as pd
 
 
 def write_yaml_material_file(df):
@@ -98,8 +99,9 @@ def generate_arbitrary_velocity_files(vel_model=vel_model_slipnear):
 
 
 def read_velocity_model_from_fsp_file(fname):
-    import pandas as pd
     from io import StringIO
+
+    import pandas as pd
 
     with open(fname, "r") as fid:
         lines = fid.readlines()

@@ -4,6 +4,7 @@
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
 import os
+
 import numpy as np
 
 # Step 1: Collect all parameter files

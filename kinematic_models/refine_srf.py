@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import os
 import argparse
+import os
+
 from fault_plane import FaultPlane
 
 

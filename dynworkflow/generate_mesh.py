@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
+import argparse
+import glob
+import os
+import re
+
 import gmsh
 import numpy as np
-import glob
-import re
-import argparse
-import os
 import pyvista as pv
 import vtk
 

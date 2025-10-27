@@ -3,13 +3,14 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import easi
-import os
 import argparse
+import os
 import os.path
+
+import easi
 import numpy as np
-from stf import gaussianSTF
 from multi_fault_plane import MultiFaultPlane
+from stf import gaussianSTF
 
 
 def compute(filename, yaml_filename, projection, dt=0.5, tmax=None):

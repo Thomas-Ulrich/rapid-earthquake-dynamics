@@ -3,15 +3,16 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import glob
-import numpy as np
 import argparse
+import glob
 import os
-from seissolxdmf import seissolxdmf
-import pandas as pd
-import tqdm
-import pyvista as pv
+
 import easi
+import numpy as np
+import pandas as pd
+import pyvista as pv
+import tqdm
+from seissolxdmf import seissolxdmf
 
 
 def generate_pv_mesh(fname):

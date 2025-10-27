@@ -3,15 +3,16 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-from sklearn.decomposition import PCA
-from scipy.interpolate import griddata
-import seissolxdmf
-import numpy as np
-from asagiwriter import writeNetcdf
-from scipy.ndimage import gaussian_filter
-import os
-from typing import List, Tuple, Optional
 import argparse
+import os
+from typing import List, Optional, Tuple
+
+import numpy as np
+import seissolxdmf
+from asagiwriter import writeNetcdf
+from scipy.interpolate import griddata
+from scipy.ndimage import gaussian_filter
+from sklearn.decomposition import PCA
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):

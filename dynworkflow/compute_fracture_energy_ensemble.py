@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
-import easi
-import seissolxdmf
 import argparse
-import numpy as np
 import glob
 import os
-from tqdm import tqdm
+
+import easi
+import numpy as np
 import pandas as pd
+import seissolxdmf
+from tqdm import tqdm
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
