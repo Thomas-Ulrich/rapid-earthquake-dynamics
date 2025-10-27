@@ -29,15 +29,7 @@ from kinematic_models import (
     generate_fault_output_from_fl33_input_files,
     generate_FL33_input_files,
 )
-
-script_dir = (
-    Path(__file__).resolve().parent
-    / "submodules"
-    / "seismic-waveform-factory"
-    / "scripts"
-)
-sys.path.insert(0, str(script_dir))
-from select_stations import select_stations
+from seismic_waveform_factory.geo import select_stations
 
 
 def is_slipnear_file(fn):
