@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics/branch/main/graph/badge.svg)](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics)
 
 Workflows for automated generation of dynamic rupture scenarios from earthquake
-kinematic models, enabling rapid source characterization.
+fault slip models, enabling rapid source characterization.
 
 ## Cloning the repository
 

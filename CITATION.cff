@@ -13,5 +13,5 @@ authors:
 repository-code: 'https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics'
 abstract: >-
   Workflows for automated generation of dynamic rupture scenarios from earthquake
-  kinematic models, enabling rapid source characterization
+  fault slip models, enabling rapid source characterization
 license: MIT
