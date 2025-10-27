@@ -3,12 +3,12 @@
 [![codecov](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics/branch/main/graph/badge.svg)](https://codecov.io/gh/Thomas-Ulrich/rapid-earthquake-dynamics)
 
 Workflows for automated generation of dynamic rupture scenarios from earthquake
-kinematic models, enabling rapid source characterization.
+fault slip models, enabling rapid source characterization.
 
 ## Cloning the repository
 
 ```bash
-git clone --recursive https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics
+git clone https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics
 cd rapid-earthquake-dynamics
 git lfs install      # Enables Git LFS support for handling large binary files
 git lfs pull         # Downloads large files tracked by Git LFS (e.g., .h5, .nc)
@@ -32,10 +32,11 @@ export PYTHONPATH=path_to_spack_installation/linux-sles15-skylake_avx512/easi/1.
 
 ### other python requirements
 
-Then install other requirements:
+Then install other requirements, including seismic-waveform-factory:
 
 ```bash
 python -m pip install -r rapid-earthquake-dynamics/requirements.txt
+python -m pip install git+https://github.com/Thomas-Ulrich/seismic-waveform-factory.git@v0.3.0
 ```
 
 ### axitra

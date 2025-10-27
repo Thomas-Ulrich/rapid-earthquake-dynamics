@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
+import argparse
+
 import easi
+import numpy as np
 import seissolxdmf
 import seissolxdmfwriter as sxw
-import argparse
-import numpy as np
-from stf import regularizedYoffe, gaussianSTF, smoothStep, asymmetric_cosine
+from stf import asymmetric_cosine, gaussianSTF, regularizedYoffe, smoothStep
 from tqdm import tqdm
 
 

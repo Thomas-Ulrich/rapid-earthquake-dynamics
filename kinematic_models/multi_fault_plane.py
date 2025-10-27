@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-from fault_plane import FaultPlane
 import os
-import yaml
+
 import numpy as np
+import yaml
+from fault_plane import FaultPlane
 
 
 class MultiFaultPlane:
@@ -38,8 +39,9 @@ class MultiFaultPlane:
 
     @classmethod
     def from_usgs_fsp_file(cls, fname):
-        import pandas as pd
         from io import StringIO
+
+        import pandas as pd
 
         with open(fname, "r") as fid:
             lines = fid.readlines()
@@ -128,8 +130,9 @@ class MultiFaultPlane:
     def from_usgs_param_file_alternative(cls, fname):
         # format using in Xu et al. (2024), Noto earthquake
         import re
-        import pandas as pd
         from io import StringIO
+
+        import pandas as pd
 
         header = "lat lon depth slip rake strike dip t_rup t_ris t_fal mo"
         with open(fname, "r") as fid:
@@ -201,8 +204,9 @@ class MultiFaultPlane:
     @classmethod
     def from_usgs_param_file(cls, fname):
         import re
-        import pandas as pd
         from io import StringIO
+
+        import pandas as pd
 
         header = "lat lon depth slip rake strike dip t_rup t_ris t_fal mo"
         with open(fname, "r") as fid:

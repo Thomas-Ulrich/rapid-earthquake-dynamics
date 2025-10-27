@@ -3,19 +3,21 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import yaml
-import pandas as pd
+import argparse
+import glob
+import os
+import pickle
+import re
+
+import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
-import argparse
-import matplotlib
-import os
-import glob
-import re
+import pandas as pd
+import yaml
+from cmcrameri import cm
 from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
-from cmcrameri import cm
-import pickle
+
 import step1_args
 
 pd.set_option("display.max_rows", None)
@@ -40,12 +42,12 @@ def parse_parameter_string(param_str):
 
 def infer_duration(time, moment_rate):
     moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
-    M0 = np.trapz(moment_rate[:], x=time[:])
+    M0 = np.trapezoid(moment_rate[:], x=time[:])
     return np.amax(time[moment < 0.99 * M0])
 
 
 def computeMw(label, time, moment_rate):
-    M0 = np.trapz(moment_rate[:], x=time[:])
+    M0 = np.trapezoid(moment_rate[:], x=time[:])
     Mw = 2.0 * np.log10(M0) / 3.0 - 6.07
     # print(f"{label} moment magnitude: {Mw:.2} (M0 = {M0:.4e})")
     return M0, Mw
@@ -711,7 +713,7 @@ if __name__ == "__main__":
             )
     if sum_weights != 0.0:
         result_df["combined_gof"] /= sum_weights
-        component_used = {k: v * sum_weights for k, v in component_used.items()}
+        component_used = {k: v / sum_weights for k, v in component_used.items()}
 
     result_df = result_df.sort_values(by="combined_gof", ascending=False).reset_index(
         drop=True

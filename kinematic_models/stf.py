@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
+from math import asin, atan, pi, sqrt
+
 import numpy as np
-from math import sqrt, asin, atan, pi
 
 
 def asymmetric_cosine(t, trise, tfall=None):

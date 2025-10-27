@@ -1,17 +1,16 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
+import os
+
 import numpy as np
 import scipy.ndimage
-from scipy import interpolate
-from scipy import ndimage
-from scipy.interpolate import RegularGridInterpolator
 import xarray as xr
-import os
-from scipy.interpolate import griddata
-from scipy.ndimage import gaussian_filter
-from stf import regularizedYoffe, gaussianSTF
 from asagiwriter import writeNetcdf
+from scipy import interpolate, ndimage
+from scipy.interpolate import RegularGridInterpolator, griddata
+from scipy.ndimage import gaussian_filter
+from stf import gaussianSTF, regularizedYoffe
 
 
 def cosine_taper(npts, p=0.1, freqs=None, flimit=None, halfcosine=True, sactaper=False):

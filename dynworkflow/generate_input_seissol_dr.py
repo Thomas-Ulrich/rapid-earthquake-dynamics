@@ -3,21 +3,30 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import numpy as np
-import os
-import jinja2
-import shutil
-from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
-from scipy.stats import qmc
-import random
 import itertools
-from dynworkflow.compile_scenario_macro_properties import infer_duration
-from dynworkflow import step1_args
-import seissolxdmf as sx
-from pyproj import Transformer
-import yaml
+import os
+import random
 import re
+import shutil
+
+import jinja2
+import numpy as np
 import pandas as pd
+import seissolxdmf as sx
+import yaml
+from pyproj import Transformer
+from scipy.stats import qmc
+from scipy import integrate
+
+from dynworkflow import step1_args
+from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
+
+
+def infer_duration(time, moment_rate):
+    # duplicate from compile_scenario_macro_properties.py
+    moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
+    M0 = np.trapz(moment_rate[:], x=time[:])
+    return np.amax(time[moment < 0.99 * M0])
 
 
 def compute_max_slip(fn):

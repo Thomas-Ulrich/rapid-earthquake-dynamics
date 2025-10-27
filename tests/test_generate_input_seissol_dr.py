@@ -20,6 +20,7 @@ for relative_path in relative_paths:
         sys.path.append(absolute_path)
 
 import project_fault_tractions_onto_asagi_grid
+
 from dynworkflow import generate_input_seissol_dr
 
 

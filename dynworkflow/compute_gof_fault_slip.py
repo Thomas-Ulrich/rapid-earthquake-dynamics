@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import glob
-import numpy as np
 import argparse
+import glob
 import os
-import seissolxdmf as sx
+
+import numpy as np
 import pandas as pd
+import seissolxdmf as sx
 import tqdm
 
 

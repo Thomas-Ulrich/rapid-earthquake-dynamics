@@ -77,16 +77,24 @@ fi
 num_files=${#files[@]}
 echo "Found $num_files files to process."
 
+
+run_file() {
+    local filename=$1
+    local counter=$2
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Processing file: $filename"
+    local counter0=$(printf "%05d" "$counter")
+    local id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
+
+    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job \
+        --ntasks-per-node=2 --exclusive \
+        -o ./logs/$SLURM_JOB_ID.$counter0.$id.out \
+        SeisSol_Release_sskx_${ORDER}_elastic "$filename"
+}
+
 # Process files in parallel
 counter=0
 for filename in "${files[@]}"; do
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Processing file: $filename"
-    modulo=$(( $counter % $ndivide ))
-    counter0=$(printf "%05d" "$counter")
-    id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
-    srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./logs/$SLURM_JOB_ID.$counter0.$id.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
-
-    # Increment counter
+    run_file "$filename" "$counter" &  # run in background
     counter=$((counter + 1))
 
     # Ensure we don’t exceed max concurrent jobs
@@ -110,9 +118,7 @@ for filename in "${files[@]}"; do
     # If the output file does not exist, process the file
     if [ ! -f "$output_file" ]; then
         echo "something went wrong? trying rerun seissol with file: $filename"
-        modulo=$(( $counter % $ndivide ))
-        counter0=$(printf "%05d" "$counter")
-        srun -B 2:48:2 -c 48 --nodes=$nodes_per_job --ntasks=$tasks_per_job --ntasks-per-node=2 --exclusive -o ./logs/$SLURM_JOB_ID.b.$counter0.out SeisSol_Release_sskx_${ORDER}_elastic $filename&
+        run_file "$filename" "$counter" &  # run in background
         counter=$((counter + 1))
     fi
 

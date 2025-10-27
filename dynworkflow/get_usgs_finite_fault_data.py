@@ -3,15 +3,16 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
+import argparse
 import json
 import os
-import wget
-import sys
-import argparse
 import shutil
-import numpy as np
-from obspy import UTCDateTime
+import sys
 from datetime import datetime, timezone
+
+import numpy as np
+import wget
+from obspy import UTCDateTime
 
 
 def find_key_recursive(data, target_key, current_path=None):

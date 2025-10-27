@@ -5,24 +5,12 @@
 
 import glob
 import os
-import sys
-from pathlib import Path
 
 import step1_args
 import yaml
-
-script_dir = (
-    Path(__file__).resolve().parent
-    / ".."
-    / "submodules"
-    / "seismic-waveform-factory"
-    / "scripts"
-)
-sys.path.insert(0, str(script_dir))
-
-from config_loader import ConfigLoader
-from config_schema import CONFIG_SCHEMA
-from config_utils import yaml_dump
+from seismic_waveform_factory.config.utils import yaml_dump
+from seismic_waveform_factory.config.loader import ConfigLoader
+from seismic_waveform_factory.config.schema import CONFIG_SCHEMA
 
 
 def update_file(waveform_type="regional"):

@@ -3,13 +3,14 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import numpy as np
 import glob
-import re
 import os
+import re
+
 import jinja2
-from scipy.spatial.distance import pdist
+import numpy as np
 import yaml
+from scipy.spatial.distance import pdist
 
 
 def generate():
