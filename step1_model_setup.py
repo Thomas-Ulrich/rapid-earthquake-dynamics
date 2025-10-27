@@ -29,7 +29,7 @@ from kinematic_models import (
     generate_fault_output_from_fl33_input_files,
     generate_FL33_input_files,
 )
-from seismic_waveform_factory.geo import select_stations
+from seismic_waveform_factory.geo.select_stations import select_stations
 
 
 def is_slipnear_file(fn):
