@@ -5,8 +5,6 @@
 
 import glob
 import os
-import sys
-from pathlib import Path
 
 import step1_args
 import yaml
