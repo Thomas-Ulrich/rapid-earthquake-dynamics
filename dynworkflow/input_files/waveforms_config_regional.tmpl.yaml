@@ -9,7 +9,7 @@ general:
   projection: {{ projection }}
   misfit: "cross-correlation"
   #misfit: "min_shifted_normalized_rms"
-  client: "earthscope"
+  client: "iris"
   hypocenter:
       lon: {{ lon }}
       lat: {{ lat }}
