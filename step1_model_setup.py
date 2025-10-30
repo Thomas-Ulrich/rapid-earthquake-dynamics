@@ -149,6 +149,10 @@ def run_step1():
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
 
+    mesh_arg = args.mesh
+    if mesh_arg not in ["auto"]:
+        mesh_arg = os.path.abspath(mesh_arg)
+
     processed_MRFs = []
     for mrf in args.reference_moment_rate_functions:
         if mrf[0] == "auto":
@@ -297,7 +301,7 @@ def run_step1():
         shutil.copy(vel_model, "tmp")
         prepare_velocity_model_files.generate_arbitrary_velocity_files(vel_model)
 
-    if args.mesh == "auto":
+    if mesh_arg == "auto":
         generate_mesh.generate(
             h_domain=20e3,
             h_fault=fault_mesh_size,
@@ -309,8 +313,8 @@ def run_step1():
             sys.exit(1)
         mesh_file = "tmp/mesh.puml.h5"
     else:
-        mesh_file = shutil.copy(args.mesh, "tmp")
-        mesh_xdmf_file = args.mesh.split("puml.h5")[0] + ".xdmf"
+        mesh_file = shutil.copy(mesh_arg, "tmp")
+        mesh_xdmf_file = mesh_arg.split("puml.h5")[0] + ".xdmf"
         shutil.copy(mesh_xdmf_file, "tmp")
 
     derived_config |= {
