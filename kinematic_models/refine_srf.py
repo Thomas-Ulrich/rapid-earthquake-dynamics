@@ -6,38 +6,53 @@
 import argparse
 import os
 
-from fault_plane import FaultPlane
+from multi_fault_plane import MultiFaultPlane
 
 
 def refine(
     filename,
+    mode,
     projection,
     yoffePSRthreshold,
     spatial_order,
-    spatial_zoom,
-    temporal_zoom,
+    spatial_factor,
+    temporal_factor,
     time_smoothing_kernel_as_dt_fraction,
 ):
-    p1 = FaultPlane()
-    p1.init_from_srf(filename)
-    p1.compute_xy_from_latlon(projection)
-    p1.compute_time_array()
+    mfp = MultiFaultPlane.from_file(filename)
+    # if tmax:
+    #    mfp.temporal_crop(tmax)
 
-    use_Yoffe = True if yoffePSRthreshold else False
-    if use_Yoffe:
-        p1.assess_STF_parameters(yoffePSRthreshold)
+    for p, p1 in enumerate(mfp.fault_planes):
+        p1.compute_xy_from_latlon(projection)
+        p1.compute_time_array()
+        p1.init_aSR()
 
-    p2 = p1.upsample_fault(
-        spatial_order=spatial_order,
-        spatial_zoom=spatial_zoom,
-        temporal_zoom=temporal_zoom,
-        proj=projection,
-        use_Yoffe=use_Yoffe,
-        time_smoothing_kernel_as_dt_fraction=time_smoothing_kernel_as_dt_fraction,
-    )
-    prefix, ext = os.path.splitext(args.filename)
-    fnout = prefix + "_resampled" + ".srf"
-    p2.write_srf(fnout)
+        use_Yoffe = True if yoffePSRthreshold else False
+        if use_Yoffe:
+            p1.assess_STF_parameters(yoffePSRthreshold)
+
+        if mode == "upsample":
+            p2 = p1.upsample_fault(
+                spatial_order=spatial_order,
+                spatial_zoom=spatial_factor,
+                temporal_zoom=temporal_factor,
+                proj=projection,
+                use_Yoffe=use_Yoffe,
+                time_smoothing_kernel_as_dt_fraction=time_smoothing_kernel_as_dt_fraction,
+            )
+        elif mode == "downsample":
+            p2 = p1.downsample_fault(
+                spatial_factor=spatial_factor,
+                temporal_factor=temporal_factor,
+            )
+        else:
+            raise ValueError("Mode must be 'upsample' or 'downsample'.")
+
+        prefix, ext = os.path.splitext(filename)
+        fnout = f"{prefix}_{mode}d.srf"
+        p2.write_srf(fnout)
+        print(f"{mode.capitalize()}d SRF written to {fnout}")
 
 
 if __name__ == "__main__":
@@ -48,6 +63,13 @@ if __name__ == "__main__":
         )
     )
     parser.add_argument("filename", help="Filename of the SRF file.")
+    parser.add_argument(
+        "--mode",
+        choices=["upsample", "downsample"],
+        required=True,
+        help="Choose whether to upsample or downsample the fault model.",
+    )
+
     parser.add_argument(
         "--proj",
         help=(
@@ -110,6 +132,7 @@ if __name__ == "__main__":
 
     refine(
         args.filename,
+        args.mode,
         args.proj,
         yoffePSRthreshold,
         args.spatial_order[0],

@@ -919,3 +919,93 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             fp1.init_aSR()
             fp1.aSR[:ny, :nx, :] = self.aSR[:, :, :]
         return fp1
+
+    def downsample_fault(self, spatial_factor=2, temporal_factor=2, method="mean"):
+        """
+        Downsample the fault model in space and/or time by the given factors.
+
+        Parameters
+        ----------
+        spatial_factor : int
+            Factor by which to coarsen spatial resolution (nx, ny).
+            E.g., 2 means reduce each dimension by 2 (take 1 of 4 samples).
+        temporal_factor : int
+            Factor by which to reduce temporal resolution (ndt).
+            E.g., 2 means keep every second time step.
+        method : str
+            Method to aggregate spatial quantities: "mean" or "sum".
+
+        Returns
+        -------
+        df : FaultPlane
+            New FaultPlane object with coarsened resolution.
+        """
+        df = FaultPlane()
+
+        # spatial downsampling
+        df.nx = self.nx // spatial_factor
+        df.ny = self.ny // spatial_factor
+        df.dt = self.dt * temporal_factor
+        df.ndt = self.ndt // temporal_factor
+        df.PSarea_cm2 = self.PSarea_cm2 * spatial_factor**2
+        df.init_spatial_arrays(df.nx, df.ny)
+        print(self.nx, df.nx, self.ny, df.ny, self.ndt, df.ndt)
+        df.init_aSR()
+        df.compute_time_array()
+
+        # helper for coarsening
+        def coarsen(arr, fact, method):
+            a = xr.DataArray(arr, dims=["y", "x"])
+            if method == "mean":
+                return a.coarsen(y=fact, x=fact, boundary="trim").mean().to_numpy()
+            elif method == "sum":
+                return a.coarsen(y=fact, x=fact, boundary="trim").sum().to_numpy()
+            else:
+                raise ValueError(f"Unknown method {method}")
+
+        # coarsen spatial quantities
+        for name in [
+            "lon",
+            "lat",
+            "x",
+            "y",
+            "depth",
+            "t0",
+            "strike",
+            "dip",
+            "rake",
+            "slip1",
+        ]:
+            arr = getattr(self, name)
+            setattr(df, name, coarsen(arr, spatial_factor, "mean"))
+
+        # preserve potency (area × slip)
+        potency_in = np.sum(self.slip1 * self.PSarea_cm2)
+        potency_out = np.sum(df.slip1 * df.PSarea_cm2)
+        correction = potency_in / potency_out if potency_out != 0 else 1.0
+        df.slip1 *= correction
+        print(
+            "Potency ratio (after correction): "
+            f"{np.sum(df.slip1 * df.PSarea_cm2) / potency_in:.3f}"
+        )
+
+        # time history downsampling
+        for j in range(df.ny):
+            for i in range(df.nx):
+                # spatial average of aSR over the block
+                print(self.aSR.shape)
+                block = self.aSR[
+                    j * spatial_factor : (j + 1) * spatial_factor,
+                    i * spatial_factor : (i + 1) * spatial_factor,
+                    :,
+                ]
+                block_mean = np.nanmean(block, axis=(0, 1))
+                df.aSR[j, i, :] = block_mean[::temporal_factor]
+
+                # renormalize SR to preserve total slip
+                integral = np.trapz(np.abs(df.aSR[j, i, :]), dx=df.dt)
+                if integral > 0:
+                    df.aSR[j, i, :] *= df.slip1[j, i] / integral
+
+        df.compute_latlon_from_xy(None)
+        return df
