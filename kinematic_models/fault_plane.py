@@ -149,6 +149,24 @@ def compute_block_mean(ar, fact):
     return a.coarsen(x=fact, y=fact).mean().to_numpy()
 
 
+def apply_blockwise_multiplication(fine_array, correction, zoom):
+    """Multiply each fine block by corresponding correction factor."""
+    ny, nx = correction.shape
+    zoom_y, zoom_x = zoom if hasattr(zoom, "__len__") else (zoom, zoom)
+
+    corrected = np.zeros_like(fine_array)
+
+    for iy in range(ny):
+        for ix in range(nx):
+            y_slice = slice(iy * zoom_y, (iy + 1) * zoom_y)
+            x_slice = slice(ix * zoom_x, (ix + 1) * zoom_x)
+            corrected[y_slice, x_slice] = (
+                fine_array[y_slice, x_slice] * correction[iy, ix]
+            )
+
+    return corrected
+
+
 def upsample_quantities(
     allarr,
     spatial_order,
@@ -626,30 +644,41 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             # So we just want to perserve subfault average.
             print("trying to perserve subfault average...")
             my_array = np.maximum(0, my_array)
+            niter = 15
+            best = np.copy(my_array)
             best_misfit = float("inf")
-            # The algorithm does not seem to converge, but produces better model
-            # (given the misfit) that inital after 2-3 iterations
-            niter = 3
+
             for i in range(niter):
+                # Compute block averages of fine grid to compare with original coarse slip
                 block_average = compute_block_mean(
                     my_array[1:-1, 1:-1], self.spatial_zoom
                 )
-                print(arr.shape, block_average.shape)
-                correction = np.where(block_average != 0, arr / block_average, 0)
-                # having a misfit as misfit = np.linalg.norm(correction) does not make
-                # sense as for almost 0 slip, correction can be large
-                misfit = np.linalg.norm(arr - block_average) / len(arr)
-                if best_misfit > misfit:
-                    if i == 0:
-                        print(f"misfit at iter {i}: {misfit}")
-                    else:
-                        print(f"misfit improved at iter {i}: {misfit}")
+                # Avoid division by zero
+                correction = np.ones_like(block_average)
+                mask = block_average != 0
+                correction[mask] = arr[mask] / block_average[mask]
+
+                # Apply correction to fine grid, block by block
+                my_array = apply_blockwise_multiplication(
+                    my_array, correction, self.spatial_zoom
+                )
+
+                # Re-enforce non-negativity
+                my_array = np.maximum(0, my_array)
+
+                # Measure convergence (misfit between coarse and fine averages)
+                new_block_average = compute_block_mean(
+                    my_array[1:-1, 1:-1], self.spatial_zoom
+                )
+                misfit = np.linalg.norm(arr - new_block_average) / arr.size
+
+                if misfit < best_misfit:
+                    print(f"Iteration {i}: misfit improved to {misfit:.4e}")
                     best_misfit = misfit
                     best = np.copy(my_array)
-                my_array = self.upsample_quantity_RGInterpolator_core(
-                    correction * arr, method, is_slip
-                )
-                my_array = np.maximum(0, my_array)
+                else:
+                    print(f"Iteration {i}: misfit = {misfit:.4e} (no improvement)")
+
             my_array = best
         return my_array
 
