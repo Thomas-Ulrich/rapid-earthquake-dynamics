@@ -139,7 +139,6 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
         {"ASl": ASl, "SR": SR, "Sls": Sls, "Sld": Sld},
         dictTime,
         reduce_precision=True,
-        backend="raw",
     )
 
 

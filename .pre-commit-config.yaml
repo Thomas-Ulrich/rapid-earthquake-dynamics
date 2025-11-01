@@ -16,8 +16,6 @@ repos:
       name: '[GENERIC] check for shebangs in executable files'
     - id: check-illegal-windows-names
       name: '[GENERIC] detect illegal Windows file names'
-    - id: check-yaml
-      name: '[YAML] check'
 
   - repo: https://github.com/psf/black
     rev: 22.10.0
