@@ -375,7 +375,7 @@ def select_station_and_download_waveforms():
         f"tmp/{mesh_prefix}_bc_faults.xdmf",
         "yaml_files/FL33_34_fault.yaml",
         "output/dyn-kinmod-fault",
-        "Gaussian",
+        "AsymmetricCosine",
         0.5,
     )
     generate_waveform_config_from_usgs.generate_waveform_config_file(
