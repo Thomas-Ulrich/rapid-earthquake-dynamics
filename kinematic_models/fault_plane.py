@@ -673,7 +673,11 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
 
         slip = self.upsample_quantity_RGInterpolator(cslip, method, is_slip=True)
         slip[slip < slip_cutoff] = 0.0
+
+        self.rake = np.deg2rad(self.rake)
         self.rake = np.unwrap(np.unwrap(self.rake, axis=0), axis=1)
+        self.rake = np.rad2deg(self.rake)
+
         for arr in [self.t0, self.rake, self.rise_time, self.tacc]:
             upsampled_arrays.append(self.upsample_quantity_RGInterpolator(arr, method))
 
