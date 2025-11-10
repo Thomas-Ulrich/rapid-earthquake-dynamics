@@ -53,7 +53,7 @@ def get_parser():
         "--fault_reference",
         type=str,
         metavar="X,Y,Z,METHOD",
-        default="-0.1,0,1.0,1",
+        default="-0.1,0,-1.0,1",
         help="""
         Comma-separated reference vector and method:
          X,Y,Z,METHOD (method: 0=point, 1=direction)
