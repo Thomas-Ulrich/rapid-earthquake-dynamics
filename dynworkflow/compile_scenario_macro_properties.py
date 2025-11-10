@@ -722,6 +722,7 @@ if __name__ == "__main__":
     result_df["faultfn"] = result_df["faultfn"].apply(
         lambda x: os.path.basename(x)
         .split("_extracted-fault.xdmf")[0]
+        .split("_compacted-fault.xdmf")[0]
         .split("-fault.xdmf")[0]
     )
     result_df.to_pickle("compiled_results.pkl")

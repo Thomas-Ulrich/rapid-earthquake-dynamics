@@ -307,7 +307,11 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     fig, ax = init_all_offsets_figure(acc_dist, df)
     # Loop on each model in the output filder
     for i, fault in enumerate(models):
-        base_name = os.path.basename(fault).replace("_extracted-fault.xdmf", "")
+        base_name = (
+            os.path.basename(fault)
+            .replace("_extracted-fault.xdmf", "")
+            .replace("_compacted-fault.xdmf", "")
+        )
 
         # Read SeisSol output
 

@@ -28,6 +28,7 @@ if __name__ == "__main__":
     fl33_file_candidates = [
         "output_fl33/fl33-fault.xdmf",
         "output/fl33-fault.xdmf",
+        "extracted_output/fl33_compacted-fault.xdmf",
         "extracted_output/fl33_extracted-fault.xdmf",
     ]
 

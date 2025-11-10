@@ -39,7 +39,13 @@ export OMP_NUM_THREADS=48
 
 output_dir=extracted_output
 script_dir=../rapid-earthquake-dynamics/
-$script_dir/dynworkflow/compute_gof_fault_slip.py $output_dir/dyn_ $output_dir/dyn-kinmod_extracted-fault.xdmf
+if [ -f $output_dir/dyn-kinmod_compacted-fault.xdmf ]; then
+    $script_dir/dynworkflow/compute_gof_fault_slip.py $output_dir/dyn_ $output_dir/dyn-kinmod_compacted-fault.xdmf
+else
+    #backwards compatibility
+    $script_dir/dynworkflow/compute_gof_fault_slip.py $output_dir/dyn_ $output_dir/dyn-kinmod_extracted-fault.xdmf
+fi
+
 $script_dir/dynworkflow/compute_percentage_supershear.py $output_dir/dyn_ yaml_files/material.yaml
 if [ -f offsets.csv ]; then
   $script_dir/dynworkflow/compare_offset.py $output_dir/dyn_ offsets.csv

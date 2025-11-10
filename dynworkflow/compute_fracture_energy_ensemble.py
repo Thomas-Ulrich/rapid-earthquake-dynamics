@@ -159,8 +159,10 @@ if __name__ == "__main__":
     res = {}
     for fault_filename in tqdm(models):
         print(fault_filename)
-        base_name = os.path.basename(fault_filename).replace(
-            "_extracted-fault.xdmf", ""
+        base_name = (
+            os.path.basename(fault_filename)
+            .replace("_extracted-fault.xdmf", "")
+            .replace("_compacted-fault.xdmf", "")
         )
         base_name = base_name.replace("-fault.xdmf", "")
         yaml_filename = "yaml_files/fault_" + base_name.split("dyn_")[1] + ".yaml"
