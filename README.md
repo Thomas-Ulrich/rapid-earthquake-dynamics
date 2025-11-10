@@ -36,7 +36,7 @@ Then install other requirements, including seismic-waveform-factory:
 
 ```bash
 python -m pip install -r rapid-earthquake-dynamics/requirements.txt
-python -m pip install git+https://github.com/Thomas-Ulrich/seismic-waveform-factory.git@v0.3.0
+python -m pip install git+https://github.com/Thomas-Ulrich/seismic-waveform-factory.git@v0.3.1
 ```
 
 ### axitra
