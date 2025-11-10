@@ -112,6 +112,22 @@ echo "Number of files: ${#files[@]}"
 
 job_idx=0
 
+# Extract values using grep + awk
+XRef=$(grep -E '^XRef' parameters_fl33.par | awk -F= '{print $2}' | xargs)
+YRef=$(grep -E '^YRef' parameters_fl33.par | awk -F= '{print $2}' | xargs)
+ZRef=$(grep -E '^ZRef' parameters_fl33.par | awk -F= '{print $2}' | xargs)
+refPointMethod=$(grep -E '^refPointMethod' parameters_fl33.par | awk -F= '{print $2}' | xargs)
+
+# Check if refPointMethod == 1
+if [ "$refPointMethod" -eq 1 ]; then
+    echo "Using reference vector: $XRef $YRef $ZRef"
+    refVectorArgs="--refVector $XRef $YRef $ZRef"
+else
+    echo "refPointMethod != 1, skipping refVector"
+    refVectorArgs=""
+fi
+
+
 for filename in "${files[@]}"; do
     # Determine node and local index
     node_idx=$((job_idx / tasks_per_node % num_nodes))
@@ -121,7 +137,7 @@ for filename in "${files[@]}"; do
 
     srun --nodes=1 --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
         swf compute-multi-cmt spatial "$filename" yaml_files/material.yaml \
-        --DH 20 --proj "${proj}" --NZ 4 &
+        --DH 20 --proj "${proj}" --NZ 4 $refVectorArgs&
 
     job_idx=$((job_idx + 1))
     # Wait when too many jobs are running in parallel
@@ -139,8 +155,6 @@ wait
 mkdir -p mps_regional
 mv PointSource* mps_regional
 
-
-
 job_idx=0
 
 for filename in "${files[@]}"; do
@@ -153,7 +167,7 @@ for filename in "${files[@]}"; do
     srun --nodes=1 --nodelist="$node" -n 1 -c 1 --exclusive --mem-per-cpu=8G \
         swf compute-multi-cmt spatial "$filename" yaml_files/material.yaml \
         --DH 20 --proj "${proj}" --NZ 4 --slip_threshold " -1e10" \
-        --use_geometric_center &
+        --use_geometric_center $refVectorArgs&
 
     job_idx=$((job_idx + 1))
     # Wait when too many jobs are running in parallel
