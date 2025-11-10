@@ -66,6 +66,8 @@ LtsAutoMergeCostBaseline = 'bestWiggleFactor' ! Baseline used for auto merging c
 &Output
 OutputFile = 'output_fl33/fl33'
 wavefieldoutput = 0
+ReceiverOutput = 0
+
 checkpoint = 0
 !             |stress     |vel
 iOutputMask = 0 0 0 0 0 0 1 1 1
