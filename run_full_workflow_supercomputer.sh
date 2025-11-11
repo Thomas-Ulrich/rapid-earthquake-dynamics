@@ -21,15 +21,20 @@ wait_for_job() {
     done
 }
 
-PARTITION=test
 export order=5
 
 hostname=$(hostname)
 
 if [[ $hostname == uan* ]]; then
-    supercomputer="LUMI"
+    supercomputer="LUMI-G"
+    max_hours=1
+    PARTITION1="small-g"
+    PARTITION2="small-g"
 elif [[ $hostname == login* ]]; then
     supercomputer="supermucNG1"
+    max_hours=4
+    PARTITION1=test
+    PARTITION2=micro
 else
     echo "Error: Unknown hostname '$hostname'" >&2
     exit 1
@@ -49,17 +54,15 @@ else
   echo "Submitted pseudo-static job with ID: $job1_id"
   wait_for_job "$job1_id"
 fi
-output=$(${script_dir}/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out)
+output=$(${script_dir}/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
 walltime=$(echo "$output" | grep "Walltime:" | awk '{print $2}')
 nodes=$(echo "$output" | grep "Chosen nodes:" | awk '{print $3}')
 
 echo "Using walltime: $walltime"
 echo "Using nodes: $nodes"
 
-job2_id=$(sbatch --partition=$PARTITION ${script_dir}/scripts/${supercomputer}/create_parameters.sh | awk '{print $NF}')
+#job2_id=$(sbatch --partition=$PARTITION1 ${script_dir}/scripts/${supercomputer}/create_parameters.sh | awk '{print $NF}')
 
-PARTITION=micro
-
-job3_id=$(sbatch --time=$walltime --nodes=$nodes --dependency=afterok:$job2_id ${script_dir}/scripts/${supercomputer}/aggregated_jobs.sh part_1.txt | awk '{print $NF}')
-job4_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job3_id ${script_dir}/scripts/${supercomputer}/compact_output_and_generate_PS.sh | awk '{print $NF}')
-job5_id=$(sbatch --partition=$PARTITION --dependency=afterok:$job4_id ${script_dir}/scripts/${supercomputer}/generate_syn.sh | awk '{print $NF}')
+job3_id=$(sbatch --time=$walltime --nodes=$nodes ${script_dir}/scripts/${supercomputer}/aggregated_jobs_alt.sh part_1.txt | awk '{print $NF}')
+#job4_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:$job3_id ${script_dir}/scripts/${supercomputer}/compact_output_and_generate_PS.sh | awk '{print $NF}')
+#job5_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:$job4_id ${script_dir}/scripts/${supercomputer}/generate_syn.sh | awk '{print $NF}')

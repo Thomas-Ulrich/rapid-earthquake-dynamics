@@ -120,7 +120,7 @@ def get_scaled_walltime_and_ranks(
         walltime = convert_to_hms(target_time)
 
         chosen_nodes = nodes
-        if hours <= max_hours:
+        if hours < max_hours:
             break
 
     return walltime, chosen_nodes
