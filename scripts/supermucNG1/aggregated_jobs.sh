@@ -26,15 +26,15 @@
 
 module load slurm_setup
 # use a number of nodes multiple of 16!
-if (( SLURM_JOB_NUM_NODES % 16 != 0 )); then
+if ((SLURM_JOB_NUM_NODES % 16 != 0)); then
     echo "$SLURM_JOB_NUM_NODES not a multiple of 16"
     exit 1
 fi
 
 if [ "$SLURM_JOB_NUM_NODES" -lt 208 ]; then
-    ndivide=$(( SLURM_JOB_NUM_NODES / 8 ))
+    ndivide=$((SLURM_JOB_NUM_NODES / 8))
 else
-    ndivide=$(( SLURM_JOB_NUM_NODES / 16 ))
+    ndivide=$((SLURM_JOB_NUM_NODES / 16))
 fi
 
 #Run the program:
@@ -57,26 +57,24 @@ source /etc/profile.d/modules.sh
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
-
 ORDER=${order:-4}
 module load seissol/1.3.1-oneapi25-o${ORDER}-elas-dunav-single-impi
 #module load seissol/master-oneapi25-o${ORDER}-elas-dunav-single-impi
 unset KMP_AFFINITY
 
-nodes_per_job=$(( $SLURM_JOB_NUM_NODES / $ndivide ))
-tasks_per_job=$(( $nodes_per_job * 2 ))
+nodes_per_job=$(($SLURM_JOB_NUM_NODES / $ndivide))
+tasks_per_job=$(($nodes_per_job * 2))
 
 if [[ -n "$1" ]]; then
     part_file=$1
     echo "$(date '+%Y-%m-%d %H:%M:%S') - reading parameter files from: $1"
-    mapfile -t files < "$part_file"
+    mapfile -t files <"$part_file"
 else
     files=(parameters_dyn_*.par)
 fi
 
 num_files=${#files[@]}
 echo "Found $num_files files to process."
-
 
 run_file() {
     local filename=$1
@@ -94,12 +92,12 @@ run_file() {
 # Process files in parallel
 counter=0
 for filename in "${files[@]}"; do
-    run_file "$filename" "$counter" &  # run in background
+    run_file "$filename" "$counter" & # run in background
     counter=$((counter + 1))
 
     # Ensure we don’t exceed max concurrent jobs
-    if (( $counter >= $ndivide )); then
-        wait -n  # Wait for the first finished job before launching a new one
+    if (($counter >= $ndivide)); then
+        wait -n # Wait for the first finished job before launching a new one
     fi
 done
 
@@ -118,12 +116,12 @@ for filename in "${files[@]}"; do
     # If the output file does not exist, process the file
     if [ ! -f "$output_file" ]; then
         echo "something went wrong? trying rerun seissol with file: $filename"
-        run_file "$filename" "$counter" &  # run in background
+        run_file "$filename" "$counter" & # run in background
         counter=$((counter + 1))
     fi
 
     # Ensure we don’t exceed max concurrent jobs
-    if (( $counter >= $ndivide )); then
-        wait -n  # Wait for the first finished job before launching a new one
+    if (($counter >= $ndivide)); then
+        wait -n # Wait for the first finished job before launching a new one
     fi
 done

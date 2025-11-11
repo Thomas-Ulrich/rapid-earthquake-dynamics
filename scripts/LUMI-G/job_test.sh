@@ -13,7 +13,7 @@
 #SBATCH --requeue
 #SBATCH --export=ALL
 
-cat << EOF > select_gpu
+cat <<EOF >select_gpu
 #!/bin/bash
 
 export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID
@@ -41,7 +41,7 @@ export PATH=/project/project_465002391/ulrich/seissol_base/seissol/build:$PATH
 part_file=$1
 ORDER=${order:-4}
 
-mapfile -t filenames < "$part_file"
+mapfile -t filenames <"$part_file"
 
 # Iterate over the array of filenames
 for filename in "${filenames[@]}"; do
@@ -62,4 +62,3 @@ for filename in "${filenames[@]}"; do
     #    srun SeisSol_Release_sskx_4_elastic $filename
     #fi
 done
-

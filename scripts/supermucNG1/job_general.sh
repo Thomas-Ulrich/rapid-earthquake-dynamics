@@ -52,7 +52,7 @@ module load seissol/1.3.1-intel23-o${ORDER}-elas-dunav-single-impi
 
 part_file=$1
 
-mapfile -t filenames < "$part_file"
+mapfile -t filenames <"$part_file"
 
 # Iterate over the array of filenames
 for filename in "${filenames[@]}"; do

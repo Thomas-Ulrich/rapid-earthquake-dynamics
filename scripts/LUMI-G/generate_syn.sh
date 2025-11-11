@@ -11,12 +11,11 @@
 #SBATCH -e logs/%j.%x.out
 #SBATCH --partition=small-g  # Partition (queue) name
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=0  
+#SBATCH --gpus-per-node=0
 #SBATCH --mail-type=all         # Send email at begin and end of job
 #SBATCH --exclusive
 #SBATCH --export=ALL
 #SBATCH --mem=80G
-
 
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
@@ -36,7 +35,7 @@ fi
 
 $script_dir/dynworkflow/compute_percentage_supershear.py $output_dir/dyn_ yaml_files/material.yaml
 if [ -f offsets.csv ]; then
-  $script_dir/dynworkflow/compare_offset.py $output_dir/dyn_ offsets.csv
+    $script_dir/dynworkflow/compare_offset.py $output_dir/dyn_ offsets.csv
 fi
 
 $script_dir/dynworkflow/add_source_files_to_waveform_config.py

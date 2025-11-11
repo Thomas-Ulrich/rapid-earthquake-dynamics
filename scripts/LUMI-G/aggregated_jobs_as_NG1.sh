@@ -16,7 +16,7 @@
 #SBATCH --requeue
 #SBATCH --export=ALL
 
-cat << EOF > select_gpu
+cat <<EOF >select_gpu
 #!/bin/bash
 
 export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID
@@ -42,15 +42,15 @@ export SEISSOL_FREE_CPUS_MASK="52-54,60-62,20-22,28-30,4-6,12-14,36-38,44-46"
 export PATH=/project/project_465002391/ulrich/seissol_base/seissol/build:$PATH
 
 # use a number of nodes multiple of 16!
-if (( SLURM_JOB_NUM_NODES % 2 != 0 )); then
+if ((SLURM_JOB_NUM_NODES % 2 != 0)); then
     echo "$SLURM_JOB_NUM_NODES not a multiple of 2"
     exit 1
 fi
 
 if [ "$SLURM_JOB_NUM_NODES" -lt 60 ]; then
-    ndivide=$(( SLURM_JOB_NUM_NODES / 1 ))
+    ndivide=$((SLURM_JOB_NUM_NODES / 1))
 else
-    ndivide=$(( SLURM_JOB_NUM_NODES / 2 ))
+    ndivide=$((SLURM_JOB_NUM_NODES / 2))
 fi
 
 ulimit -Ss 2097152
@@ -59,20 +59,19 @@ ORDER=${order:-4}
 
 unset KMP_AFFINITY
 
-nodes_per_job=$(( $SLURM_JOB_NUM_NODES / $ndivide ))
-tasks_per_job=$(( $nodes_per_job * 8 ))
+nodes_per_job=$(($SLURM_JOB_NUM_NODES / $ndivide))
+tasks_per_job=$(($nodes_per_job * 8))
 
 if [[ -n "$1" ]]; then
     part_file=$1
     echo "$(date '+%Y-%m-%d %H:%M:%S') - reading parameter files from: $1"
-    mapfile -t files < "$part_file"
+    mapfile -t files <"$part_file"
 else
     files=(parameters_dyn_*.par)
 fi
 
 num_files=${#files[@]}
 echo "Found $num_files files to process."
-
 
 run_file() {
     local filename=$1
@@ -82,20 +81,19 @@ run_file() {
     local id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
 
     srun --nodes=$nodes_per_job --ntasks=$tasks_per_job \
-	 --ntasks-per-node=8 --gpus-per-node=8 \
-         -o ./logs/$SLURM_JOB_ID.$counter0.$id.out --exclusive\
-        --cpu-bind=mask_cpu:${CPU_BIND} ./select_gpu SeisSol_Release_sgfx90a_hip_${ORDER}_elastic $filename
+        --ntasks-per-node=8 --gpus-per-node=8 \
+        -o ./logs/$SLURM_JOB_ID.$counter0.$id.out --exclusive --cpu-bind=mask_cpu:${CPU_BIND} ./select_gpu SeisSol_Release_sgfx90a_hip_${ORDER}_elastic $filename
 }
 
 # Process files in parallel
 counter=0
 for filename in "${files[@]}"; do
-    run_file "$filename" "$counter" &  # run in background
+    run_file "$filename" "$counter" & # run in background
     counter=$((counter + 1))
 
     # Ensure we don’t exceed max concurrent jobs
-    if (( $counter >= $ndivide )); then
-        wait -n  # Wait for the first finished job before launching a new one
+    if (($counter >= $ndivide)); then
+        wait -n # Wait for the first finished job before launching a new one
     fi
 done
 
@@ -114,12 +112,12 @@ for filename in "${files[@]}"; do
     # If the output file does not exist, process the file
     if [ ! -f "$output_file" ]; then
         echo "something went wrong? trying rerun seissol with file: $filename"
-        run_file "$filename" "$counter" &  # run in background
+        run_file "$filename" "$counter" & # run in background
         counter=$((counter + 1))
     fi
 
     # Ensure we don’t exceed max concurrent jobs
-    if (( $counter >= $ndivide )); then
-        wait -n  # Wait for the first finished job before launching a new one
+    if (($counter >= $ndivide)); then
+        wait -n # Wait for the first finished job before launching a new one
     fi
 done

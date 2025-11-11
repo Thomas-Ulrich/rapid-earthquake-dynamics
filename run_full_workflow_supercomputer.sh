@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-echo parameters_fl33.par > fl33.txt
+echo parameters_fl33.par >fl33.txt
 script_dir=../rapid-earthquake-dynamics/
 
 # Function to wait for a job to finish
@@ -42,17 +42,15 @@ fi
 
 echo "Detected supercomputer: $supercomputer"
 
-
-
 if [[ -n "$1" ]]; then
-  # If argument $1 is given, use it as job ID
-  job1_id="$1"
-  echo "Using provided job ID: $job1_id"
+    # If argument $1 is given, use it as job ID
+    job1_id="$1"
+    echo "Using provided job ID: $job1_id"
 else
-  # Otherwise, run the pseudo-static step
-  job1_id=$(sbatch "${script_dir}/scripts/${supercomputer}/job_test.sh" fl33.txt | awk '{print $NF}')
-  echo "Submitted pseudo-static job with ID: $job1_id"
-  wait_for_job "$job1_id"
+    # Otherwise, run the pseudo-static step
+    job1_id=$(sbatch "${script_dir}/scripts/${supercomputer}/job_test.sh" fl33.txt | awk '{print $NF}')
+    echo "Submitted pseudo-static job with ID: $job1_id"
+    wait_for_job "$job1_id"
 fi
 output=$(${script_dir}/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
 walltime=$(echo "$output" | grep "Walltime:" | awk '{print $2}')

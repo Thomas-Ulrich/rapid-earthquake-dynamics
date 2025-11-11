@@ -48,7 +48,7 @@ fi
 
 $script_dir/dynworkflow/compute_percentage_supershear.py $output_dir/dyn_ yaml_files/material.yaml
 if [ -f offsets.csv ]; then
-  $script_dir/dynworkflow/compare_offset.py $output_dir/dyn_ offsets.csv
+    $script_dir/dynworkflow/compare_offset.py $output_dir/dyn_ offsets.csv
 fi
 
 $script_dir/dynworkflow/add_source_files_to_waveform_config.py

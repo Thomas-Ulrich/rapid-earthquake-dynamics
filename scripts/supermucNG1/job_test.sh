@@ -53,7 +53,7 @@ unset KMP_AFFINITY
 
 part_file=$1
 
-mapfile -t filenames < "$part_file"
+mapfile -t filenames <"$part_file"
 
 # Iterate over the array of filenames
 for filename in "${filenames[@]}"; do

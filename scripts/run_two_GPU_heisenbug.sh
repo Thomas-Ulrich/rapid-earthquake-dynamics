@@ -18,7 +18,7 @@ counter=0
 total_params=$(ls parameters_dyn* | wc -l)
 
 for par_file in parameters_dyn*; do
-    counter=$((counter+1))
+    counter=$((counter + 1))
     echo "Processing file $counter of $total_params: $par_file"
-    mpirun -n 2 --map-by ppr:2:numa:pe=$OMP_NUM_THREADS --report-bindings seissol-launch SeisSol_Release_ssm_86_cuda_4_elastic $par_file  2>&1 | tee logs/$par_file.out
+    mpirun -n 2 --map-by ppr:2:numa:pe=$OMP_NUM_THREADS --report-bindings seissol-launch SeisSol_Release_ssm_86_cuda_4_elastic $par_file 2>&1 | tee logs/$par_file.out
 done
