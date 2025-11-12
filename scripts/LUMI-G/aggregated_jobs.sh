@@ -135,8 +135,16 @@ run_file() {
         --cpu-bind=mask_cpu:${CPU_BIND} \
         ./select_gpu SeisSol_Release_sgfx90a_hip_${ORDER}_elastic "$filename" &
     pid=$!
-    active_jobs[$pid]="$node_subset"
-    parameter_lookup[$pid]="$filename"
+
+    # avoid “zombie” entry in active_jobs
+    sleep 1
+    if ! kill -0 "$pid" 2>/dev/null; then
+       echo "Warning: srun for $filename failed to start properly."
+       unset active_jobs["$pid"]
+    else
+       active_jobs["$pid"]="$node_subset"
+       parameter_lookup["$pid"]="$filename"
+    fi
 }
 
 ##############################

@@ -14,7 +14,7 @@ from seismic_waveform_factory.config.schema import CONFIG_SCHEMA
 
 
 def update_file(waveform_type="regional"):
-    config_file = f"waveforms_config_{waveform_type}_sources.yaml"
+    config_file = f"waveforms_config_{waveform_type}.yaml"
     cfg = ConfigLoader(config_file, CONFIG_SCHEMA)
 
     # load first default arguments for backwards compatibility
@@ -49,7 +49,7 @@ def update_file(waveform_type="regional"):
 
     # Save to new YAML file
     # root, ext = os.path.splitext(config_file)
-    out_fname = f"waveforms_config_{waveform_type}_sources.yaml"
+    out_fname = f"waveforms_config_{waveform_type}.yaml"
     print(out_fname)
     yaml_dump(cfg.config, out_fname)
 

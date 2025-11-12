@@ -59,8 +59,8 @@ nodes=$(echo "$output" | grep "Chosen nodes:" | awk '{print $3}')
 echo "Using walltime: $walltime"
 echo "Using nodes: $nodes"
 
-#job2_id=$(sbatch --partition=$PARTITION1 ${script_dir}/scripts/${supercomputer}/create_parameters.sh | awk '{print $NF}')
+job2_id=$(sbatch --partition=$PARTITION1 ${script_dir}/scripts/${supercomputer}/create_parameters.sh | awk '{print $NF}')
 
-job3_id=$(sbatch --time=$walltime --nodes=$nodes ${script_dir}/scripts/${supercomputer}/aggregated_jobs_alt.sh part_1.txt | awk '{print $NF}')
-#job4_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:$job3_id ${script_dir}/scripts/${supercomputer}/compact_output_and_generate_PS.sh | awk '{print $NF}')
-#job5_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:$job4_id ${script_dir}/scripts/${supercomputer}/generate_syn.sh | awk '{print $NF}')
+job3_id=$(sbatch --time=$walltime --nodes=$nodes ${script_dir}/scripts/${supercomputer}/aggregated_jobs.sh part_1.txt | awk '{print $NF}')
+job4_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:$job3_id ${script_dir}/scripts/${supercomputer}/compact_output_and_generate_PS.sh | awk '{print $NF}')
+job5_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:$job4_id ${script_dir}/scripts/${supercomputer}/generate_syn.sh | awk '{print $NF}')

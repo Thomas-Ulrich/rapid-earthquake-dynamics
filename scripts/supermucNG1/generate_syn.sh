@@ -53,10 +53,10 @@ fi
 
 $script_dir/dynworkflow/add_source_files_to_waveform_config.py
 export OMP_NUM_THREADS=$(grep -c ^processor /proc/cpuinfo)
-if [ -f waveforms_config_regional_sources.yaml ]; then
-    swf plot-waveforms waveforms_config_regional_sources.yaml
+if [ -f waveforms_config_regional.yaml ]; then
+    swf plot-waveforms waveforms_config_regional.yaml
 fi
-if [ -f waveforms_config_teleseismic_sources.yaml ]; then
-    swf plot-waveforms waveforms_config_teleseismic_sources.yaml
+if [ -f waveforms_config_teleseismic.yaml ]; then
+    swf plot-waveforms waveforms_config_teleseismic.yaml
 fi
 $script_dir/dynworkflow/compile_scenario_macro_properties.py $output_dir
