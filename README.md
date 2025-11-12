@@ -43,7 +43,7 @@ python -m pip install git+https://github.com/Thomas-Ulrich/seismic-waveform-fact
 
 ```bash
 git clone --branch thomas/build_meson https://github.com/Thomas-Ulrich/axitra
-cd axitra/MOMENT_DISP_F90_OPENMP
+cd axitra/MOMENT_DISP_F90_OPENMP/src
 make all python
 ```
 
