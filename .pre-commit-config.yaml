@@ -53,5 +53,5 @@ repos:
     hooks:
       - id: shfmt
         name: '[BASH] format shell scripts'
-        args: ['-i', '2', '-ci', '--max-line-length', '88', '-w']
+        args: ['-i', '2', '-ci', '-w']
         files: '\.sh$'
