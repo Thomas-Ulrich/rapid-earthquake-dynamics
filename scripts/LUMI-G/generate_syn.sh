@@ -19,4 +19,6 @@
 
 export OMP_NUM_THREADS=64
 
-bash $(dirname "$0")/../common/generate_syn.sh
+#bash $(dirname "$0")/../common/generate_syn.sh
+script_dir=../rapid-earthquake-dynamics/
+bash $script_dir/scripts/common/generate_syn.sh

@@ -179,6 +179,8 @@ for filename in "${files[@]}"; do
         fi
     done
 done
+# Wait for remaining background jobs and print finished jobs in the order they finish
+last_print_time=$(date +%s)
 
 # Wait for remaining background jobs and print finished jobs in the order they finish
 while ((${#active_jobs[@]} > 0)); do
@@ -191,6 +193,20 @@ while ((${#active_jobs[@]} > 0)); do
             # break  # optional, can continue to check other jobs immediately
         fi
     done
+
+    # Print debug info every 60 seconds
+    now=$(date +%s)
+    if (( now - last_print_time >= 60 )); then
+        echo "----- STATUS $(date '+%Y-%m-%d %H:%M:%S') -----"
+        echo "Active jobs: ${#active_jobs[@]}"
+        echo "Tracked parameters: ${#parameter_lookup[@]}"
+        echo "PIDs still running: ${!active_jobs[@]}"
+        for pid in "${!active_jobs[@]}"; do
+            echo "  PID $pid → nodes: ${active_jobs[$pid]}, file: ${parameter_lookup[$pid]}"
+        done
+        echo "---------------------------------------------"
+        last_print_time=$now
+    fi
     sleep 1 # avoid busy-waiting
 done
 
