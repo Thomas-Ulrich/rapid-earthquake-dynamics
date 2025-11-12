@@ -26,6 +26,7 @@ synthetics:
       - "/dss/dsshome1/0A/di73yeq4/axitra/MOMENT_DISP_F90_OPENMP/src"
       - "/import/cachemiss-dump/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
       - "/home/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
+      - "/project/project_465002391/ulrich/axitra/MOMENT_DISP_F90_OPENMP/src"
     fmax: 1.0
     duration: 200.0
     velocity_model: "tmp/axitra_velocity_model.txt"

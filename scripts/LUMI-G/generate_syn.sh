@@ -15,7 +15,7 @@
 #SBATCH --mail-type=all         # Send email at begin and end of job
 #SBATCH --exclusive
 #SBATCH --export=ALL
-#SBATCH --mem=80G
+#SBATCH --mem=480G
 
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152

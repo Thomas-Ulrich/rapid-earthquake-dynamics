@@ -57,6 +57,8 @@ def get_supershear_ratio(mesh, vs):
         .sum()
     )
     active_cells = mesh.threshold(0.5, scalars="vr_gt_vs")
+    if active_cells.n_cells == 0:
+        return 0
 
     # Find connected components
     connected = active_cells.connectivity()
