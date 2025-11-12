@@ -136,7 +136,7 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
         output_file,
         sx.xyz,
         sx.connect,
-        {"ASl": ASl, "SR": SR, "Sls": Sls, "Sld": Sld},
+        {"ASl": ASl, "SR": SR, "Sls": Sls, "Sld": Sld, "fault-tag": tags},
         dictTime,
         reduce_precision=True,
     )

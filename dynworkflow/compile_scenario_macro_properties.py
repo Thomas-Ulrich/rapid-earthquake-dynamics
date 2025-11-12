@@ -675,7 +675,7 @@ if __name__ == "__main__":
             fname = matching_files[0]
             print(f"{fname} detected: merging with results dataframe")
             gofa = pickle.load(open(fname, "rb"))
-            gofa = gofa[~gofa["src"].str.contains(r"kinmod")]
+            gofa = gofa[~gofa["src"].apply(lambda x: "kinmod" in x[1])]
 
             if waveform_type == "regional":
                 processed_gof = compute_weighted_wf_gof(
