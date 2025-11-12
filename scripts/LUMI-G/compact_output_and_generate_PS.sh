@@ -4,25 +4,25 @@
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
 #SBATCH -J compact
-#SBATCH --nodes=4               # Total number of nodes
+#SBATCH --nodes=1              # Total number of nodes
 #SBATCH --account=project_465002391  # Project for billing
 #SBATCH --time=00:30:00       # Run time (d-hh:mm:ss)
 #SBATCH -o logs/%j.%x.out
 #SBATCH -e logs/%j.%x.out
 #SBATCH --partition=small-g  # Partition (queue) name
-#SBATCH --ntasks-per-node=10     # 8 MPI ranks per node
+#SBATCH --ntasks-per-node=56     # 8 MPI ranks per node
 #SBATCH --gpus-per-node=0       # Allocate one gpu per MPI rank
 #SBATCH --mail-type=all         # Send email at begin and end of job
 #SBATCH --exclusive
 #SBATCH --export=ALL
-#SBATCH --mem=80G
+#SBATCH --mem=480G
 
 #Run the program:
 unset KMP_AFFINITY
 export MP_SINGLE_THREAD=no
 export OMP_NUM_THREADS=1
 
-tasks_per_node=10 # Change this to how many parallel jobs you want per node
+tasks_per_node=56 # Change this to how many parallel jobs you want per node
 
 set -euo pipefail
 mkdir -p extracted_output
