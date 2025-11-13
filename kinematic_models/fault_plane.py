@@ -451,7 +451,10 @@ class FaultPlane:
         )
 
         # upsample other quantities
-        self.rake_deg = np.unwrap(np.unwrap(self.rake_deg, axis=0), axis=1)
+        self.rake_deg = np.rad2deg(
+            np.unwrap(np.unwrap(np.deg2rad(self.rake_deg), axis=0), axis=1)
+        )
+
         allarr = np.array([self.t0, self.strike, self.dip, self.rake_deg])
         pf.t0, pf.strike, pf.dip, pf.rake_deg = upsample_quantities(
             allarr, spatial_order, spatial_zoom, padding="edge"
