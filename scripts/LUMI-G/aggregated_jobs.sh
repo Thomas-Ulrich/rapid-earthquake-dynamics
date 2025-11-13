@@ -75,7 +75,7 @@ tasks_per_job=$((nodes_per_job * 8))
 
 echo "Total nodes: $SLURM_JOB_NUM_NODES"
 echo "Dividing into $ndivide parallel jobs, each using $nodes_per_job nodes ($tasks_per_job tasks)."
-
+mkdir logs/${SLURM_JOB_ID}_runs
 ##############################
 # Collect parameter files
 ##############################
@@ -132,7 +132,7 @@ run_file() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') - Launching $filename on nodes: $node_subset"
 
   srun --nodes=$nodes_per_job --nodelist="$node_subset" \
-    --ntasks=$tasks_per_job --ntasks-per-node=8 --gpus-per-node=8 --cpus-per-task=7 -o ./logs/$SLURM_JOB_ID.$counter0.$id.out --exclusive \
+    --ntasks=$tasks_per_job --ntasks-per-node=8 --gpus-per-node=8 --cpus-per-task=7 -o ./logs/${SLURM_JOB_ID}_runs/$SLURM_JOB_ID.$counter0.$id.out --exclusive \
     --cpu-bind=mask_cpu:${CPU_BIND} \
     ./select_gpu SeisSol_Release_sgfx90a_hip_${ORDER}_elastic "$filename" &
   pid=$!
