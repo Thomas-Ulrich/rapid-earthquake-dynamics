@@ -249,7 +249,7 @@ class FaultPlane:
         self.slip1 = 0
         self.strike = 0
         self.dip = 0
-        self.rake = 0
+        self.rake_deg = 0
         self.aSR = 0
         self.myt = 0
 
@@ -265,7 +265,7 @@ class FaultPlane:
         self.slip1 = np.zeros((ny, nx))
         self.strike = np.zeros((ny, nx))
         self.dip = np.zeros((ny, nx))
-        self.rake = np.zeros((ny, nx))
+        self.rake_deg = np.zeros((ny, nx))
         self.rise_time = np.zeros((self.ny, self.nx))
         self.tacc = np.zeros((self.ny, self.nx))
 
@@ -323,7 +323,15 @@ class FaultPlane:
                     )
                     fout.write(
                         "%g %g %d %f %d %f %d\n"
-                        % (self.rake[j, i], self.slip1[j, i], self.ndt, 0.0, 0, 0.0, 0)
+                        % (
+                            self.rake_deg[j, i],
+                            self.slip1[j, i],
+                            self.ndt,
+                            0.0,
+                            0,
+                            0.0,
+                            0,
+                        )
                     )
                     np.savetxt(fout, self.aSR[j, i, :], fmt="%g", newline=" ")
                     fout.write("\n")
@@ -443,9 +451,9 @@ class FaultPlane:
         )
 
         # upsample other quantities
-        self.rake = np.unwrap(np.unwrap(self.rake, axis=0), axis=1)
-        allarr = np.array([self.t0, self.strike, self.dip, self.rake])
-        pf.t0, pf.strike, pf.dip, pf.rake = upsample_quantities(
+        self.rake_deg = np.unwrap(np.unwrap(self.rake_deg, axis=0), axis=1)
+        allarr = np.array([self.t0, self.strike, self.dip, self.rake_deg])
+        pf.t0, pf.strike, pf.dip, pf.rake_deg = upsample_quantities(
             allarr, spatial_order, spatial_zoom, padding="edge"
         )
         # the interpolation may generate some acausality that we here prevent
@@ -674,14 +682,14 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         slip = self.upsample_quantity_RGInterpolator(cslip, method, is_slip=True)
         slip[slip < slip_cutoff] = 0.0
 
-        self.rake = np.deg2rad(self.rake)
-        self.rake = np.unwrap(np.unwrap(self.rake, axis=0), axis=1)
-        self.rake = np.rad2deg(self.rake)
+        self.rake_deg = np.rad2deg(
+            np.unwrap(np.unwrap(np.deg2rad(self.rake_deg), axis=0), axis=1)
+        )
 
-        for arr in [self.t0, self.rake, self.rise_time, self.tacc]:
+        for arr in [self.t0, self.rake_deg, self.rise_time, self.tacc]:
             upsampled_arrays.append(self.upsample_quantity_RGInterpolator(arr, method))
 
-        rupttime, rake, rise_time, tacc = upsampled_arrays
+        rupttime, rake_deg, rise_time, tacc = upsampled_arrays
 
         # upsampled duration, rise_time and acc_time may not be smaller than initial
         # values at least rise_time could lead to a non-causal kinematic model
@@ -689,7 +697,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         rise_time = np.maximum(rise_time, np.amin(self.rise_time))
         tacc = np.maximum(tacc, np.amin(self.tacc))
 
-        rake_rad = np.radians(rake)
+        rake_rad = np.radians(rake_deg)
         strike_slip = slip * np.cos(rake_rad) * cm2m
         dip_slip = slip * np.sin(rake_rad) * cm2m
 
@@ -697,17 +705,19 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             "compute rake with, with interpolation is slip is too small"
             slip = np.sqrt(strike_slip**2 + dip_slip**2)
             slip_threshold = min(slip_threshold, 0.1 * np.amax(slip))
-            rake = np.arctan2(dip_slip, strike_slip)
-            rake[slip < slip_threshold] = np.nan
-            nan_indices = np.isnan(rake)
+            rake_rad = np.arctan2(dip_slip, strike_slip)
+            rake_rad[slip < slip_threshold] = np.nan
+            nan_indices = np.isnan(rake_rad)
             if nan_indices.any():
                 # Create a meshgrid for interpolation
-                x, y = np.meshgrid(np.arange(rake.shape[1]), np.arange(rake.shape[0]))
+                x, y = np.meshgrid(
+                    np.arange(rake_rad.shape[1]), np.arange(rake_rad.shape[0])
+                )
 
                 # Flatten the arrays and remove NaNs
                 x_flat = x[~nan_indices].flatten()
                 y_flat = y[~nan_indices].flatten()
-                rake_flat = rake[~nan_indices].flatten()
+                rake_flat = rake_rad[~nan_indices].flatten()
                 # important for dealing with 2 pi rake jump
                 rake_flat = np.unwrap(rake_flat)
 
@@ -715,19 +725,19 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                 rake_interpolated_lin = griddata(
                     (x_flat, y_flat), rake_flat, (x, y), method="linear"
                 )
-                rake[~nan_indices] = rake_flat
-                rake[nan_indices] = rake_interpolated_lin[nan_indices]
-                nan_indices = np.isnan(rake)
+                rake_rad[~nan_indices] = rake_flat
+                rake_rad[nan_indices] = rake_interpolated_lin[nan_indices]
+                nan_indices = np.isnan(rake_rad)
                 if nan_indices.any():
                     rake_interpolated_near = griddata(
                         (x_flat, y_flat), rake_flat, (x, y), method="nearest"
                     )
-                    nan_indices = np.isnan(rake)
-                    rake[nan_indices] = rake_interpolated_near[nan_indices]
-            rake = gaussian_filter(rake, sigma=spatial_zoom / 2)
-            return rake
+                    nan_indices = np.isnan(rake_rad)
+                    rake_rad[nan_indices] = rake_interpolated_near[nan_indices]
+            rake_rad = gaussian_filter(rake_rad, sigma=spatial_zoom / 2)
+            return rake_rad
 
-        rake = compute_rake_interp_low_slip(strike_slip, dip_slip)
+        rake_rad = compute_rake_interp_low_slip(strike_slip, dip_slip)
 
         ldataName = [
             "strike_slip",
@@ -737,7 +747,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             "acc_time",
             "rake_interp_low_slip",
         ]
-        lgridded_myData = [strike_slip, dip_slip, rupttime, rise_time, tacc, rake]
+        lgridded_myData = [strike_slip, dip_slip, rupttime, rise_time, tacc, rake_rad]
 
         prefix2 = f"{prefix}_{spatial_zoom}_{method}"
         if write_paraview:
@@ -869,7 +879,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                 "lat",
                 "depth",
                 "slip1",
-                "rake",
+                "rake_deg",
                 "strike",
                 "dip",
                 "t0",
@@ -899,7 +909,7 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
             "lat",
             "depth",
             "slip1",
-            "rake",
+            "rake_deg",
             "strike",
             "dip",
             "t0",

@@ -115,7 +115,7 @@ class MultiFaultPlane:
                     fp.lat[j, i] = df["LAT"][k]
                     fp.depth[j, i] = df["Z"][k]
                     fp.slip1[j, i] = df["SLIP"][k]
-                    fp.rake[j, i] = df["RAKE"][k]
+                    fp.rake_deg[j, i] = df["RAKE"][k]
                     fp.strike[j, i] = strike
                     fp.dip[j, i] = dip
                     fp.PSarea_cm2 = dx * dy * 1e10
@@ -183,7 +183,7 @@ class MultiFaultPlane:
                     fp.lat[j, i] = df["lat"][k]
                     fp.depth[j, i] = df["depth"][k]
                     fp.slip1[j, i] = df["slip"][k]
-                    fp.rake[j, i] = df["rake"][k]
+                    fp.rake_deg[j, i] = df["rake"][k]
                     fp.strike[j, i] = df["strike"][k]
                     fp.dip[j, i] = df["dip"][k]
                     fp.PSarea_cm2 = dx * dy * 1e10
@@ -259,7 +259,7 @@ class MultiFaultPlane:
                     fp.lat[j, i] = df["lat"][k]
                     fp.depth[j, i] = df["depth"][k]
                     fp.slip1[j, i] = df["slip"][k]
-                    fp.rake[j, i] = df["rake"][k]
+                    fp.rake_deg[j, i] = df["rake"][k]
                     fp.strike[j, i] = df["strike"][k]
                     fp.dip[j, i] = df["dip"][k]
                     fp.PSarea_cm2 = dx * dy * 1e10
@@ -387,7 +387,7 @@ class MultiFaultPlane:
                 fp.slip1[j, i] = df["slip(cm)"][k]  # * 2.5e10/ G(fp.depth[j, i])
                 Gslip25 += df["slip(cm)"][k] * 2.5e10
                 Gslip += df["slip(cm)"][k] * G(fp.depth[j, i])
-                fp.rake[j, i] = df["rake"][k]
+                fp.rake_deg[j, i] = df["rake"][k]
                 fp.strike[j, i] = df["strike"][k]
                 fp.dip[j, i] = df["dip"][k]
                 fp.PSarea_cm2 = dx * dy * 1e10
@@ -507,7 +507,7 @@ class MultiFaultPlane:
                         # second header line
                         line = fid.readline()
                         (
-                            fp.rake[j, i],
+                            fp.rake_deg[j, i],
                             fp.slip1[j, i],
                             ndt1,
                             slip2,
