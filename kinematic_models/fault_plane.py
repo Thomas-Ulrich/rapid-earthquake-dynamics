@@ -706,38 +706,40 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
 
         def compute_rake_interp_low_slip(strike_slip, dip_slip, slip_threshold=0.1):
             "compute rake with, with interpolation is slip is too small"
+            strike_slip = gaussian_filter(strike_slip, sigma=spatial_zoom)
+            dip_slip = gaussian_filter(dip_slip, sigma=spatial_zoom)
             slip = np.sqrt(strike_slip**2 + dip_slip**2)
             slip_threshold = min(slip_threshold, 0.1 * np.amax(slip))
+
             rake_rad = np.arctan2(dip_slip, strike_slip)
+
+            rake_rad = np.unwrap(np.unwrap(rake_rad, axis=0), axis=1)
             rake_rad[slip < slip_threshold] = np.nan
-            nan_indices = np.isnan(rake_rad)
-            if nan_indices.any():
+            nan_mask = np.isnan(rake_rad)
+            if nan_mask.any():
                 # Create a meshgrid for interpolation
                 x, y = np.meshgrid(
                     np.arange(rake_rad.shape[1]), np.arange(rake_rad.shape[0])
                 )
-
-                # Flatten the arrays and remove NaNs
-                x_flat = x[~nan_indices].flatten()
-                y_flat = y[~nan_indices].flatten()
-                rake_flat = rake_rad[~nan_indices].flatten()
-                # important for dealing with 2 pi rake jump
-                rake_flat = np.unwrap(rake_flat)
-
-                # Interpolate missing values using linear interpolation
-                rake_interpolated_lin = griddata(
-                    (x_flat, y_flat), rake_flat, (x, y), method="linear"
+                y, x = np.indices(rake_rad.shape)
+                rake_interp = griddata(
+                    (x[~nan_mask], y[~nan_mask]),
+                    rake_rad[~nan_mask],
+                    (x, y),
+                    method="linear",
                 )
-                rake_rad[~nan_indices] = rake_flat
-                rake_rad[nan_indices] = rake_interpolated_lin[nan_indices]
-                nan_indices = np.isnan(rake_rad)
-                if nan_indices.any():
-                    rake_interpolated_near = griddata(
-                        (x_flat, y_flat), rake_flat, (x, y), method="nearest"
+                # fill remaining NaNs with nearest
+                missing = np.isnan(rake_interp)
+                if np.any(missing):
+                    rake_interp[missing] = griddata(
+                        (x[~nan_mask], y[~nan_mask]),
+                        rake_rad[~nan_mask],
+                        (x[missing], y[missing]),
+                        method="nearest",
                     )
-                    nan_indices = np.isnan(rake_rad)
-                    rake_rad[nan_indices] = rake_interpolated_near[nan_indices]
-            rake_rad = gaussian_filter(rake_rad, sigma=spatial_zoom / 2)
+                rake_rad = rake_interp
+                rake_rad = np.unwrap(np.unwrap(rake_rad, axis=0), axis=1)
+                rake_rad = gaussian_filter(rake_rad, sigma=spatial_zoom / 2)
             return rake_rad
 
         rake_rad = compute_rake_interp_low_slip(strike_slip, dip_slip)
