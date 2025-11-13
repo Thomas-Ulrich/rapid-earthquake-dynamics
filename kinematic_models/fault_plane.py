@@ -742,7 +742,21 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
                 rake_rad = gaussian_filter(rake_rad, sigma=spatial_zoom / 2)
             return rake_rad
 
+        def compute_average_rake(strike_slip, dip_slip, slip_threshold=0.1):
+            slip_threshold = min(slip_threshold, 0.1 * np.amax(slip))
+            valid = slip >= slip_threshold
+            if not np.any(valid):
+                return 0.0
+            sum_strike = np.nansum(strike_slip[valid] * slip[valid])
+            sum_dip = np.nansum(dip_slip[valid] * slip[valid])
+            if sum_strike == 0 and sum_dip == 0:
+                rake_mean = 0.0
+            else:
+                rake_mean = np.arctan2(sum_dip, sum_strike)
+            return rake_mean
+
         rake_rad = compute_rake_interp_low_slip(strike_slip, dip_slip)
+        self.average_rake_rad = compute_average_rake(strike_slip, dip_slip)
 
         ldataName = [
             "strike_slip",

@@ -603,7 +603,7 @@ class MultiFaultPlane:
         )
         template_yaml = f"""!Switch
 [{variable_list_1}]: !EvalModel
-    parameters: [{variable_list_2}]
+    parameters: [{variable_list_2}, average_rake]
     model: !Any
      components:
 """
@@ -619,7 +619,11 @@ class MultiFaultPlane:
 
             template_yaml += f"""      - !GroupFilter
         groups: {fault_id}
-        components: !AffineMap
+        components: !Switch
+            [average_rake]: !ConstantMap
+              map:
+                average_rake: {fp.average_rake_rad}
+            [{variable_list_2}]: !AffineMap
               matrix:
                 ua: [{hh[0]}, {hh[1]}, {hh[2]}]
                 ub: [{hw[0]}, {hw[1]}, {hw[2]}]
@@ -640,10 +644,10 @@ class MultiFaultPlane:
                     rupture_onset:    0.0
                     acc_time:  1e100
                     effective_rise_time:  2e100
-                    rake_interp_low_slip: 0.0
+                    rake_interp_low_slip: {fp.average_rake_rad}
 """
 
-        template_yaml += """
+        template_yaml += f"""
       - !ConstantMap
               map:
                 strike_slip: 0.0
@@ -651,7 +655,8 @@ class MultiFaultPlane:
                 rupture_onset:    0.0
                 acc_time:  1e100
                 effective_rise_time:  2e100
-                rake_interp_low_slip: 0.0\n"""
+                average_rake: {fp.average_rake_rad}
+                rake_interp_low_slip: {fp.average_rake_rad}\n"""
 
         template_yaml += f"""    components: !LuaMap
       returns: [{variable_list_1}]\n"""
@@ -668,6 +673,7 @@ class MultiFaultPlane:
           tau_R = x["effective_rise_time"] - 2.*x["acc_time"]/1.27,
           rupture_rise_time = x["effective_rise_time"],
           rake_interp_low_slip = math.pi - x["rake_interp_low_slip"]
+          -- rake_interp_low_slip = math.pi - x.average_rake
           }
         end
         """
