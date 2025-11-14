@@ -20,6 +20,16 @@ wait_for_job() {
     done
 }
 
+# Function to return Slurm dependency option if job ID exists
+get_dependency() {
+    local prev_job_id=$1
+    if [[ -n "$prev_job_id" ]]; then
+        echo "--dependency=afterok:$prev_job_id"
+    else
+        echo ""
+    fi
+}
+
 export order=5
 
 hostname=$(hostname)
@@ -97,21 +107,24 @@ fi
 
 # Step 3: Aggregated job
 if [[ "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    job3_id=$(sbatch --time=$walltime --nodes=$nodes --dependency=afterok:${job2_id:-none} \
+    dep=$(get_dependency "$job2_id")
+    job3_id=$(sbatch --time=$walltime --nodes=$nodes $dep \
         ${script_dir}/scripts/${supercomputer}/aggregated_jobs.sh part_1.txt | awk '{print $NF}')
     echo "Submitted job3: $job3_id"
 fi
 
 # Step 4: Compact output
 if [[ "$start_from" == "job4" || "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    job4_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:${job3_id:-none} \
+    dep=$(get_dependency "$job3_id")
+    job4_id=$(sbatch --partition=$PARTITION2 $dep \
         ${script_dir}/scripts/${supercomputer}/compact_output_and_generate_PS.sh | awk '{print $NF}')
     echo "Submitted job4: $job4_id"
 fi
 
 # Step 5: Generate synthetic data
 if [[ "$start_from" == "job5" || "$start_from" == "job4" || "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    job5_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:${job4_id:-none} \
+    dep=$(get_dependency "$job4_id")
+    job5_id=$(sbatch --partition=$PARTITION2 $dep \
         ${script_dir}/scripts/${supercomputer}/generate_syn.sh | awk '{print $NF}')
     echo "Submitted job5: $job5_id"
 fi
