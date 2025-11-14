@@ -6,11 +6,12 @@
 import glob
 import os
 
-import step1_args
 import yaml
-from seismic_waveform_factory.config.utils import yaml_dump
 from seismic_waveform_factory.config.loader import ConfigLoader
 from seismic_waveform_factory.config.schema import CONFIG_SCHEMA
+from seismic_waveform_factory.config.utils import yaml_dump
+
+from dynworkflow import step1_args
 
 
 def update_file(waveform_type="regional"):

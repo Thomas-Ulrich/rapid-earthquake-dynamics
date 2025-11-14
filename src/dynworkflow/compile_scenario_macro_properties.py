@@ -18,7 +18,7 @@ from cmcrameri import cm
 from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
 
-import step1_args
+from dynworkflow import step1_args
 
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
@@ -42,12 +42,12 @@ def parse_parameter_string(param_str):
 
 def infer_duration(time, moment_rate):
     moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
-    M0 = np.trapezoid(moment_rate[:], x=time[:])
+    M0 = np.trapezoid(moment_rate, x=time)
     return np.amax(time[moment < 0.99 * M0])
 
 
 def computeMw(label, time, moment_rate):
-    M0 = np.trapezoid(moment_rate[:], x=time[:])
+    M0 = np.trapezoid(moment_rate, x=time)
     Mw = 2.0 * np.log10(M0) / 3.0 - 6.07
     # print(f"{label} moment magnitude: {Mw:.2} (M0 = {M0:.4e})")
     return M0, Mw

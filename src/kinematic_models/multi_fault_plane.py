@@ -5,7 +5,8 @@ import os
 
 import numpy as np
 import yaml
-from fault_plane import FaultPlane
+
+from kinematic_models.fault_plane import FaultPlane
 
 
 class MultiFaultPlane:
@@ -440,7 +441,7 @@ class MultiFaultPlane:
                             ]
                         )
                     fp.aSR[j, i, :] = sum_of_triangles(fp.myt, triangles)
-                    integral = np.trapz(fp.aSR[j, i, :], dx=fp.dt)
+                    integral = np.trapezoid(fp.aSR[j, i, :], dx=fp.dt)
                     if integral:
                         fp.aSR[j, i, :] /= integral
         # we scale down the model to have the expected magnitude

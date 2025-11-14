@@ -3,14 +3,18 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import argparse
-
 import easi
 import numpy as np
 import seissolxdmf
 import seissolxdmfwriter as sxw
-from stf import asymmetric_cosine, gaussianSTF, regularizedYoffe, smoothStep
 from tqdm import tqdm
+
+from kinematic_models.stf import (
+    asymmetric_cosine,
+    gaussianSTF,
+    regularizedYoffe,
+    smoothStep,
+)
 
 
 class seissolxdmfExtended(seissolxdmf.seissolxdmf):
@@ -142,41 +146,11 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
     )
 
 
-if __name__ == "__main__":
-    # parsing python arguments
-    parser = argparse.ArgumentParser(
-        description="generate a fault output from FL33 input files"
-    )
-    parser.add_argument("fault_filename", help="fault.xdmf filename")
-    parser.add_argument("yaml_filename", help="fault easi/yaml filename")
-
-    parser.add_argument(
-        "--output_file",
-        help="path and prefix of the output file",
-        nargs=1,
-        default=["fault_from_fl33_input"],
-    )
-    parser.add_argument(
-        "--stf",
-        type=str,
-        choices=["Yoffe", "Gaussian", "AsymmetricCosine"],
-        default="Gaussian",
-        help="the source time function to use",
-    )
-    parser.add_argument(
-        "--dt",
-        nargs=1,
-        metavar="dt",
-        default=[0.5],
-        help="sampling time of the output file",
-        type=float,
-    )
-
-    args = parser.parse_args()
+def main(args):
     generate(
         args.fault_filename,
         args.yaml_filename,
-        args.output_file[0],
+        args.output_file,
         args.stf,
-        args.dt[0],
+        args.dt,
     )

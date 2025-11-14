@@ -6,20 +6,11 @@
 import argparse
 import os
 import os.path
-import sys
 
 import numpy as np
 from sklearn.decomposition import PCA
 
-# Append kinematic_models folder to path
-# Get the directory of the current script
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-relative_path = "kinematic_models"
-absolute_path = os.path.join(current_script_dir, relative_path)
-if absolute_path not in sys.path:
-    sys.path.append(absolute_path)
-
-from multi_fault_plane import MultiFaultPlane
+from kinematic_models.multi_fault_plane import MultiFaultPlane
 
 
 def infer_quantities(filename, proj, mesh_size="auto"):

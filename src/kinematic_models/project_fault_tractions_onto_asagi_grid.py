@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import argparse
 import os
 from typing import List, Optional, Tuple
 
 import numpy as np
 import seissolxdmf
-from asagiwriter import writeNetcdf
 from scipy.interpolate import griddata
 from scipy.ndimage import gaussian_filter
 from sklearn.decomposition import PCA
+
+from kinematic_models.asagiwriter import writeNetcdf
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
@@ -293,62 +293,7 @@ def generate_input_files(
     print(f"done writing {fname}")
 
 
-def main() -> None:
-    """
-    Main function to parse arguments and generate input files
-    by projecting 3D fault output onto 2D grids for ASAGI.
-    """
-    parser = argparse.ArgumentParser(
-        description=(
-            "Project 3D fault output onto 2D grids to be read with ASAGI. "
-            "One grid per fault tag."
-        )
-    )
-    parser.add_argument("fault_filename", help="Fault.xdmf filename")
-    parser.add_argument(
-        "--dx",
-        help="Grid sampling",
-        type=float,
-        default=100.0,
-    )
-    parser.add_argument(
-        "--gaussian_kernel",
-        metavar="sigma_m",
-        help="Apply a Gaussian kernel to smooth out input stresses",
-        type=float,
-    )
-    parser.add_argument(
-        "--edge_clearance",
-        metavar="n_samples",
-        help="Nullify traction near the left, bottom, and right edges of the grid.",
-        type=int,
-    )
-
-    parser.add_argument(
-        "--use_median_of_n_time_steps",
-        type=int,
-        metavar="N",
-        help=(
-            "Use the median of the last N time steps instead of the final snapshot. "
-            "This helps suppress transient effects in the data."
-        ),
-        default=7,
-    )
-
-    parser.add_argument(
-        "--taper",
-        help="Taper stress value (MPa)",
-        type=float,
-    )
-    parser.add_argument(
-        "--paraview_readable",
-        dest="paraview_readable",
-        action="store_true",
-        help="Write NetCDF files readable by ParaView",
-        default=False,
-    )
-
-    args = parser.parse_args()
+def main(args) -> None:
     generate_input_files(
         args.fault_filename,
         args.dx,
@@ -358,7 +303,3 @@ def main() -> None:
         args.taper,
         args.paraview_readable,
     )
-
-
-if __name__ == "__main__":
-    main()

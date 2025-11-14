@@ -4,24 +4,13 @@
 import glob
 import os
 import shutil
-import sys
 from unittest.mock import patch
 
 import pytest
 import yaml
 
-# Append kinematic_models folder to path
-# Get the directory of the current script
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-relative_paths = ["../dynworkflow/kinematic_models", "../dynworkflow"]
-for relative_path in relative_paths:
-    absolute_path = os.path.join(current_script_dir, relative_path)
-    if absolute_path not in sys.path:
-        sys.path.append(absolute_path)
-
-import project_fault_tractions_onto_asagi_grid
-
 from dynworkflow import generate_input_seissol_dr
+from kinematic_models import project_fault_tractions_onto_asagi_grid
 
 
 @pytest.fixture
