@@ -43,14 +43,14 @@ export PATH=/project/project_465002391/ulrich/seissol_base/seissol/build:$PATH
 
 # use a number of nodes multiple of 16!
 if ((SLURM_JOB_NUM_NODES % 2 != 0)); then
-    echo "$SLURM_JOB_NUM_NODES not a multiple of 2"
-    exit 1
+  echo "$SLURM_JOB_NUM_NODES not a multiple of 2"
+  exit 1
 fi
 
 if [ "$SLURM_JOB_NUM_NODES" -lt 60 ]; then
-    ndivide=$((SLURM_JOB_NUM_NODES / 1))
+  ndivide=$((SLURM_JOB_NUM_NODES / 1))
 else
-    ndivide=$((SLURM_JOB_NUM_NODES / 2))
+  ndivide=$((SLURM_JOB_NUM_NODES / 2))
 fi
 
 ulimit -Ss 2097152
@@ -63,61 +63,61 @@ nodes_per_job=$(($SLURM_JOB_NUM_NODES / $ndivide))
 tasks_per_job=$(($nodes_per_job * 8))
 
 if [[ -n "$1" ]]; then
-    part_file=$1
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - reading parameter files from: $1"
-    mapfile -t files <"$part_file"
+  part_file=$1
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - reading parameter files from: $1"
+  mapfile -t files <"$part_file"
 else
-    files=(parameters_dyn_*.par)
+  files=(parameters_dyn_*.par)
 fi
 
 num_files=${#files[@]}
 echo "Found $num_files files to process."
 
 run_file() {
-    local filename=$1
-    local counter=$2
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Processing file: $filename"
-    local counter0=$(printf "%05d" "$counter")
-    local id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
+  local filename=$1
+  local counter=$2
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - Processing file: $filename"
+  local counter0=$(printf "%05d" "$counter")
+  local id=$(echo "$filename" | sed -n 's/^parameters_dyn_\([0-9]\{4\}\)_.*\.par/\1/p')
 
-    srun --nodes=$nodes_per_job --ntasks=$tasks_per_job \
-        --ntasks-per-node=8 --gpus-per-node=8 \
-        -o ./logs/$SLURM_JOB_ID.$counter0.$id.out --exclusive --cpu-bind=mask_cpu:${CPU_BIND} ./select_gpu SeisSol_Release_sgfx90a_hip_${ORDER}_elastic $filename
+  srun --nodes=$nodes_per_job --ntasks=$tasks_per_job \
+    --ntasks-per-node=8 --gpus-per-node=8 \
+    -o ./logs/$SLURM_JOB_ID.$counter0.$id.out --exclusive --cpu-bind=mask_cpu:${CPU_BIND} ./select_gpu SeisSol_Release_sgfx90a_hip_${ORDER}_elastic $filename
 }
 
 # Process files in parallel
 counter=0
 for filename in "${files[@]}"; do
-    run_file "$filename" "$counter" & # run in background
-    counter=$((counter + 1))
+  run_file "$filename" "$counter" & # run in background
+  counter=$((counter + 1))
 
-    # Ensure we don’t exceed max concurrent jobs
-    if (($counter >= $ndivide)); then
-        wait -n # Wait for the first finished job before launching a new one
-    fi
+  # Ensure we don’t exceed max concurrent jobs
+  if (($counter >= $ndivide)); then
+    wait -n # Wait for the first finished job before launching a new one
+  fi
 done
 
 wait
 counter=0
 # Iterate over the array of filenames
 for filename in "${files[@]}"; do
-    # Extract the core part of the filename by removing 'parameters_' and '.par'
-    core_name=$(basename "$filename" .par)
-    core_name=${core_name#parameters_}
+  # Extract the core part of the filename by removing 'parameters_' and '.par'
+  core_name=$(basename "$filename" .par)
+  core_name=${core_name#parameters_}
 
-    # Construct the expected output file path
-    output_file="output/${core_name}-energy.csv"
+  # Construct the expected output file path
+  output_file="output/${core_name}-energy.csv"
 
-    # Check if the output file exists
-    # If the output file does not exist, process the file
-    if [ ! -f "$output_file" ]; then
-        echo "something went wrong? trying rerun seissol with file: $filename"
-        run_file "$filename" "$counter" & # run in background
-        counter=$((counter + 1))
-    fi
+  # Check if the output file exists
+  # If the output file does not exist, process the file
+  if [ ! -f "$output_file" ]; then
+    echo "something went wrong? trying rerun seissol with file: $filename"
+    run_file "$filename" "$counter" & # run in background
+    counter=$((counter + 1))
+  fi
 
-    # Ensure we don’t exceed max concurrent jobs
-    if (($counter >= $ndivide)); then
-        wait -n # Wait for the first finished job before launching a new one
-    fi
+  # Ensure we don’t exceed max concurrent jobs
+  if (($counter >= $ndivide)); then
+    wait -n # Wait for the first finished job before launching a new one
+  fi
 done
