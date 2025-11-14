@@ -58,19 +58,8 @@ ORDER=${order:-4}
 # Job splitting logic
 ##############################
 
-# Must use a number of nodes multiple of 2
-if ((SLURM_JOB_NUM_NODES % 2 != 0)); then
-  echo "Error: $SLURM_JOB_NUM_NODES not a multiple of 2"
-  exit 1
-fi
-
-if [ "$SLURM_JOB_NUM_NODES" -lt 60 ]; then
-  ndivide=$((SLURM_JOB_NUM_NODES / 1))
-else
-  ndivide=$((SLURM_JOB_NUM_NODES / 2))
-fi
-
-nodes_per_job=$((SLURM_JOB_NUM_NODES / ndivide))
+nodes_per_job=${2:-1}
+ndivide=$((SLURM_JOB_NUM_NODES / ${nodes_per_job}))
 tasks_per_job=$((nodes_per_job * 8))
 
 echo "Total nodes: $SLURM_JOB_NUM_NODES"

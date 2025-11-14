@@ -96,9 +96,11 @@ if [[ "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "al
     output=$(${script_dir}/src/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
     walltime=$(echo "$output" | grep "Walltime:" | awk '{print $2}')
     nodes=$(echo "$output" | grep "Chosen nodes:" | awk '{print $3}')
+    nodes_per_sim=$(echo "$output" | grep "Nodes per sim:" | awk '{print $4}')
 
     echo "Using walltime: $walltime"
     echo "Using nodes: $nodes"
+    echo "Using nodes per sim: $nodes_per_sim"
 
     job2_id=$(sbatch --partition=$PARTITION1 ${script_dir}/scripts/${supercomputer}/create_parameters.sh | awk '{print $NF}')
 else
@@ -109,7 +111,7 @@ fi
 if [[ "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
     dep=$(get_dependency "$job2_id")
     job3_id=$(sbatch --time=$walltime --nodes=$nodes $dep \
-        ${script_dir}/scripts/${supercomputer}/aggregated_jobs.sh part_1.txt | awk '{print $NF}')
+        ${script_dir}/scripts/${supercomputer}/aggregated_jobs.sh part_1.txt ${nodes_per_sim} | awk '{print $NF}')
     echo "Submitted job3: $job3_id"
 fi
 

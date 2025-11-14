@@ -22,20 +22,8 @@
 #EAR may impact code performance
 #SBATCH --ear=off
 #SBATCH --partition=general
-##SBATCH --nodes=16 --partition=test --time=00:30:00
 
 module load slurm_setup
-# use a number of nodes multiple of 16!
-if ((SLURM_JOB_NUM_NODES % 16 != 0)); then
-    echo "$SLURM_JOB_NUM_NODES not a multiple of 16"
-    exit 1
-fi
-
-if [ "$SLURM_JOB_NUM_NODES" -lt 208 ]; then
-    ndivide=$((SLURM_JOB_NUM_NODES / 8))
-else
-    ndivide=$((SLURM_JOB_NUM_NODES / 16))
-fi
 
 #Run the program:
 export MP_SINGLE_THREAD=no
@@ -62,7 +50,8 @@ module load seissol/1.3.1-oneapi25-o${ORDER}-elas-dunav-single-impi
 #module load seissol/master-oneapi25-o${ORDER}-elas-dunav-single-impi
 unset KMP_AFFINITY
 
-nodes_per_job=$(($SLURM_JOB_NUM_NODES / $ndivide))
+nodes_per_job=${2:-1}
+ndivide=$((SLURM_JOB_NUM_NODES / ${nodes_per_job}))
 tasks_per_job=$(($nodes_per_job * 2))
 
 if [[ -n "$1" ]]; then
