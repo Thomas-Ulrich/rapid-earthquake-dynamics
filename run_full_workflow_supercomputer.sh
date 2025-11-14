@@ -30,6 +30,23 @@ get_dependency() {
     fi
 }
 
+# Function to get walltime, nodes, and nodes per simulation
+get_resources() {
+    local logfile=$1
+    local max_hours=$2
+
+    output=$(${script_dir}/src/dynworkflow/get_walltime_and_ranks_aggregated_job.py "$logfile" --max_hours "$max_hours")
+    walltime=$(echo "$output" | grep "Walltime:" | awk '{print $2}')
+    nodes=$(echo "$output" | grep "Chosen nodes:" | awk '{print $3}')
+    nodes_per_sim=$(echo "$output" | grep "Nodes per sim:" | awk '{print $4}')
+
+    echo "Using walltime: $walltime"
+    echo "Using nodes: $nodes"
+    echo "Using nodes per sim: $nodes_per_sim"
+}
+
+
+
 export order=5
 
 hostname=$(hostname)
@@ -93,15 +110,7 @@ fi
 
 # Step 2: Get walltime/nodes and create parameters
 if [[ "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    output=$(${script_dir}/src/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
-    walltime=$(echo "$output" | grep "Walltime:" | awk '{print $2}')
-    nodes=$(echo "$output" | grep "Chosen nodes:" | awk '{print $3}')
-    nodes_per_sim=$(echo "$output" | grep "Nodes per sim:" | awk '{print $4}')
-
-    echo "Using walltime: $walltime"
-    echo "Using nodes: $nodes"
-    echo "Using nodes per sim: $nodes_per_sim"
-
+    get_resources "logs/${job1_id}.fl33.out" "$max_hours"
     job2_id=$(sbatch --partition=$PARTITION1 ${script_dir}/scripts/${supercomputer}/create_parameters.sh | awk '{print $NF}')
 else
     echo "Skipping job1/job2 setup."
@@ -109,6 +118,11 @@ fi
 
 # Step 3: Aggregated job
 if [[ "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
+
+    if [[ "$start_from" == "job3" ]]; then
+	get_resources "logs/${job1_id}.fl33.out" "$max_hours"
+    fi
+
     dep=$(get_dependency "$job2_id")
     job3_id=$(sbatch --time=$walltime --nodes=$nodes $dep \
         ${script_dir}/scripts/${supercomputer}/aggregated_jobs.sh part_1.txt ${nodes_per_sim} | awk '{print $NF}')
