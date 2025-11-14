@@ -29,7 +29,7 @@ dependencies = [
     "matplotlib",
     "netCDF4",
     "networkx",
-    "numpy",
+    "numpy>=2.0",
     "obspy",
     "pandas",
     "pyproj",
