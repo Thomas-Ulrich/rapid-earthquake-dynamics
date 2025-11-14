@@ -98,7 +98,7 @@ def gridto2Dlocal(
     print(
         f"The fault tractions are evaluated from the median of the last "
         f"{use_median_of_n_time_steps} time steps "
-        f"({times[ndt - use_median_of_n_time_steps - 1]} to {times[ndt - 2]}s)"
+        f"({times[max(0, ndt - use_median_of_n_time_steps - 1)]} to {times[ndt - 2]}s)"
     )
     for dataName in ldataName:
         # Read Data
@@ -107,7 +107,7 @@ def gridto2Dlocal(
             data_list = [
                 sx.ReadData(dataName, t)[ids]
                 # using ndt - 1 because the last time step is from the terminator
-                for t in range(ndt - 1 - use_median_of_n_time_steps, ndt - 1)
+                for t in range(max(0, ndt - 1 - use_median_of_n_time_steps), ndt - 1)
             ]
             data_array = np.stack(data_list)
             myData = np.median(data_array, axis=0)
