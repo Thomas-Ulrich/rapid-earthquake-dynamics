@@ -44,6 +44,10 @@ echo "Detected supercomputer: $supercomputer"
 # Default start step
 start_from="job1"
 
+#!/bin/bash
+
+echo "All arguments: $@"
+
 # Parse optional arguments
 for arg in "$@"; do
     case $arg in
@@ -57,11 +61,14 @@ for arg in "$@"; do
             ;;
         *)
             echo "Unknown argument: $arg"
+            echo "Usage: $0 start_from=<value> job1_id=<value>"
+            exit 1
             ;;
     esac
 done
 
-echo "Starting workflow from: $start_from"
+echo "start_from = $start_from"
+echo "job1_id    = $job1_id"
 
 # Step 1: Pseudo-static
 if [[ "$start_from" == "job1" || "$start_from" == "all" ]]; then
@@ -76,7 +83,7 @@ fi
 
 # Step 2: Get walltime/nodes and create parameters
 if [[ "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    output=$(${script_dir}/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
+    output=$(${script_dir}/src/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
     walltime=$(echo "$output" | grep "Walltime:" | awk '{print $2}')
     nodes=$(echo "$output" | grep "Chosen nodes:" | awk '{print $3}')
 

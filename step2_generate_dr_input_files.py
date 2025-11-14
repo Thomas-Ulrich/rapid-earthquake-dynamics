@@ -18,7 +18,7 @@ absolute_path = os.path.join(current_script_dir, relative_path)
 if absolute_path not in sys.path:
     sys.path.append(absolute_path)
 
-import project_fault_tractions_onto_asagi_grid
+from kinematic_models import project_fault_tractions_onto_asagi_grid
 
 if __name__ == "__main__":
     with open("derived_config.yaml", "r") as f:
