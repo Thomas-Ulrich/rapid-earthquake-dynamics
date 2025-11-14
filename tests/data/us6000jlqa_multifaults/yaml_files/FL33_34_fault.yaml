@@ -1,0 +1,117 @@
+!Switch
+[strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time, rake_interp_low_slip]: !EvalModel
+    parameters: [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip, average_rake]
+    model: !Any
+     components:
+      - !GroupFilter
+        groups: 3
+        components: !Switch
+            [average_rake]: !ConstantMap
+              map:
+                average_rake: -0.3835914925070286
+            [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]: !AffineMap
+              matrix:
+                ua: [-0.994473855369628, 0.10498452736602702, 0.0]
+                ub: [0.01756854291426735, 0.1725085925428277, -0.9848513247179812]
+              translation:
+                ua: 30189.327445127947
+                ub: -609.245875733849
+              components: !Any
+                - !ASAGI
+                    file: ASAGI_files/basic_inversion1_9_cubic.nc
+                    parameters:
+                      [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]
+                    var: data
+                    interpolation: linear
+                - !ConstantMap
+                  map:
+                    strike_slip: 0.0
+                    dip_slip:    0.0
+                    rupture_onset:    0.0
+                    acc_time:  1e100
+                    effective_rise_time:  2e100
+                    rake_interp_low_slip: -0.3835914925070286
+      - !GroupFilter
+        groups: 65
+        components: !Switch
+            [average_rake]: !ConstantMap
+              map:
+                average_rake: -0.19854589470243975
+            [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]: !AffineMap
+              matrix:
+                ua: [-0.9428745899206148, -0.3331478765984149, 0.0]
+                ub: [-0.05852369101155892, 0.16331319281076698, -0.9848369299758903]
+              translation:
+                ua: -46062.107591477565
+                ub: -4038.8656567100566
+              components: !Any
+                - !ASAGI
+                    file: ASAGI_files/basic_inversion2_9_cubic.nc
+                    parameters:
+                      [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]
+                    var: data
+                    interpolation: linear
+                - !ConstantMap
+                  map:
+                    strike_slip: 0.0
+                    dip_slip:    0.0
+                    rupture_onset:    0.0
+                    acc_time:  1e100
+                    effective_rise_time:  2e100
+                    rake_interp_low_slip: -0.19854589470243975
+      - !GroupFilter
+        groups: 66
+        components: !Switch
+            [average_rake]: !ConstantMap
+              map:
+                average_rake: -0.21106658096188533
+            [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]: !AffineMap
+              matrix:
+                ua: [0.8622568664271091, 0.5064712196159844, 0.0]
+                ub: [0.08776418387491298, -0.14978438035948205, -0.9848157631908095]
+              translation:
+                ua: -27771.593825627046
+                ub: -4547.963088809224
+              components: !Any
+                - !ASAGI
+                    file: ASAGI_files/basic_inversion3_9_cubic.nc
+                    parameters:
+                      [strike_slip, dip_slip, rupture_onset, effective_rise_time, acc_time, rake_interp_low_slip]
+                    var: data
+                    interpolation: linear
+                - !ConstantMap
+                  map:
+                    strike_slip: 0.0
+                    dip_slip:    0.0
+                    rupture_onset:    0.0
+                    acc_time:  1e100
+                    effective_rise_time:  2e100
+                    rake_interp_low_slip: -0.21106658096188533
+
+      - !ConstantMap
+              map:
+                strike_slip: 0.0
+                dip_slip:    0.0
+                rupture_onset:    0.0
+                acc_time:  1e100
+                effective_rise_time:  2e100
+                average_rake: -0.21106658096188533
+                rake_interp_low_slip: -0.21106658096188533
+    components: !LuaMap
+      returns: [strike_slip, dip_slip, rupture_onset, tau_S, tau_R, rupture_rise_time, rake_interp_low_slip]
+      function: |
+        function f (x)
+          -- Note the minus on strike_slip to acknowledge the different
+          -- convention of SeisSol (T_s>0 means right-lateral)
+          -- same for the math.pi factor on rake
+          return {
+          strike_slip = -x["strike_slip"],
+          dip_slip = x["dip_slip"],
+          rupture_onset = x["rupture_onset"],
+          tau_S = x["acc_time"]/1.27,
+          tau_R = x["effective_rise_time"] - 2.*x["acc_time"]/1.27,
+          rupture_rise_time = x["effective_rise_time"],
+          rake_interp_low_slip = math.pi - x["rake_interp_low_slip"]
+          -- rake_interp_low_slip = math.pi - x.average_rake
+          }
+        end

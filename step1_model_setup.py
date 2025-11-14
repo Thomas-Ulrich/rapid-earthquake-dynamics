@@ -27,7 +27,7 @@ from dynworkflow import (
     vizualizeBoundaryConditions,
 )
 from kinematic_models import (
-    compute_moment_rate_from_finite_fault_file,
+    compute_moment_rate_function,
     generate_fault_output_from_fl33_input_files,
     generate_FL33_input_files,
 )
@@ -274,7 +274,7 @@ def run_step1():
     )
     save_config(derived_config, "derived_config.yaml")
 
-    generate_FL33_input_files.main(
+    generate_FL33_input_files.generate(
         finite_fault_fn,
         "cubic",
         spatial_zoom,
@@ -326,7 +326,7 @@ def run_step1():
     save_config(derived_config, "derived_config.yaml")
 
     generate_input_seissol_fl33.generate()
-    compute_moment_rate_from_finite_fault_file.compute(
+    compute_moment_rate_function.compute(
         finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax
     )
 

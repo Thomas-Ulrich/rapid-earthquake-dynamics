@@ -20,6 +20,16 @@ wait_for_job() {
     done
 }
 
+# Function to return Slurm dependency option if job ID exists
+get_dependency() {
+    local prev_job_id=$1
+    if [[ -n "$prev_job_id" ]]; then
+        echo "--dependency=afterok:$prev_job_id"
+    else
+        echo ""
+    fi
+}
+
 export order=5
 
 hostname=$(hostname)
@@ -44,6 +54,10 @@ echo "Detected supercomputer: $supercomputer"
 # Default start step
 start_from="job1"
 
+#!/bin/bash
+
+echo "All arguments: $@"
+
 # Parse optional arguments
 for arg in "$@"; do
     case $arg in
@@ -57,11 +71,14 @@ for arg in "$@"; do
             ;;
         *)
             echo "Unknown argument: $arg"
+            echo "Usage: $0 start_from=<value> job1_id=<value>"
+            exit 1
             ;;
     esac
 done
 
-echo "Starting workflow from: $start_from"
+echo "start_from = $start_from"
+echo "job1_id    = $job1_id"
 
 # Step 1: Pseudo-static
 if [[ "$start_from" == "job1" || "$start_from" == "all" ]]; then
@@ -76,7 +93,7 @@ fi
 
 # Step 2: Get walltime/nodes and create parameters
 if [[ "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    output=$(${script_dir}/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
+    output=$(${script_dir}/src/dynworkflow/get_walltime_and_ranks_aggregated_job.py logs/${job1_id}.fl33.out --max_hours $max_hours)
     walltime=$(echo "$output" | grep "Walltime:" | awk '{print $2}')
     nodes=$(echo "$output" | grep "Chosen nodes:" | awk '{print $3}')
 
@@ -90,21 +107,24 @@ fi
 
 # Step 3: Aggregated job
 if [[ "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    job3_id=$(sbatch --time=$walltime --nodes=$nodes --dependency=afterok:${job2_id:-none} \
+    dep=$(get_dependency "$job2_id")
+    job3_id=$(sbatch --time=$walltime --nodes=$nodes $dep \
         ${script_dir}/scripts/${supercomputer}/aggregated_jobs.sh part_1.txt | awk '{print $NF}')
     echo "Submitted job3: $job3_id"
 fi
 
 # Step 4: Compact output
 if [[ "$start_from" == "job4" || "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    job4_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:${job3_id:-none} \
+    dep=$(get_dependency "$job3_id")
+    job4_id=$(sbatch --partition=$PARTITION2 $dep \
         ${script_dir}/scripts/${supercomputer}/compact_output_and_generate_PS.sh | awk '{print $NF}')
     echo "Submitted job4: $job4_id"
 fi
 
 # Step 5: Generate synthetic data
 if [[ "$start_from" == "job5" || "$start_from" == "job4" || "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-    job5_id=$(sbatch --partition=$PARTITION2 --dependency=afterok:${job4_id:-none} \
+    dep=$(get_dependency "$job4_id")
+    job5_id=$(sbatch --partition=$PARTITION2 $dep \
         ${script_dir}/scripts/${supercomputer}/generate_syn.sh | awk '{print $NF}')
     echo "Submitted job5: $job5_id"
 fi

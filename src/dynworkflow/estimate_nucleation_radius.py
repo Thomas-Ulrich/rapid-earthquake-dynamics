@@ -55,14 +55,14 @@ def k_int(x):
     "K integral in Uenishi 2009, see Galis 2015, eq 20"
     ti = np.linspace(0, 1, 250, endpoint=False)
     f = 1.0 / np.sqrt((1.0 - ti**2) * (1.0 - x**2 * ti**2))  # for t in ti]
-    return np.trapz(f, ti)
+    return np.trapezoid(f, ti)
 
 
 def e_int(x):
     "E integral in Uenishi 2009, see Galis 2015, eq 21"
     ti = np.linspace(0, 1, 250, endpoint=False)
     f = [np.sqrt((1.0 - x**2 * t**2) / (1.0 - t**2)) for t in ti]
-    return np.trapz(f, ti)
+    return np.trapezoid(f, ti)
 
 
 def C_Uenishi(x):

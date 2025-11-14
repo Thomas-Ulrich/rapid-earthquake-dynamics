@@ -6,11 +6,12 @@ import os
 import numpy as np
 import scipy.ndimage
 import xarray as xr
-from asagiwriter import writeNetcdf
 from scipy import interpolate, ndimage
 from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.ndimage import gaussian_filter
-from stf import gaussianSTF, regularizedYoffe
+
+from kinematic_models.asagiwriter import writeNetcdf
+from kinematic_models.stf import gaussianSTF, regularizedYoffe
 
 
 def cosine_taper(npts, p=0.1, freqs=None, flimit=None, halfcosine=True, sactaper=False):
@@ -377,9 +378,9 @@ class FaultPlane:
                         newSR[k, 1] = gaussianSTF(
                             tk - t0_increment, self.rise_time[j, i], self.dt
                         )
-                    integral_aSTF = np.trapz(np.abs(self.aSR[j, i, :]), dx=self.dt)
-                    integral_Yoffe = np.trapz(np.abs(newSR[:, 0]), dx=self.dt)
-                    integral_Gaussian = np.trapz(np.abs(newSR[:, 1]), dx=self.dt)
+                    integral_aSTF = np.trapezoid(np.abs(self.aSR[j, i, :]), dx=self.dt)
+                    integral_Yoffe = np.trapezoid(np.abs(newSR[:, 0]), dx=self.dt)
+                    integral_Gaussian = np.trapezoid(np.abs(newSR[:, 1]), dx=self.dt)
                     if integral_aSTF > 0:
                         misfits_Yoffe.append(
                             np.linalg.norm(
@@ -526,7 +527,7 @@ class FaultPlane:
                         pf.aSR[j, i, :] = 0
                         continue
                     # should be the SR
-                    integral_STF = np.trapz(np.abs(pf.aSR[j, i, :]), dx=pf.dt)
+                    integral_STF = np.trapezoid(np.abs(pf.aSR[j, i, :]), dx=pf.dt)
                     if abs(integral_STF) > 0:
                         pf.aSR[j, i, :] = (
                             pf.slip1[j, i] * pf.aSR[j, i, :] / integral_STF

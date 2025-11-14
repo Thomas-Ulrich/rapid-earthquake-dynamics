@@ -10,12 +10,7 @@ import os
 import jinja2
 import yaml
 
-try:
-    # Try relative import if called from the full package
-    from dynworkflow.get_usgs_finite_fault_data import get_value_from_usgs_data
-except ImportError:
-    # Fallback to local import if run directly
-    from get_usgs_finite_fault_data import get_value_from_usgs_data
+from dynworkflow.get_usgs_finite_fault_data import get_value_from_usgs_data
 
 
 def generate_waveform_config_file(

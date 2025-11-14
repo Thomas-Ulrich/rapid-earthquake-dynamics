@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import argparse
 import os
 import os.path
 
 import easi
 import numpy as np
-from multi_fault_plane import MultiFaultPlane
-from stf import gaussianSTF
+
+from kinematic_models.multi_fault_plane import MultiFaultPlane
+from kinematic_models.stf import gaussianSTF
 
 
 def compute(filename, yaml_filename, projection, dt=0.5, tmax=None):
@@ -56,7 +56,7 @@ def compute(filename, yaml_filename, projection, dt=0.5, tmax=None):
                     moment_rate[k] += (
                         mu[j, i] * fp.dx * fp.dy * 1e6 * STFij * fp.slip1[j, i] * 0.01
                     )
-    M0 = np.trapz(moment_rate[:], x=time[:])
+    M0 = np.trapezoid(moment_rate, x=time)
     Mw = 2.0 * np.log10(M0) / 3.0 - 6.07
     print(f"inferred Mw {Mw} and duration {duration}:")
 
@@ -69,31 +69,5 @@ def compute(filename, yaml_filename, projection, dt=0.5, tmax=None):
     print(f"done writing {fname}")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=(
-            "compute moment rate release from kinematic model. Assumptions: Gaussian "
-            "source time function, no bimaterial conditions"
-        )
-    )
-    parser.add_argument(
-        "--dt",
-        nargs=1,
-        metavar="dt",
-        default=[0.25],
-        help="sampling time of the output file",
-        type=float,
-    )
-
-    parser.add_argument("filename", help="filename of the srf file")
-    parser.add_argument("yaml_filename", help="fault easi/yaml filename")
-
-    parser.add_argument(
-        "--proj",
-        metavar="proj",
-        nargs=1,
-        help="proj4 string describing the projection",
-        required=True,
-    )
-    args = parser.parse_args()
-    compute(args.filename, args.yaml_filename, args.proj[0], args.dt[0])
+def main(args):
+    compute(args.filename, args.yaml_filename, args.proj, args.dt)

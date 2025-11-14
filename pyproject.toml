@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rapid-earthquake-dynamics"
+dynamic = ["version"]
+description = """Workflows for automated generation of dynamic rupture scenarios from
+ earthquake fault slip models, enabling rapid source characterization."""
+
+authors = [
+    { name = "Thomas Ulrich" },
+]
+
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+
+dependencies = [
+    "Cartopy",
+    "cmcrameri",
+    "geopandas",
+    "geopy",
+    "gmsh",
+    "h5py",
+    "HinetPy",
+    "Jinja2",
+    "lxml",
+    "matplotlib",
+    "netCDF4",
+    "networkx",
+    "numpy>=2.0",
+    "obspy",
+    "pandas",
+    "pyproj",
+    "pyprop8",
+    "pyvista",
+    "PyYAML",
+    "requests",
+    "scikit-learn",
+    "scipy",
+    "seissolxdmf",
+    "seissolxdmfwriter",
+    "Shapely",
+    "tqdm",
+    "trimesh",
+    "vtk",
+    "wget",
+    "xarray",
+    "semver",
+    "seismic-waveform-factory @ git+https://github.com/Thomas-Ulrich/seismic-waveform-factory.git"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
+
+[project.scripts]
+kimo = "kinematic_models.cli:main"

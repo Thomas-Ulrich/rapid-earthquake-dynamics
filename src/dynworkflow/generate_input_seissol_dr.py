@@ -16,17 +16,10 @@ import seissolxdmf as sx
 import yaml
 from pyproj import Transformer
 from scipy.stats import qmc
-from scipy import integrate
 
 from dynworkflow import step1_args
 from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
-
-
-def infer_duration(time, moment_rate):
-    # duplicate from compile_scenario_macro_properties.py
-    moment = integrate.cumulative_trapezoid(moment_rate, time, initial=0)
-    M0 = np.trapz(moment_rate[:], x=time[:])
-    return np.amax(time[moment < 0.99 * M0])
+from dynworkflow.compile_scenario_macro_properties import infer_duration
 
 
 def compute_max_slip(fn):

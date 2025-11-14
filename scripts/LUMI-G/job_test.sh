@@ -2,7 +2,7 @@
 #SBATCH --job-name=fl33   # Job name
 #SBATCH --nodes=1               # Total number of nodes
 #SBATCH --account=project_465002391  # Project for billing
-#SBATCH --time=00:30:00       # Run time (d-hh:mm:ss)
+#SBATCH --time=01:00:00       # Run time (d-hh:mm:ss)
 #SBATCH -o logs/%j.%x.out
 #SBATCH -e logs/%j.%x.out
 #SBATCH --partition=small-g  # Partition (queue) name
