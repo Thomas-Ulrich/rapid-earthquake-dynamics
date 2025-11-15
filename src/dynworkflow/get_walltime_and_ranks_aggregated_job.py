@@ -4,7 +4,6 @@
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
 import argparse
-import glob
 import operator
 import re
 import socket
