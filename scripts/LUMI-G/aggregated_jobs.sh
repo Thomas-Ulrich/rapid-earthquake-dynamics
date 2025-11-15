@@ -196,8 +196,9 @@ wait_for_remaining_jobs() {
 
   # Wait for remaining background jobs and print finished jobs in the order they finish
   while ((${#active_jobs[@]} > 0)); do
-    check_active_jobs && break # break the outer loop if a job finished
-
+    while check_active_jobs; do
+      : # loop to handle multiple finished jobs that may have accumulated
+    done
     # Print debug info every 60 seconds
     now=$(date +%s)
     if ((now - last_print_time >= 60)); then

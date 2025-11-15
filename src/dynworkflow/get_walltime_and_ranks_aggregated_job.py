@@ -147,16 +147,14 @@ def get_scaled_walltime_and_ranks(
     max_nodes1 = min(max_nodes1, max_nodes)
     candidates = list(range(min_nodes, max_nodes1, step_nodes))
 
-    if simulation_batch_size <= 64:
-        # it seems that slurm can get overwhelmed by too many jobs
-        nodes_full_batch = step_nodes * simulation_batch_size
-        if nodes_full_batch % 2 == 0:
-            nodes_half_batch = nodes_full_batch // 2
-            if nodes_half_batch <= max_nodes:
-                candidates.append(nodes_half_batch)
+    nodes_full_batch = step_nodes * simulation_batch_size
+    if nodes_full_batch % 2 == 0:
+        nodes_half_batch = nodes_full_batch // 2
+        if nodes_half_batch <= max_nodes:
+            candidates.append(nodes_half_batch)
 
-        if nodes_full_batch <= max_nodes:
-            candidates.append(nodes_full_batch)
+    if nodes_full_batch <= max_nodes:
+        candidates.append(nodes_full_batch)
     print("candidate_nodes: ", candidates)
 
     chosen_nodes = max_nodes
