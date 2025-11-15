@@ -32,18 +32,17 @@ export PYTHONPATH=path_to_spack_installation/linux-sles15-skylake_avx512/easi/1.
 
 ### other python requirements
 
-Then install other requirements, including seismic-waveform-factory:
+Then install the package with:
 
 ```bash
-python -m pip install -r rapid-earthquake-dynamics/requirements.txt
-python -m pip install git+https://github.com/Thomas-Ulrich/seismic-waveform-factory.git@v0.3.0
+pip install -e .
 ```
 
 ### axitra
 
 ```bash
 git clone --branch thomas/build_meson https://github.com/Thomas-Ulrich/axitra
-cd axitra/MOMENT_DISP_F90_OPENMP
+cd axitra/MOMENT_DISP_F90_OPENMP/src
 make all python
 ```
 

@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+  <Grid Name="puml mesh" GridType="Uniform">
+    <Topology TopologyType="Triangle" NumberOfElements="26778">
+     <DataItem NumberType="Int" Precision="8" Format="HDF" Dimensions="26778 3">mesh_bc_faults.h5:/connect</DataItem>
+    </Topology>
+    <Geometry name="geo" GeometryType="XYZ" NumberOfElements="13796">
+     <DataItem NumberType="Float" Precision="8" Format="HDF" Dimensions="13796 3">mesh_bc_faults.h5:/geometry</DataItem>
+    </Geometry>
+    <Attribute Name="fault-tag" Center="Cell">
+      <DataItem NumberType="Float" Precision="4" Format="HDF" Dimensions="1 26778">mesh_bc_faults.h5:/fault-tag</DataItem>
+    </Attribute>
+  </Grid>
+ </Domain>
+</Xdmf>
