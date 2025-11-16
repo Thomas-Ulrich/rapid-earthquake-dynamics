@@ -48,7 +48,7 @@ module load seissol/1.3.1-oneapi25-o${ORDER}-elas-dunav-single-impi
 #module load seissol/master-oneapi25-o${ORDER}-elas-dunav-single-impi
 unset KMP_AFFINITY
 
-# different SeisSol executable
+ORDER=${order:-4}
 SEISSOL_EXE="SeisSol_Release_sskx_${ORDER}_elastic"
 
 srun_cmd() {

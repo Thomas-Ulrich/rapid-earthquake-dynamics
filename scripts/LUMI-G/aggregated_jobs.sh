@@ -52,6 +52,9 @@ export PATH=/project/project_465002391/ulrich/seissol_base/seissol/build:$PATH
 ulimit -Ss 2097152
 unset KMP_AFFINITY
 
+ORDER=${order:-4}
+SEISSOL_EXE="SeisSol_Release_sgfx90a_hip_${ORDER}_elastic"
+
 srun_cmd() {
   srun --nodes="$nodes_per_job" \
     --nodelist="$node_subset" \
@@ -66,4 +69,4 @@ srun_cmd() {
 }
 
 script_dir=../rapid-earthquake-dynamics/
-bash $script_dir/scripts/common/aggregated_jobs.sh "$@"
+source $script_dir/scripts/common/aggregated_jobs.sh "$@"

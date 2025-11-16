@@ -7,11 +7,6 @@
 
 set -euo pipefail
 
-ulimit -Ss 2097152
-unset KMP_AFFINITY
-
-ORDER=${order:-4}
-
 ##############################
 # Job splitting logic
 ##############################
