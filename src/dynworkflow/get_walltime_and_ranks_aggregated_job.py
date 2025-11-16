@@ -205,13 +205,19 @@ if __name__ == "__main__":
     simulation_batch_size = get_simulation_batch_size()
 
     def get_node_config(
-        mesh_cells, simulation_batch_size, target_cell_per_nodes, max_allowed_nodes
+        mesh_cells,
+        simulation_batch_size,
+        target_cell_per_nodes,
+        min_allowed_nodes,
+        max_allowed_nodes,
     ):
         nodes_per_sim = max(1, int(np.round(mesh_cells / target_cell_per_nodes)))
+        min_nodes = ((min_allowed_nodes // nodes_per_sim) + 1) * nodes_per_sim
         max_nodes_raw = min(max_allowed_nodes, nodes_per_sim * simulation_batch_size)
         # Make max_nodes a multiple of nodes_per_sim
         max_nodes = (max_nodes_raw // nodes_per_sim) * nodes_per_sim
-        return {"min": nodes_per_sim, "max": max_nodes, "step": nodes_per_sim}
+        max_nodes = max(max_nodes, min_nodes)
+        return {"min": min_nodes, "max": max_nodes, "step": nodes_per_sim}
 
     if args.node_config == "auto":
         if hostname.startswith("uan"):
@@ -220,6 +226,7 @@ if __name__ == "__main__":
                 mesh_cells,
                 simulation_batch_size,
                 target_cell_per_nodes=500000,
+                min_allowed_nodes=1,
                 max_allowed_nodes=256,
             )
         elif hostname.startswith("login"):
@@ -228,6 +235,7 @@ if __name__ == "__main__":
                 mesh_cells,
                 simulation_batch_size,
                 target_cell_per_nodes=100000,
+                min_allowed_nodes=17,
                 max_allowed_nodes=400,
             )
         else:
