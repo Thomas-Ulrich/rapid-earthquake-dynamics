@@ -56,20 +56,20 @@ mapfile -t filenames <"$part_file"
 
 # Iterate over the array of filenames
 for filename in "${filenames[@]}"; do
-    echo "Processing file: $filename"
-    srun SeisSol_Release_sskx_${ORDER}_elastic $filename
+  echo "Processing file: $filename"
+  srun SeisSol_Release_sskx_${ORDER}_elastic $filename
 
-    # Extract the core part of the filename by removing 'parameters_' and '.par'
-    #core_name=$(basename "$filename" .par)
-    #core_name=${core_name#parameters_}
+  # Extract the core part of the filename by removing 'parameters_' and '.par'
+  #core_name=$(basename "$filename" .par)
+  #core_name=${core_name#parameters_}
 
-    # Construct the expected output file path
-    #output_file="output/${core_name}-energy.csv"
+  # Construct the expected output file path
+  #output_file="output/${core_name}-energy.csv"
 
-    # Check if the output file exists
-    # If the output file does not exist, process the file
-    #if [ ! -f "$output_file" ]; then
-    #    echo "something went wrong? trying rerun seissol with file: $filename"
-    #    srun SeisSol_Release_sskx_5_elastic $filename
-    #fi
+  # Check if the output file exists
+  # If the output file does not exist, process the file
+  #if [ ! -f "$output_file" ]; then
+  #    echo "something went wrong? trying rerun seissol with file: $filename"
+  #    srun SeisSol_Release_sskx_5_elastic $filename
+  #fi
 done
