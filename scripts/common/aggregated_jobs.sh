@@ -13,7 +13,7 @@ set -euo pipefail
 
 nodes_per_job=${2:-1}
 ndivide=$((SLURM_JOB_NUM_NODES / ${nodes_per_job}))
-tasks_per_job=$((nodes_per_job * 8))
+tasks_per_job=$((nodes_per_job * $TASKS_PER_NODE))
 
 echo "Total nodes: $SLURM_JOB_NUM_NODES"
 echo "Dividing into $ndivide parallel jobs, each using $nodes_per_job nodes ($tasks_per_job tasks)."

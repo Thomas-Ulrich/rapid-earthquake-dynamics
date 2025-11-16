@@ -54,12 +54,13 @@ unset KMP_AFFINITY
 
 ORDER=${order:-4}
 SEISSOL_EXE="SeisSol_Release_sgfx90a_hip_${ORDER}_elastic"
+TASKS_PER_NODE=8
 
 srun_cmd() {
   srun --nodes="$nodes_per_job" \
     --nodelist="$node_subset" \
     --ntasks="$tasks_per_job" \
-    --ntasks-per-node=8 \
+    --ntasks-per-node=$TASKS_PER_NODE \
     --gpus-per-node=8 \
     --cpus-per-task=7 \
     --cpu-bind=mask_cpu:${CPU_BIND} \

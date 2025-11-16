@@ -44,23 +44,24 @@ source /etc/profile.d/modules.sh
 
 ulimit -Ss 2097152
 
+ORDER=${order:-4}
 module load seissol/1.3.1-oneapi25-o${ORDER}-elas-dunav-single-impi
 #module load seissol/master-oneapi25-o${ORDER}-elas-dunav-single-impi
 unset KMP_AFFINITY
 
-ORDER=${order:-4}
 SEISSOL_EXE="SeisSol_Release_sskx_${ORDER}_elastic"
+TASKS_PER_NODE=2
 
 srun_cmd() {
   srun -B 2:48:2 -c 48 \
     --nodes="$nodes_per_job" \
     --nodelist="$node_subset" \
-    --ntasks="$tasks_per_job" \
-    --ntasks-per-node=2 \
+    --ntasks=$tasks_per_job \
+    --ntasks-per-node=$TASKS_PER_NODE \
     -o "./logs/${SLURM_JOB_ID}_runs/$logfile" \
     --exclusive \
     "$SEISSOL_EXE" "$filename"
 }
 
 script_dir=../rapid-earthquake-dynamics/
-bash $script_dir/scripts/common/aggregated_jobs.sh "$@"
+source $script_dir/scripts/common/aggregated_jobs.sh "$@"
