@@ -31,4 +31,5 @@ source /etc/profile.d/modules.sh
 module load slurm_setup
 
 export OMP_NUM_THREADS=48
-bash $(dirname "$0")/../common/generate_syn.sh
+script_dir=../rapid-earthquake-dynamics/
+bash $script_dir/scripts/common/generate_syn.sh
