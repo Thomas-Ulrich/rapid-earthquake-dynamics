@@ -27,7 +27,7 @@ from dynworkflow import (
     vizualizeBoundaryConditions,
 )
 from kinematic_models import (
-    compute_moment_rate_from_finite_fault_file,
+    compute_moment_rate_function,
     generate_fault_output_from_fl33_input_files,
     generate_FL33_input_files,
 )
@@ -148,6 +148,10 @@ def run_step1():
     vel_model = args.velocity_model
     if vel_model not in ["auto", "usgs"]:
         vel_model = os.path.abspath(vel_model)
+
+    mesh_arg = args.mesh
+    if mesh_arg not in ["auto"]:
+        mesh_arg = os.path.abspath(mesh_arg)
 
     processed_MRFs = []
     for mrf in args.reference_moment_rate_functions:
@@ -270,7 +274,7 @@ def run_step1():
     )
     save_config(derived_config, "derived_config.yaml")
 
-    generate_FL33_input_files.main(
+    generate_FL33_input_files.generate(
         finite_fault_fn,
         "cubic",
         spatial_zoom,
@@ -297,7 +301,7 @@ def run_step1():
         shutil.copy(vel_model, "tmp")
         prepare_velocity_model_files.generate_arbitrary_velocity_files(vel_model)
 
-    if args.mesh == "auto":
+    if mesh_arg == "auto":
         generate_mesh.generate(
             h_domain=20e3,
             h_fault=fault_mesh_size,
@@ -309,8 +313,8 @@ def run_step1():
             sys.exit(1)
         mesh_file = "tmp/mesh.puml.h5"
     else:
-        mesh_file = shutil.copy(args.mesh, "tmp")
-        mesh_xdmf_file = args.mesh.split("puml.h5")[0] + ".xdmf"
+        mesh_file = shutil.copy(mesh_arg, "tmp")
+        mesh_xdmf_file = mesh_arg.split("puml.h5")[0] + ".xdmf"
         shutil.copy(mesh_xdmf_file, "tmp")
 
     derived_config |= {
@@ -322,7 +326,7 @@ def run_step1():
     save_config(derived_config, "derived_config.yaml")
 
     generate_input_seissol_fl33.generate()
-    compute_moment_rate_from_finite_fault_file.compute(
+    compute_moment_rate_function.compute(
         finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax
     )
 
@@ -371,7 +375,7 @@ def select_station_and_download_waveforms():
         f"tmp/{mesh_prefix}_bc_faults.xdmf",
         "yaml_files/FL33_34_fault.yaml",
         "output/dyn-kinmod-fault",
-        "Gaussian",
+        "AsymmetricCosine",
         0.5,
     )
     generate_waveform_config_from_usgs.generate_waveform_config_file(

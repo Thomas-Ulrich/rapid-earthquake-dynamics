@@ -45,16 +45,18 @@ RUN apt-get update -y && apt-get upgrade -y && \
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Install pybind11
-RUN python3 -m pip install pybind11 pytest pytest-cov --break-system-packages
+RUN python3 -m pip install pytest pytest-cov --break-system-packages
+
+RUN apt-get install -y pybind11-dev
 
 # Set the working directory for the image
 WORKDIR /workspace
 
-# Copy the requirements.txt into the Docker image
-COPY requirements.txt /workspace/requirements.txt
+# Copy the entire repo into the image
+COPY . /workspace
 
-# Install python requirements
-RUN  pip install -r requirements.txt --break-system-packages
+# Install the local package in editable mode
+RUN python3 -m pip install -e . --break-system-packages
 
 # HDF5
 RUN wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.3/src/hdf5-1.12.3.tar.bz2 && \
@@ -88,7 +90,7 @@ RUN wget https://www.lua.org/ftp/lua-5.3.6.tar.gz && \
     cd .. && rm -rf lua-5.3.6
 
 # easi
-RUN git clone --recursive --depth 1 --branch v1.5.2 https://github.com/SeisSol/easi.git gitbuild && \
+RUN git clone --recursive --depth 1 --branch v1.6.1 https://github.com/SeisSol/easi.git gitbuild && \
     mkdir -p gitbuild/build && cd gitbuild/build && \
     cmake .. -GNinja -DEASICUBE=OFF -DLUA=ON -DIMPALAJIT=OFF -DASAGI=ON -DPYTHON_BINDINGS=ON && \
     ninja install && \
@@ -96,7 +98,7 @@ RUN git clone --recursive --depth 1 --branch v1.5.2 https://github.com/SeisSol/e
 
 
 # ## setup and cleanup
-RUN rm *.tar.bz2  *.tar.gz  requirements.txt
+RUN rm *.tar.bz2  *.tar.gz
 
 RUN chmod +x /usr/bin/*
 

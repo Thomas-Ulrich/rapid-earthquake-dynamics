@@ -1,0 +1,18 @@
+!Switch
+[fault_tag]: !Any
+     components:
+     - !GroupFilter
+        groups: 3
+        components: !ConstantMap
+          map:
+            fault_tag: 3
+     - !GroupFilter
+        groups: 65
+        components: !ConstantMap
+          map:
+            fault_tag: 65
+     - !GroupFilter
+        groups: 66
+        components: !ConstantMap
+          map:
+            fault_tag: 66
