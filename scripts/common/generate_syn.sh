@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
+
 # Common workflow for generating synthetic data
 
 set -euo pipefail
