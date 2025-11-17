@@ -27,7 +27,7 @@ if [ -f offsets.csv ]; then
   redyn metrics fault-offsets $output_dir/dyn_ offsets.csv
 fi
 
-redyn add-sources-to-wfconfig
+redyn add-sources
 
 export OMP_NUM_THREADS=$(grep -c ^processor /proc/cpuinfo)
 
