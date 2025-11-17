@@ -47,6 +47,35 @@ get_resources() {
 
 export order=5
 
+# Default start step
+start_from="job1"
+
+echo "All arguments: $@"
+
+# Parse optional arguments
+for arg in "$@"; do
+  case $arg in
+    start_from=*)
+      start_from="${arg#*=}"
+      shift
+      ;;
+    job1_log_file=*)
+      job1_log_file="${arg#*=}"
+      shift
+      ;;
+    *)
+      echo "Unknown argument: $arg"
+      echo "Usage: $0 start_from=<value> job1_log_file=<value>"
+      echo "job1: pseudo-static step."
+      echo "job2: DR input file generation."
+      echo "job3: aggregated DR simulations."
+      echo "job4: compact outputs and compute multi CMT solutions."
+      echo "job5: compute GOF metrics and synthetic waveforms and rank models."
+      exit 1
+      ;;
+  esac
+done
+
 hostname=$(hostname)
 
 if [[ $hostname == uan* ]]; then
@@ -66,39 +95,13 @@ fi
 
 echo "Detected supercomputer: $supercomputer"
 
-# Default start step
-start_from="job1"
-
-#!/bin/bash
-
-echo "All arguments: $@"
-
-# Parse optional arguments
-for arg in "$@"; do
-  case $arg in
-    start_from=*)
-      start_from="${arg#*=}"
-      shift
-      ;;
-    job1_id=*)
-      job1_id="${arg#*=}"
-      shift
-      ;;
-    *)
-      echo "Unknown argument: $arg"
-      echo "Usage: $0 start_from=<value> job1_id=<value>"
-      exit 1
-      ;;
-  esac
-done
-
 echo "start_from = $start_from"
-echo "job1_id    = $job1_id"
+echo "job1_log_file = $job1_log_file"
 
 # Step 1: Pseudo-static
 if [[ "$start_from" == "job1" || "$start_from" == "all" ]]; then
-  if [[ -n "$job1_id" ]]; then
-    echo "Using provided job ID: $job1_id"
+  if [[ -n "$job1_log_file" ]]; then
+    echo "Using provided job log file: $job1_log_file"
   else
     job1_id=$(sbatch "${script_dir}/scripts/${supercomputer}/job_test.sh" fl33.txt | awk '{print $NF}')
     echo "Submitted pseudo-static job with ID: $job1_id"
@@ -108,7 +111,11 @@ fi
 
 # Step 2: Get walltime/nodes and create parameters
 if [[ "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
-  get_resources "logs/${job1_id}.fl33.out" "$max_hours"
+  if [[ -n "$job1_log_file" ]]; then
+    get_resources "$job1_log_file" "$max_hours"
+  else
+    get_resources "logs/${job1_id}.fl33.out" "$max_hours"
+  fi
   job2_id=$(sbatch --partition=$PARTITION1 ${script_dir}/scripts/${supercomputer}/create_parameters.sh | awk '{print $NF}')
 else
   echo "Skipping job1/job2 setup."
@@ -118,7 +125,12 @@ fi
 if [[ "$start_from" == "job3" || "$start_from" == "job2" || "$start_from" == "job1" || "$start_from" == "all" ]]; then
 
   if [[ "$start_from" == "job3" ]]; then
-    get_resources "logs/${job1_id}.fl33.out" "$max_hours"
+    if [[ -n "$job1_log_file" ]]; then
+      get_resources "$job1_log_file" "$max_hours"
+    else
+      echo "error job1_log_file ($job1_log_file) is not set or does not exist"
+      exit 1
+    fi
   fi
 
   dep=$(get_dependency "$job2_id")
