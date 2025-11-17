@@ -41,7 +41,7 @@ make all python
 ```
 
 Finally update `path` under `synthetics` type `axitra` in:
-[this file](https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics/blob/main/dynworkflow/input_files/waveforms_config_regional.tmpl.yaml)
+[this file](https://github.com/Thomas-Ulrich/rapid-earthquake-dynamics/blob/main/src/dynworkflow/input_files/waveforms_config_regional.tmpl.yaml)
 
 ## Running the tests locally
 
