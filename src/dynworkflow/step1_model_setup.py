@@ -23,7 +23,6 @@ from dynworkflow import (
     infer_fault_mesh_size_and_spatial_zoom,
     modify_FL33_34_fault_instantaneous_slip,
     prepare_velocity_model_files,
-    step1_args,
     vizualizeBoundaryConditions,
 )
 from kinematic_models import (
@@ -31,19 +30,6 @@ from kinematic_models import (
     generate_fault_output_from_fl33_input_files,
     generate_FL33_input_files,
 )
-
-
-def get_args(argv=None):
-    """
-    Parse command-line arguments for the workflow.
-
-    The test on argv is required because pytest adds its own arguments
-    when running tests, which would otherwise cause parsing to fail.
-    """
-    parser = step1_args.get_parser()
-    if argv is None:
-        argv = sys.argv[1:]
-    return parser.parse_known_args(argv)[0]
 
 
 def is_slipnear_file(fn):
@@ -95,10 +81,13 @@ def copy_files(overwrite_files, setup_dir):
 
 
 def process_parser(args):
-    if args.config:
-        # First, keep the defaults from argparse
-        args_dict = vars(args)
+    # First, keep the defaults from argparse
+    args_dict = vars(args)
+    # these are added by the CLI
+    for key in ["command", "func"]:
+        args_dict.pop(key, None)
 
+    if args.config:
         # Then load YAML and update only given fields
         with open(args.config, "r") as f:
             yaml_args = yaml.safe_load(f) or {}
@@ -109,9 +98,6 @@ def process_parser(args):
 
         # Create updated Namespace
         args = argparse.Namespace(**args_dict)
-
-    else:
-        args_dict = vars(args)
 
     print("Using parameters:")
     for k, v in args_dict.items():

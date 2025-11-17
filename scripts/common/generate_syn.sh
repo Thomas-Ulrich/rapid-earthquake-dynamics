@@ -27,7 +27,7 @@ if [ -f offsets.csv ]; then
   redyn metrics fault-offsets $output_dir/dyn_ offsets.csv
 fi
 
-redyn add-sources-to-wfconfig
+redyn add-sources
 
 export OMP_NUM_THREADS=$(grep -c ^processor /proc/cpuinfo)
 
@@ -39,4 +39,4 @@ if [ -f waveforms_config_teleseismic.yaml ]; then
   swf plot-waveforms waveforms_config_teleseismic.yaml
 fi
 
-redyn metrics rank_models $output_dir
+redyn metrics rank-models $output_dir

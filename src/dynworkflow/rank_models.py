@@ -374,7 +374,7 @@ def main(args):
     fn = "tmp/reference_STF.txt"
 
     # load first default arguments for backwards compatibility
-    input_config_dict = vars(step1_args.get_args())
+    input_config_dict = step1_args.get_args()
 
     with open("input_config.yaml", "r") as f:
         input_config_dict |= yaml.safe_load(f)

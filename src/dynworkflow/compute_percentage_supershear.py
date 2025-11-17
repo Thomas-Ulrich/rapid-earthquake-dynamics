@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import argparse
 import glob
 import os
 
@@ -86,10 +85,10 @@ def get_supershear_ratio(mesh, vs):
     return 100 * sum_selected_area / total_area_mesh
 
 
-def compute_supershear_percentile(folder, material_file):
-    if os.path.exists(args.output_folder):
-        args.output_folder += "/"
-    fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
+def compute_supershear_percentile(output_folder, material_file):
+    if os.path.exists(output_folder):
+        output_folder += "/"
+    fault_output_files = sorted(glob.glob(f"{output_folder}*-fault.xdmf"))
     results = {
         "faultfn": [],
         "supershear": [],
@@ -111,14 +110,5 @@ def compute_supershear_percentile(folder, material_file):
     df.to_pickle(fname)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="""compute percentage of supershear in slip area for an
-        ensemble of DR models. all on the same mesh.
-        partitionning may differ though"""
-    )
-    parser.add_argument("output_folder", help="folder where the models lie")
-    parser.add_argument("material_file", help="easi yaml file defining rho mu lambda")
-
-    args = parser.parse_args()
+def main(args):
     compute_supershear_percentile(args.output_folder, args.material_file)
