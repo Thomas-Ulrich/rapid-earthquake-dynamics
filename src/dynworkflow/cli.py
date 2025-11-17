@@ -8,6 +8,7 @@ import argparse
 import argcomplete
 
 from dynworkflow.step1_args import add_parser as step1_add_parser
+from dynworkflow.compute_gof_fault_slip_subparser import add_parser as slip_add_parser
 
 
 def main():
@@ -22,6 +23,19 @@ def main():
         step1_add_parser,
     ]:
         add_sub(subparsers)
+
+    # --- Add 'gof' subcommand ---
+    gof_parser = subparsers.add_parser("gof", help="Goodness-of-fit commands")
+    gof_subparsers = gof_parser.add_subparsers(
+        title="gof subcommands", dest="gof_command"
+    )
+    gof_subparsers.required = True
+
+    # Register subcommands for 'gof'
+    for add_sub in [
+        slip_add_parser,  # your custom function to add subcommands/options
+    ]:
+        add_sub(gof_subparsers)
 
     # Enable autocomplete
     argcomplete.autocomplete(parser)

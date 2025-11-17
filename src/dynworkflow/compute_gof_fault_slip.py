@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import argparse
 import glob
 import os
 
@@ -54,7 +53,7 @@ def lookup_sorted_geom(geom, atol):
 
 # These 2 latter modules are on pypi (e.g. pip install seissolxdmf)
 class seissolxdmfExtended(sx.seissolxdmf):
-    def __init__(self, xdmfFilename):
+    def __init__(self, xdmfFilename, atol):
         super().__init__(xdmfFilename)
         self.geometry = self.ReadGeometry()
         self.connect = self.ReadConnect()
@@ -110,16 +109,16 @@ def area_weighted_ssq(areas, q):
     return np.dot(areas, q**2)
 
 
-def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
-    if os.path.exists(args.output_folder):
-        args.output_folder += "/"
-    fault_output_files = sorted(glob.glob(f"{folder}*-fault.xdmf"))
+def compute_gof_fault_slip(output_folder, reference_model, atol=1e-3):
+    if os.path.exists(output_folder):
+        output_folder += "/"
+    fault_output_files = sorted(glob.glob(f"{output_folder}*-fault.xdmf"))
     """
     fault_output_files = [
         fn for fn in fault_output_files if "dyn-kinmod" not in fn and "fl33" not in fn
     ]
     """
-    sx_ref = seissolxdmfExtended(reference_model)
+    sx_ref = seissolxdmfExtended(reference_model, atol)
     slip_threshold = 0.05
     print(f"using slip threshold of {slip_threshold}m")
     id_pos = sx_ref.asl > slip_threshold
@@ -163,24 +162,7 @@ def compute_gof_fault_slip(folder, reference_model, atol=1e-3):
     df.to_pickle(fname)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="""compute fault slip difference between between models from an
-        ensemble of DR models and a reference model, all on the same mesh.
-        partitionning may differ though"""
-    )
-    parser.add_argument("output_folder", help="folder where the models lie")
-    parser.add_argument("reference_model", help="path to reference model")
-    parser.add_argument(
-        "--atol",
-        nargs=1,
-        metavar=("atol"),
-        help="absolute tolerance to merge vertices",
-        type=float,
-        default=[1e-3],
-    )
-
-    args = parser.parse_args()
+def main(args):
     atol = args.atol[0]
     print(
         (
