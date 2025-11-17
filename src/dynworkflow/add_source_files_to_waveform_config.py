@@ -19,8 +19,7 @@ def update_file(waveform_type="regional"):
     cfg = ConfigLoader(config_file, CONFIG_SCHEMA)
 
     # load first default arguments for backwards compatibility
-    args = step1_args.get_args()
-    input_config = vars(args)
+    input_config = step1_args.get_args()
 
     with open("input_config.yaml", "r") as f:
         input_config |= yaml.safe_load(f)

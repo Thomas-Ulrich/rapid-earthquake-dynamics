@@ -320,4 +320,8 @@ def get_args():
     add_parser(subparsers)
     # simulate "init" subcommand with no args
     argv = ["init"]
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    d = vars(args)
+    for k in ("command", "func"):
+        d.pop(k, None)
+    return d
