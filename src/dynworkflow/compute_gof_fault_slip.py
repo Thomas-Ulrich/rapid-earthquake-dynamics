@@ -133,7 +133,7 @@ def compute_gof_fault_slip(output_folder, reference_model, atol=1e-3):
     }
 
     for fo in tqdm.tqdm(fault_output_files):
-        sx = seissolxdmfExtended(fo)
+        sx = seissolxdmfExtended(fo, atol)
         if sx_ref.geometry.shape[0] != sx.geometry.shape[0]:
             n_ref = sx_ref.geometry.shape[0]
             n_cur = sx.geometry.shape[0]
