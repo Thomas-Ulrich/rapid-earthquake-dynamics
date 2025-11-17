@@ -42,4 +42,4 @@ export SLURM_EAR_LOAD_MPI_VERSION="intel"
 echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
-srun -u python ../rapid-earthquake-dynamics/step2_generate_dr_input_files.py
+srun -u python ../rapid-earthquake-dynamics/src/dynworkflow/generate_input_files_for_dr_ensemble.py
