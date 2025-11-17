@@ -19,7 +19,7 @@ from scipy.stats import qmc
 
 from dynworkflow import step1_args
 from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
-from dynworkflow.compile_scenario_macro_properties import infer_duration
+from dynworkflow.rank_models import infer_duration
 
 
 def compute_max_slip(fn):

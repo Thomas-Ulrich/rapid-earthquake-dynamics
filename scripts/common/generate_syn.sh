@@ -39,4 +39,4 @@ if [ -f waveforms_config_teleseismic.yaml ]; then
   swf plot-waveforms waveforms_config_teleseismic.yaml
 fi
 
-$script_dir/src/dynworkflow/compile_scenario_macro_properties.py $output_dir
+$script_dir/src/dynworkflow/rank_models.py $output_dir
