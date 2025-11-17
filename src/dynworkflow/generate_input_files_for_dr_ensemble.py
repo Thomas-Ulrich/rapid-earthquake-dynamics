@@ -4,23 +4,14 @@
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
 import os
-import sys
 
 import yaml
 
 from dynworkflow import generate_input_seissol_dr
-
-# Append kinematic_models folder to path
-# Get the directory of the current script
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-relative_path = "dynworkflow/kinematic_models"
-absolute_path = os.path.join(current_script_dir, relative_path)
-if absolute_path not in sys.path:
-    sys.path.append(absolute_path)
-
 from kinematic_models import project_fault_tractions_onto_asagi_grid
 
-if __name__ == "__main__":
+
+def main(args):
     with open("derived_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     fault_mesh_size = config_dict["fault_mesh_size"]

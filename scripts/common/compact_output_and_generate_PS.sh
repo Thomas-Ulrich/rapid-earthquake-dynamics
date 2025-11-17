@@ -66,8 +66,6 @@ wait
 echo "generating point source representation"
 
 proj=$(grep '^projection:' derived_config.yaml | cut -d ':' -f2 | xargs)
-script_dir=../rapid-earthquake-dynamics/
-echo $script_dir
 
 # Create an indexed list of files
 files=(extracted_output/dyn*-fault.xdmf)

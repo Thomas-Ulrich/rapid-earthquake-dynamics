@@ -33,6 +33,19 @@ from kinematic_models import (
 )
 
 
+def get_args(argv=None):
+    """
+    Parse command-line arguments for the workflow.
+
+    The test on argv is required because pytest adds its own arguments
+    when running tests, which would otherwise cause parsing to fail.
+    """
+    parser = step1_args.get_parser()
+    if argv is None:
+        argv = sys.argv[1:]
+    return parser.parse_known_args(argv)[0]
+
+
 def is_slipnear_file(fn):
     with open(fn, "r") as file:
         first_line = file.readline().strip()
@@ -81,9 +94,7 @@ def copy_files(overwrite_files, setup_dir):
             raise ValueError(f"Unsupported path type: {path}")
 
 
-def process_parser():
-    args = step1_args.get_args()
-
+def process_parser(args):
     if args.config:
         # First, keep the defaults from argparse
         args_dict = vars(args)
@@ -115,14 +126,14 @@ def save_config(args_dict, config_out):
     print(f"Saved config to {config_out}")
 
 
-def run_step1():
+def run_step1(args):
     # Check if 'pumgen' is available
     status = os.system("which pumgen > /dev/null 2>&1")
     if status != 0:
         print("pumgen is not available.")
         sys.exit(1)
 
-    args = process_parser()
+    args = process_parser(args)
 
     assert args.terminator.lower() in ["auto", "true", "false"], (
         f"Invalid value for --terminator: {args.terminator}."
@@ -414,7 +425,7 @@ def select_station_and_download_waveforms():
         print("custom mesh: did you think of placing receiver according to topography?")
 
 
-if __name__ == "__main__":
-    folder_name = run_step1()
+def main(args):
+    folder_name = run_step1(args)
     select_station_and_download_waveforms()
     print(f"cd {folder_name}")

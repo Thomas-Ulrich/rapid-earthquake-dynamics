@@ -55,6 +55,6 @@ def update_file(waveform_type="regional"):
     yaml_dump(cfg.config, out_fname)
 
 
-if __name__ == "__main__":
+def main(args):
     update_file()
     update_file(waveform_type="teleseismic")

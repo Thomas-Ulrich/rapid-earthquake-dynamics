@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
+
 #SBATCH --job-name=fl33   # Job name
 #SBATCH --nodes=1               # Total number of nodes
 #SBATCH --account=project_465002391  # Project for billing

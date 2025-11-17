@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
-import argparse
 import glob
 import os
 import pickle
@@ -60,8 +59,8 @@ def plot_gof_xy(df, gof1, gof2):
 
     # Plot
     plt.figure(figsize=(8, 6))
-    print(result_df.keys())
-    plt.scatter(result_df[gof1], result_df[gof2], alpha=0.7)
+    print(df.keys())
+    plt.scatter(df[gof1], df[gof2], alpha=0.7)
     plt.xlabel(gof1)
     plt.ylabel(gof2)
     plt.grid(True)
@@ -128,7 +127,7 @@ def extract_params_from_prefix(fname: str) -> dict:
 
 
 def generate_XY_panel(
-    name_arr1, arr1, name_arr2, arr2, name3, val3, name_col, ax, cmap
+    df, name_arr1, arr1, name_arr2, arr2, name3, val3, name_col, ax, cmap
 ):
     "generate a 2D plot with name_arr1 and name_arr2 in X and Y axis"
     "colored by name_col"
@@ -138,10 +137,10 @@ def generate_XY_panel(
     gof_array = np.zeros_like(X) + np.nan
     for i in range(X.shape[0]):
         for j in range(X.shape[1]):
-            result = result_df[
-                (result_df[name_arr1] == X[i, j])
-                & (result_df[name_arr2] == Y[i, j])
-                & (result_df[name3] == val3)
+            result = df[
+                (df[name_arr1] == X[i, j])
+                & (df[name_arr2] == Y[i, j])
+                & (df[name3] == val3)
             ]
             if not result.empty:
                 specific_index = result.index[0]
@@ -152,9 +151,9 @@ def generate_XY_panel(
     mask_invalid[np.isnan(gof_array)] = 1
     ax.pcolor(X, Y, mask_invalid, hatch="/", alpha=0)
     if name_col in ["Mw"]:
-        im.set_clim(result_df[name_col].min(), result_df[name_col].max())
+        im.set_clim(df[name_col].min(), df[name_col].max())
     # else:
-    #    im.set_clim(0, result_df[name_col].max())
+    #    im.set_clim(0, df[name_col].max())
 
     ax.set_xlabel(name_arr1)
     ax.set_ylabel(name_arr2)
@@ -180,7 +179,7 @@ def generate_XY_panel(
     plt.colorbar(im, label=label, ax=ax)
 
 
-def generate_BCR_plots(B, C, R):
+def generate_BCR_plots(df, Cname, B, C, R):
     unique_R = np.unique(R)
     n_div = 2
     nrow, ncol = int(np.ceil(len(unique_R) / n_div)), 2 * n_div
@@ -198,9 +197,19 @@ def generate_BCR_plots(B, C, R):
         row = k % nrow
         col = k // nrow * n_div
         generate_XY_panel(
-            "B", B, Cname, C, "R0", Rk, "gof_MRF", axarr[row, col], cm.cmaps["acton_r"]
+            df,
+            "B",
+            B,
+            Cname,
+            C,
+            "R0",
+            Rk,
+            "gof_MRF",
+            axarr[row, col],
+            cm.cmaps["acton_r"],
         )
         generate_XY_panel(
+            df,
             "B",
             B,
             Cname,
@@ -232,6 +241,7 @@ def generate_BCR_plots(B, C, R):
         row = k % nrow
         col = k // nrow * n_div
         generate_XY_panel(
+            df,
             "R0",
             R,
             Cname,
@@ -242,8 +252,9 @@ def generate_BCR_plots(B, C, R):
             axarr[row, col],
             cm.cmaps["acton_r"],
         )
-        if "gof_reg" in result_df:
+        if "gof_reg" in df:
             generate_XY_panel(
+                df,
                 "R0",
                 R,
                 Cname,
@@ -255,6 +266,7 @@ def generate_BCR_plots(B, C, R):
                 cm.cmaps["acton_r"],
             )
             generate_XY_panel(
+                df,
                 "R0",
                 R,
                 Cname,
@@ -272,7 +284,7 @@ def generate_BCR_plots(B, C, R):
     print(f"done writing {fname}")
 
 
-def generate_BCR_moment_plots(B, C, R):
+def generate_BCR_moment_plots(df, Cname, B, C, R):
     unique_B = np.unique(B)
     n_div = 1
     nrow, ncol = len(unique_B) // n_div, 2 * n_div
@@ -290,6 +302,7 @@ def generate_BCR_moment_plots(B, C, R):
         row = k % nrow
         col = k // nrow * n_div
         generate_XY_panel(
+            df,
             "R0",
             R,
             Cname,
@@ -301,6 +314,7 @@ def generate_BCR_moment_plots(B, C, R):
             cm.cmaps["acton"],
         )
         generate_XY_panel(
+            df,
             "R0",
             R,
             Cname,
@@ -317,39 +331,7 @@ def generate_BCR_moment_plots(B, C, R):
     print(f"done writing {fname}")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="compute scenario properties")
-    parser.add_argument(
-        "output_folder",
-        help="path to output folder or full path to specific energy.csv file",
-    )
-    parser.add_argument(
-        "--extension",
-        help="figure extension (without the .)",
-        default="pdf",
-    )
-    parser.add_argument("--font_size", help="font size", nargs=1, default=[8], type=int)
-
-    parser.add_argument(
-        "--gof_threshold",
-        help="gof threshold from which results are selected",
-        type=float,
-        default=0.6,
-    )
-    parser.add_argument(
-        "--nmin",
-        help="minimum number of synthetic moment rates drawn in color",
-        type=int,
-        default=3,
-    )
-    parser.add_argument(
-        "--nmax",
-        help="maximum number of synthetic moment rates drawn in color",
-        type=int,
-        default=10,
-    )
-
-    args = parser.parse_args()
+def main(args):
     args.nmin = min(args.nmin, args.nmax)
 
     ps = args.font_size[0]
@@ -742,8 +724,8 @@ if __name__ == "__main__":
 
         assert len(result_df) > 0
         if are_all_elements_same(coh):
-            generate_BCR_plots(B, C, R)
-            generate_BCR_moment_plots(B, C, R)
+            generate_BCR_plots(result_df, Cname, B, C, R)
+            generate_BCR_moment_plots(result_df, Cname, B, C, R)
 
     varying_param = {}
     for name in parameter_names_with_coh:

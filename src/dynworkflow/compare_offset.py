@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich, Mathilde Marchandon
 
-import argparse
 import glob
 import os
 import re
@@ -243,7 +242,7 @@ def remove_spikes(data, threshold=5.0):
     return data
 
 
-def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
+def compute_rms_offset(folder, offset_data, threshold_z, individual_figures, bestmodel):
     # Read optical offset
     df = pd.read_csv(offset_data, sep=",")
     df = df.sort_values(by=["lat", "lon"])
@@ -352,8 +351,8 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
             else:
                 fname = f"figures/comparison_offset_sentinel2_{base_name}.svg"
             plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname)
-        if args.bestmodel:
-            is_best_model = args.bestmodel in fault
+        if bestmodel:
+            is_best_model = bestmodel in fault
             zorder = 3 if is_best_model else 1
             color = "blue" if is_best_model else "#edeeeeff"
         else:
@@ -376,7 +375,7 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
         print(f"Model: {base_name} RMS = {wrms[i]:.5f} m")
         results["faultfn"].append(fault)
         results["offset_rms"].append(wrms[i])
-    if not args.bestmodel:
+    if not bestmodel:
         top10_indices = np.argsort(wrms)[:10]
         cmap = cm.viridis_r
         norm = mcolors.Normalize(
@@ -441,30 +440,11 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures):
     merged_dfr.to_csv("rms_offset.csv", index=False)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="""compute fit (RMS) to offset of models from an
-        ensemble of DR models."""
-    )
-    parser.add_argument("output_folder", help="folder where the models lie")
-    parser.add_argument("offset_data", help="path to offset data")
-    parser.add_argument(
-        "--bestmodel", type=str, help='Pattern for best model (e.g. "dyn_0073")'
-    )
-
-    parser.add_argument(
-        "--threshold_z",
-        help="threshold depth used for selecting fault trace nodes",
-        type=float,
-        default=0,
-    )
-    parser.add_argument(
-        "--individual_figures",
-        action="store_true",
-        help="plot one figure for each file",
-    )
-
-    args = parser.parse_args()
+def main(args):
     compute_rms_offset(
-        args.output_folder, args.offset_data, args.threshold_z, args.individual_figures
+        args.output_folder,
+        args.offset_data,
+        args.threshold_z,
+        args.individual_figures,
+        args.bestmodel,
     )
