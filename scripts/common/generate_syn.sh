@@ -39,4 +39,4 @@ if [ -f waveforms_config_teleseismic.yaml ]; then
   swf plot-waveforms waveforms_config_teleseismic.yaml
 fi
 
-redyn metrics rank_models $output_dir
+redyn metrics rank-models $output_dir
