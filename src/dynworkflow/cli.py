@@ -11,6 +11,9 @@ from dynworkflow.step1_args import add_parser as step1_add_parser
 from dynworkflow.add_source_files_to_waveform_config_subparser import (
     add_parser as adds_add_parser,
 )
+from dynworkflow.generate_input_files_for_dr_ensemble_subparser import (
+    add_parser as gendr_add_parser,
+)
 from dynworkflow.compute_gof_fault_slip_subparser import add_parser as slip_add_parser
 from dynworkflow.compare_offset_subparser import add_parser as offsets_add_parser
 from dynworkflow.compute_percentage_supershear_subparser import (
@@ -29,6 +32,7 @@ def main():
     # Register subcommands
     for add_sub in [
         step1_add_parser,
+        gendr_add_parser,
         adds_add_parser,
     ]:
         add_sub(subparsers)

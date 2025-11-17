@@ -10,7 +10,8 @@ import yaml
 from dynworkflow import generate_input_seissol_dr
 from kinematic_models import project_fault_tractions_onto_asagi_grid
 
-if __name__ == "__main__":
+
+def main(args):
     with open("derived_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
     fault_mesh_size = config_dict["fault_mesh_size"]
