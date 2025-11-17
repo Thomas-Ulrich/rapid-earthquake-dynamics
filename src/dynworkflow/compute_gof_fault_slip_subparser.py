@@ -9,9 +9,9 @@ import argparse
 def add_parser(subparsers):
     parser = subparsers.add_parser(
         "slip",
-        help="""compute fault slip difference between between models from an
+        help="""Compute fault slip difference between between models from an
         ensemble of DR models and a reference model, all on the same mesh.
-        partitionning may differ though""",
+        partitionning may differ.""",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("output_folder", help="folder where the models lie")

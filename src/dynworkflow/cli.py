@@ -9,6 +9,7 @@ import argcomplete
 
 from dynworkflow.step1_args import add_parser as step1_add_parser
 from dynworkflow.compute_gof_fault_slip_subparser import add_parser as slip_add_parser
+from dynworkflow.rank_models_subparser import add_parser as rank_add_parser
 
 
 def main():
@@ -25,15 +26,16 @@ def main():
         add_sub(subparsers)
 
     # --- Add 'gof' subcommand ---
-    gof_parser = subparsers.add_parser("gof", help="Goodness-of-fit commands")
+    gof_parser = subparsers.add_parser("metrics", help="Metrics commands")
     gof_subparsers = gof_parser.add_subparsers(
-        title="gof subcommands", dest="gof_command"
+        title="metrics subcommands", dest="metrics_command"
     )
     gof_subparsers.required = True
 
-    # Register subcommands for 'gof'
+    # Register subcommands for 'metrics'
     for add_sub in [
-        slip_add_parser,  # your custom function to add subcommands/options
+        slip_add_parser,
+        rank_add_parser,
     ]:
         add_sub(gof_subparsers)
 

@@ -312,3 +312,11 @@ def add_parser(subparsers):
 
     parser.set_defaults(func=run)
     return parser
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command")
+    add_parser(subparsers)
+    argv = []  # no CLI args, so defaults are used
+    return parser.parse_args(argv)
