@@ -33,6 +33,19 @@ from kinematic_models import (
 )
 
 
+def get_args(argv=None):
+    """
+    Parse command-line arguments for the workflow.
+
+    The test on argv is required because pytest adds its own arguments
+    when running tests, which would otherwise cause parsing to fail.
+    """
+    parser = step1_args.get_parser()
+    if argv is None:
+        argv = sys.argv[1:]
+    return parser.parse_known_args(argv)[0]
+
+
 def is_slipnear_file(fn):
     with open(fn, "r") as file:
         first_line = file.readline().strip()
@@ -82,7 +95,7 @@ def copy_files(overwrite_files, setup_dir):
 
 
 def process_parser():
-    args = step1_args.get_args()
+    args = get_args()
 
     if args.config:
         # First, keep the defaults from argparse
@@ -414,7 +427,7 @@ def select_station_and_download_waveforms():
         print("custom mesh: did you think of placing receiver according to topography?")
 
 
-if __name__ == "__main__":
+def main():
     folder_name = run_step1()
     select_station_and_download_waveforms()
     print(f"cd {folder_name}")

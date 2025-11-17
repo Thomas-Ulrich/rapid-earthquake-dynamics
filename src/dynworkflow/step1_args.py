@@ -2,12 +2,12 @@
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
 import argparse
-import sys
 
 
-def get_parser():
-    parser = argparse.ArgumentParser(
-        description="""
+def add_parser(subparsers):
+    parser = subparsers.add_parser(
+        "init",
+        help="""
         Automatically set up an ensemble of dynamic rupture models from a kinematic
         finite fault model.
 
@@ -305,17 +305,10 @@ def get_parser():
         """,
     )
 
+    def run(args):
+        from dynworkflow.step1_model_setup import main
+
+        main(args)
+
+    parser.set_defaults(func=run)
     return parser
-
-
-def get_args(argv=None):
-    """
-    Parse command-line arguments for the workflow.
-
-    The test on argv is required because pytest adds its own arguments
-    when running tests, which would otherwise cause parsing to fail.
-    """
-    parser = get_parser()
-    if argv is None:
-        argv = sys.argv[1:]
-    return parser.parse_known_args(argv)[0]

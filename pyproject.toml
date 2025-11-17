@@ -63,3 +63,4 @@ local_scheme = "dirty-tag"
 
 [project.scripts]
 kimo = "kinematic_models.cli:main"
+redyn = "dynworkflow.cli:main"
