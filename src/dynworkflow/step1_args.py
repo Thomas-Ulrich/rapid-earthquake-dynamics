@@ -318,5 +318,6 @@ def get_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
     add_parser(subparsers)
-    argv = []  # no CLI args, so defaults are used
+    # simulate "init" subcommand with no args
+    argv = ["init"]
     return parser.parse_args(argv)

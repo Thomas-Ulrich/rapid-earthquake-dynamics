@@ -10,8 +10,8 @@ def add_parser(subparsers):
     parser = subparsers.add_parser(
         "add-sources",
         help=(
-            "Update waveform configuration YAMLs with source files for synthetic",
-            " seismograms.",
+            "Update waveform configuration YAMLs with source files for synthetic"
+            " seismograms."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
