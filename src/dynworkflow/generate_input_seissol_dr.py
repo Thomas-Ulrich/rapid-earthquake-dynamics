@@ -19,7 +19,7 @@ from scipy.stats import qmc
 
 from dynworkflow import step1_args
 from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
-from dynworkflow.rank_models import infer_duration
+from dynworkflow.step1_model_setup import compute_simulation_end_time
 
 
 def compute_max_slip(fn):
@@ -314,10 +314,8 @@ def generate():
     hypo[2] *= -1e3
     hypo[0], hypo[1] = transformer.transform(hypo[0], hypo[1])
 
-    fn_mr = "tmp/moment_rate_from_finite_source_file.txt"
-    moment_rate = np.loadtxt(fn_mr)
-    kinmod_duration = infer_duration(moment_rate[:, 0], moment_rate[:, 1])
-    fault_sampling = compute_fault_sampling(kinmod_duration)
+    simulation_end_time = compute_simulation_end_time(input_config)
+    fault_sampling = compute_fault_sampling(simulation_end_time)
 
     list_fault_yaml = []
     if "mud" in parameters_structured.keys():
@@ -342,13 +340,10 @@ def generate():
         render_file(templateEnv, template_par, fn_fault_template, fn_fault)
 
         if input_config["seissol_end_time"] == "auto":
-            template_par["end_time"] = kinmod_duration + max(
-                20.0, 0.25 * kinmod_duration
-            )
             use_terminator = True
         else:
-            template_par["end_time"] = float(input_config["seissol_end_time"])
             use_terminator = False
+        template_par["end_time"] = simulation_end_time
 
         terminator = input_config["terminator"].lower()
         if terminator != "auto":
