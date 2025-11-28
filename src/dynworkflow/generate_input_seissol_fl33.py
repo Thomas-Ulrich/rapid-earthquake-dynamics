@@ -17,7 +17,7 @@ from dynworkflow.step1_model_setup import save_config
 
 def generate():
     with open("derived_config.yaml", "r") as f:
-        config_dict = yaml.safe_load(f)
+        derived_config = yaml.safe_load(f)
     with open("input_config.yaml", "r") as f:
         input_config = yaml.safe_load(f)
 
@@ -70,7 +70,7 @@ def generate():
     template_par["ref_z"] = ref_z
     template_par["ref_method"] = int(ref_method)
 
-    mesh_file = config_dict["mesh_file"]
+    mesh_file = derived_config["mesh_file"]
     template_par["mesh_file"] = mesh_file
 
     template = templateEnv.get_template("parameters_fl34.tmpl.par")
