@@ -12,8 +12,6 @@ import numpy as np
 import yaml
 from scipy.spatial.distance import pdist
 
-from dynworkflow.step1_model_setup import save_config
-
 
 def generate():
     with open("derived_config.yaml", "r") as f:
@@ -59,7 +57,9 @@ def generate():
     end_time = max(30.0, 0.6 * end_time)
     template_par["end_time"] = end_time
     derived_config["pseudo_static_simulation_end_time"] = end_time
-    save_config(derived_config, "derived_config.yaml")
+
+    with open("derived_config.yaml", "w") as f:
+        yaml.dump(derived_config, f)
 
     template_par["material_fname"] = "yaml_files/material.yaml"
 
