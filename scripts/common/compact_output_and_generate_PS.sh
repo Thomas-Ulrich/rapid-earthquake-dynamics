@@ -12,6 +12,39 @@ tasks_per_node=$1
 set -euo pipefail
 mkdir -p extracted_output
 
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p extracted_output
+
+echo "Starting HDF5 integrity check in 'output/'..."
+total_corrupted=0
+corrupt_dir_created=false
+for h5_file in output/dyn_*-surface_vertex.h5; do
+    # Temporarily disable -e and pipefail so an h5dump error doesn't abort the script
+    set +e +o pipefail
+    h5dump -H "$h5_file" 2>&1 | grep -qi "error"
+    corrupted=$?
+    set -e -o pipefail
+    if [[ $corrupted -eq 0 ]]; then
+        if ! $corrupt_dir_created; then
+            mkdir -p output_corrupted
+            corrupt_dir_created=true
+        fi
+        prefix=$(basename "$h5_file" | sed 's/-surface_vertex\.h5$//')
+        echo "Corrupted file detected: $h5_file"
+        # Move all related files
+        mv output/"${prefix}"* output_corrupted/
+        echo "-> Moved files starting with '${prefix}'"
+        total_corrupted=$((total_corrupted + 1))
+    fi
+done
+
+if [[ $total_corrupted -eq 0 ]]; then
+    echo "Check complete. No corrupted HDF5 files were found."
+else
+    echo "Check complete. Identified and moved $total_corrupted corrupted file set(s)."
+fi
+
 counter=0
 total_params=$(ls output/dyn_*-surface.xdmf | wc -l)
 total_params=$((total_params * 3))

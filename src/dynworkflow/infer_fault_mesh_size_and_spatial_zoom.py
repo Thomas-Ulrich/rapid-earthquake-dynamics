@@ -8,9 +8,8 @@ import os
 import os.path
 
 import numpy as np
-from sklearn.decomposition import PCA
-
 from kinematic_models.multi_fault_plane import MultiFaultPlane
+from sklearn.decomposition import PCA
 
 
 def infer_quantities(filename, proj, mesh_size="auto"):

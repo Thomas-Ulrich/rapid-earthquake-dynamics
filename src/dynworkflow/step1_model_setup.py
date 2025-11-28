@@ -12,6 +12,11 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from kinematic_models import (
+    compute_moment_rate_function,
+    generate_fault_output_from_fl33_input_files,
+    generate_FL33_input_files,
+)
 from seismic_waveform_factory.geo.select_stations import select_stations
 
 from dynworkflow import (
@@ -25,11 +30,18 @@ from dynworkflow import (
     prepare_velocity_model_files,
     vizualizeBoundaryConditions,
 )
-from kinematic_models import (
-    compute_moment_rate_function,
-    generate_fault_output_from_fl33_input_files,
-    generate_FL33_input_files,
-)
+from dynworkflow.rank_models import infer_duration
+
+
+def compute_simulation_end_time(input_config):
+    fn_mr = "tmp/moment_rate_from_finite_source_file.txt"
+    moment_rate = np.loadtxt(fn_mr)
+    kinmod_duration = infer_duration(moment_rate[:, 0], moment_rate[:, 1])
+    if input_config["seissol_end_time"] == "auto":
+        end_time = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
+    else:
+        end_time = input_config["seissol_end_time"]
+    return float(end_time)
 
 
 def is_slipnear_file(fn):
@@ -320,8 +332,8 @@ def run_step1(args):
         "fault_mesh_size": fault_mesh_size,
         "number_of_segments": number_of_segments,
     }
-    save_config(derived_config, "derived_config.yaml")
 
+    save_config(derived_config, "derived_config.yaml")
     generate_input_seissol_fl33.generate()
     compute_moment_rate_function.compute(
         finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax
@@ -338,6 +350,12 @@ def run_step1(args):
         with open(file_path, "w") as f:
             np.savetxt(f, moment_rate, fmt="%g")
         print("done copying refMRF to {file_path}")
+
+    with open("derived_config.yaml") as f:
+        derived_config = yaml.safe_load(f)
+    derived_config["simulation_end_time"] = compute_simulation_end_time(input_config)
+
+    save_config(derived_config, "derived_config.yaml")
 
     os.makedirs("output", exist_ok=True)
     os.makedirs("logs", exist_ok=True)

@@ -21,7 +21,6 @@ echo 'num_nodes:' $SLURM_JOB_NUM_NODES 'ntasks:' $SLURM_NTASKS
 ulimit -Ss 2097152
 
 proj=$(grep '^projection:' derived_config.yaml | cut -d ':' -f2 | xargs)
-script_dir=../rapid-earthquake-dynamics/
 
 # Extract values using grep + awk
 XRef=$(grep -E '^XRef' parameters_fl33.par | awk -F= '{print $2}' | xargs)
@@ -48,7 +47,7 @@ swf compute-multi-cmt spatial "$filename" yaml_files/material.yaml \
 mkdir -p mps_teleseismic
 mv PointSource* mps_teleseismic
 
-$script_dir/src/dynworkflow/add_source_files_to_waveform_config.py
+redyn add-sources
 if [ -f waveforms_config_teleseismic.yaml ]; then
   swf plot-waveforms waveforms_config_teleseismic.yaml
 fi
