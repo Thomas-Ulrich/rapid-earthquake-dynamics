@@ -162,6 +162,8 @@ def get_scaled_walltime_and_ranks(
         * nodes_ref
         / 3600
     )
+    if use_terminator:
+        node_hours_ensemble *= 0.85
     print(f"estimated node-hours for the ensemble simulation {node_hours_ensemble:.1f}")
 
     if (not use_terminator) or (
