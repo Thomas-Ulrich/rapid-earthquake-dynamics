@@ -12,6 +12,8 @@ import numpy as np
 import yaml
 from scipy.spatial.distance import pdist
 
+from dynworkflow.step1_model_setup import save_config
+
 
 def generate():
     with open("derived_config.yaml", "r") as f:
@@ -54,7 +56,11 @@ def generate():
     template_par = {}
     # well in theory we would need to run for end_time, but practically
     # a portion of it may be sufficient
-    template_par["end_time"] = max(30.0, 0.6 * end_time)
+    end_time = max(30.0, 0.6 * end_time)
+    template_par["end_time"] = end_time
+    derived_config["pseudo_static_simulation_end_time"] = end_time
+    save_config(derived_config, "derived_config.yaml")
+
     template_par["material_fname"] = "yaml_files/material.yaml"
 
     fault_ref_args = list(map(float, input_config["fault_reference"].split(",")))
