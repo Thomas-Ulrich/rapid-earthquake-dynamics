@@ -15,6 +15,8 @@ import h5py
 import numpy as np
 import yaml
 
+from dynworkflow import step1_args
+
 
 def parse_parameter_string(param_str):
     param_str = param_str.replace("_", "")
@@ -131,7 +133,12 @@ def convert_to_hms(target_time):
 
 
 def get_scaled_walltime_and_ranks(
-    log_file, simulation_batch_size, max_hours, nodes_config
+    log_file,
+    simulation_batch_size,
+    max_hours,
+    nodes_config,
+    simulation_time_ratio,
+    use_terminator,
 ):
     extracted = get_log_info(args.log_file)
     print("reference run infos:", extracted)
@@ -145,27 +152,40 @@ def get_scaled_walltime_and_ranks(
     max_nodes1 = (step_nodes * simulation_batch_size) // 3
     max_nodes1 = min(max_nodes1, max_nodes)
     candidates = list(range(min_nodes, max_nodes1, step_nodes))
+    safety_factor = 1.15
 
-    nodes_full_batch = step_nodes * simulation_batch_size
-    if nodes_full_batch % 2 == 0:
-        nodes_half_batch = nodes_full_batch // 2
-        if nodes_half_batch <= max_nodes:
-            candidates.append(nodes_half_batch)
+    node_hours_ensemble = (
+        safety_factor
+        * simulation_time_ratio
+        * run_time
+        * simulation_batch_size
+        * nodes_ref
+        / 3600
+    )
+    print(f"estimated node-hours for the ensemble simulation {node_hours_ensemble:.1f}")
 
-    if nodes_full_batch <= max_nodes:
-        candidates.append(nodes_full_batch)
+    if (not use_terminator) or (
+        node_hours_ensemble < nodes_config["significant_node_hours"]
+    ):
+        # in this case the time of each simulation should
+        # be more similar
+        nodes_full_batch = step_nodes * simulation_batch_size
+        if nodes_full_batch % 2 == 0:
+            nodes_half_batch = nodes_full_batch // 2
+            if nodes_half_batch <= max_nodes:
+                candidates.append(nodes_half_batch)
+
+        if nodes_full_batch <= max_nodes:
+            candidates.append(nodes_full_batch)
     print("candidate_nodes: ", candidates)
 
     chosen_nodes = max_nodes
     walltime = ""
-    safety_factor = 1.5
 
     for nodes in candidates:
-        target_time = (
-            safety_factor * run_time * simulation_batch_size * nodes_ref / nodes
-        )
-        hours = int(target_time // 3600)
-        walltime = convert_to_hms(target_time)
+        target_time = node_hours_ensemble / nodes
+        hours = int(target_time)
+        walltime = convert_to_hms(target_time * 3600)
 
         chosen_nodes = nodes
         if hours < max_hours:
@@ -204,12 +224,34 @@ if __name__ == "__main__":
     mesh_cells = get_mesh_cells(config_dict["mesh_file"])
     simulation_batch_size = get_simulation_batch_size()
 
+    if (
+        "pseudo_static_simulation_end_time" in config_dict.keys()
+        and "simulation_end_time" in config_dict.keys()
+    ):
+        simulation_time_ratio = (
+            config_dict["simulation_end_time"]
+            / config_dict["pseudo_static_simulation_end_time"]
+        )
+    else:
+        simulation_time_ratio = 1.5
+    # load first default arguments for backwards compatibility
+    input_config = step1_args.get_args()
+    with open("input_config.yaml", "r") as f:
+        input_config |= yaml.safe_load(f)
+    terminator = input_config["terminator"].lower()
+    use_terminator = (
+        input_config["seissol_end_time"] == "auto"
+        if terminator == "auto"
+        else terminator == "true"
+    )
+
     def get_node_config(
         mesh_cells,
         simulation_batch_size,
         target_cell_per_nodes,
         min_allowed_nodes,
         max_allowed_nodes,
+        significant_node_hours,
     ):
         nodes_per_sim = max(1, int(np.round(mesh_cells / target_cell_per_nodes)))
         min_nodes = ((min_allowed_nodes // nodes_per_sim) + 1) * nodes_per_sim
@@ -217,7 +259,13 @@ if __name__ == "__main__":
         # Make max_nodes a multiple of nodes_per_sim
         max_nodes = (max_nodes_raw // nodes_per_sim) * nodes_per_sim
         max_nodes = max(max_nodes, min_nodes)
-        return {"min": min_nodes, "max": max_nodes, "step": nodes_per_sim}
+
+        return {
+            "min": min_nodes,
+            "max": max_nodes,
+            "step": nodes_per_sim,
+            "significant_node_hours": significant_node_hours,
+        }
 
     if args.node_config == "auto":
         if hostname.startswith("uan"):
@@ -228,6 +276,7 @@ if __name__ == "__main__":
                 target_cell_per_nodes=1000000,
                 min_allowed_nodes=1,
                 max_allowed_nodes=256,
+                significant_node_hours=100,
             )
         elif hostname.startswith("login"):
             # supermuc NG
@@ -237,6 +286,7 @@ if __name__ == "__main__":
                 target_cell_per_nodes=100000,
                 min_allowed_nodes=17,
                 max_allowed_nodes=400,
+                significant_node_hours=200,
             )
         else:
             raise ValueError(
@@ -249,7 +299,12 @@ if __name__ == "__main__":
     print("nodes_config:", nodes_config)
     try:
         walltime, chosen_nodes = get_scaled_walltime_and_ranks(
-            args.log_file, simulation_batch_size, args.max_hours, nodes_config
+            args.log_file,
+            simulation_batch_size,
+            args.max_hours,
+            nodes_config,
+            simulation_time_ratio,
+            use_terminator,
         )
         print(f"Walltime: {walltime}")
         print(f"Chosen nodes: {chosen_nodes}")
