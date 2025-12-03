@@ -194,25 +194,19 @@ def get_data(
 
     projection = f"+proj=tmerc +datum=WGS84 +k=0.9996 +lon_0={lon:.2f} +lat_0={lat:.2f}"
 
-    if use_usgs_finite_fault:
-        for fn in [
-            "moment_rate.mr",
-            "basic_inversion.param",
-            "complete_inversion.fsp",
-        ]:
-            url = (
-                f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}"
-                f"/us/{update_time}/{fn}"
-            )
-            wget_overwrite(url, f"{folder_name}/tmp/{fn}")
+    files = ["moment_rate.mr"]
 
-    elif download_usgs_fsp:
-        for fn in ["complete_inversion.fsp"]:
-            url = (
-                f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}"
-                f"/us/{update_time}/{fn}"
-            )
-            wget_overwrite(url, f"{folder_name}/tmp/{fn}")
+    if use_usgs_finite_fault:
+        files += ["basic_inversion.param"]
+    if download_usgs_fsp:
+        files += ["complete_inversion.fsp"]
+
+    for fn in files:
+        url = (
+            f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}"
+            f"/us/{update_time}/{fn}"
+        )
+        wget_overwrite(url, f"{folder_name}/tmp/{fn}")
 
     shutil.move(fn_json, f"{folder_name}/tmp/{fn_json}")
     print(folder_name)
