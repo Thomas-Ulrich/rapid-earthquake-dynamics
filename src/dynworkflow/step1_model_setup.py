@@ -278,6 +278,7 @@ def run_step1(args):
         spatial_zoom,
         fault_mesh_size,
         number_of_segments,
+        is_static_solution,
     ) = infer_fault_mesh_size_and_spatial_zoom.infer_quantities(
         finite_fault_fn, projection, args.fault_mesh_size
     )
@@ -331,6 +332,7 @@ def run_step1(args):
         "spatial_zoom": spatial_zoom,
         "fault_mesh_size": fault_mesh_size,
         "number_of_segments": number_of_segments,
+        "is_static_solution": is_static_solution,
     }
 
     save_config(derived_config, "derived_config.yaml")
@@ -339,17 +341,44 @@ def run_step1(args):
         finite_fault_fn, "yaml_files/material.yaml", projection, tmax=args.tmax
     )
 
+    def read_usgs_moment_rate(fname):
+        # todo: remove duplicated
+        mr_ref = np.loadtxt(fname, skiprows=2)
+        # Conversion factor from dyne-cm/sec to Nm/sec (for older usgs files)
+        scaling_factor = 1.0 if np.amax(mr_ref[:, 1]) < 1e23 else 1e-7
+        mr_ref[:, 1] *= scaling_factor
+        return mr_ref
+
     file_path = "tmp/moment_rate_from_finite_source_file.txt"
     if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
         # todo: update for possibility of csv MRF
         print(f"{file_path} is empty (static solution?).")
-        for kkk, MRF_pair in enumerate(processed_MRFs):
-            assert processed_MRFs[kkk][0] != file_path
-        assert args.hypocenter != "finite_fault"
-        moment_rate = np.loadtxt(processed_MRFs[0][0], skiprows=2)
-        with open(file_path, "w") as f:
-            np.savetxt(f, moment_rate, fmt="%g")
-        print("done copying refMRF to {file_path}")
+        # Remove all items where the first element equals file_path
+        processed_MRFs = [
+            MRF_pair for MRF_pair in processed_MRFs if MRF_pair[0] != file_path
+        ]
+        if args.hypocenter == "finite_fault":
+            print(
+                "changing args.hypocenter to usgs as the hypocenter cannot be"
+                " inferred (static solution)"
+            )
+            args.hypocenter = "usgs"
+        if len(processed_MRFs) > 0:
+            moment_rate = np.loadtxt(processed_MRFs[0][0], skiprows=2)
+            with open(file_path, "w") as f:
+                np.savetxt(f, moment_rate, fmt="%g")
+            print(f"done copying refMRF to {file_path}")
+        elif os.path.exists("tmp/moment_rate.mr"):
+            moment_rate = read_usgs_moment_rate("tmp/moment_rate.mr")
+            with open(file_path, "w") as f:
+                np.savetxt(f, moment_rate, fmt="%g")
+            print(
+                f"done copying the moment rate from tmp/moment_rate.mr to {file_path}"
+            )
+            processed_MRFs = [["tmp/moment_rate_from_finite_source_file.txt", "USGS"]]
+        else:
+            processed_MRFs = []
+        derived_config["reference_STFs"] = processed_MRFs
 
     with open("derived_config.yaml") as f:
         derived_config = yaml.safe_load(f)
@@ -369,6 +398,8 @@ def run_step1(args):
 def select_station_and_download_waveforms():
     with open("input_config.yaml", "r") as f:
         config_dict = yaml.safe_load(f)
+    with open("derived_config.yaml") as f:
+        derived_config = yaml.safe_load(f)
     mesh_file = config_dict["mesh"]
     regional_seismic_stations = config_dict["regional_seismic_stations"]
     teleseismic_stations = config_dict["teleseismic_stations"]
@@ -386,11 +417,22 @@ def select_station_and_download_waveforms():
     for file in files:
         shutil.move(file, os.path.join("tmp", os.path.basename(file)))
 
+    if derived_config["is_static_solution"]:
+        fault_yaml = "yaml_files/FL33_34_fault_inst.yaml"
+        stf = "Gaussian"
+        print(
+            f"warning: static solution, using {fault_yaml} for generating"
+            " output/dyn-kinmod-fault.xdmf"
+        )
+    else:
+        fault_yaml = "yaml_files/FL33_34_fault.yaml"
+        stf = "AsymmetricCosine"
+
     generate_fault_output_from_fl33_input_files.generate(
         f"tmp/{mesh_prefix}_bc_faults.xdmf",
-        "yaml_files/FL33_34_fault.yaml",
+        fault_yaml,
         "output/dyn-kinmod-fault",
-        "AsymmetricCosine",
+        stf,
         0.5,
     )
     generate_waveform_config_from_usgs.generate_waveform_config_file(
