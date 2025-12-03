@@ -158,16 +158,15 @@ def get_data(
         code_finite_fault = finite_fault["code"]
         update_time = finite_fault["updateTime"]
     else:
+        code_finite_fault = usgs_id
         finite_faults = get_value_from_usgs_data(jsondata, "finite-fault")
         if finite_faults:
             # if not specified we use the most recently updated
             update_times = [ff["updateTime"] for ff in finite_faults]
             ff_id = update_times.index(max(update_times))
             finite_fault = finite_faults[ff_id]
-            code_finite_fault = finite_fault["code"]
             update_time = finite_fault["updateTime"]
         else:
-            code_finite_fault = usgs_id
             update_time = None
 
     folder_name = f"{day}_Mw{mag}_{descr[:20]}_{code_finite_fault}{suffix}"
