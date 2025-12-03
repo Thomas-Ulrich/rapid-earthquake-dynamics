@@ -353,8 +353,10 @@ def run_step1(args):
             with open(file_path, "w") as f:
                 np.savetxt(f, moment_rate, fmt="%g")
             print("done copying refMRF to {file_path}")
-        else:
+        elif os.path.exists("tmp/moment_rate.mr"):
             processed_MRFs = [["tmp/moment_rate.mr", "USGS"]]
+        else:
+            processed_MRFs = []
         derived_config["reference_STFs"] = processed_MRFs
 
     with open("derived_config.yaml") as f:

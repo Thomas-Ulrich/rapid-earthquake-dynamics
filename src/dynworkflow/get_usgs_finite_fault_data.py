@@ -50,8 +50,10 @@ def get_value_by_key(data, target_key):
 
 
 def get_value_from_usgs_data(jsondata, key):
-    item = find_key_recursive(jsondata, key)[0]
-    return get_value_by_key(jsondata, item)
+    items = find_key_recursive(jsondata, key)
+    if not items:
+        return None
+    return get_value_by_key(jsondata, items[0])
 
 
 def wget_overwrite(url, out_fname=None):
@@ -156,7 +158,17 @@ def get_data(
         code_finite_fault = finite_fault["code"]
         update_time = finite_fault["updateTime"]
     else:
-        code_finite_fault = usgs_id
+        finite_faults = get_value_from_usgs_data(jsondata, "finite-fault")
+        if finite_faults:
+            # if not specified we use the most recently updated
+            update_times = [ff["updateTime"] for ff in finite_faults]
+            ff_id = update_times.index(max(update_times))
+            finite_fault = finite_faults[ff_id]
+            code_finite_fault = finite_fault["code"]
+            update_time = finite_fault["updateTime"]
+        else:
+            code_finite_fault = usgs_id
+            update_time = None
 
     folder_name = f"{day}_Mw{mag}_{descr[:20]}_{code_finite_fault}{suffix}"
 
@@ -200,13 +212,13 @@ def get_data(
         files += ["basic_inversion.param"]
     if download_usgs_fsp:
         files += ["complete_inversion.fsp"]
-
-    for fn in files:
-        url = (
-            f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}"
-            f"/us/{update_time}/{fn}"
-        )
-        wget_overwrite(url, f"{folder_name}/tmp/{fn}")
+    if update_time:
+        for fn in files:
+            url = (
+                f"https://earthquake.usgs.gov/product/finite-fault/{code_finite_fault}"
+                f"/us/{update_time}/{fn}"
+            )
+            wget_overwrite(url, f"{folder_name}/tmp/{fn}")
 
     shutil.move(fn_json, f"{folder_name}/tmp/{fn_json}")
     print(folder_name)
