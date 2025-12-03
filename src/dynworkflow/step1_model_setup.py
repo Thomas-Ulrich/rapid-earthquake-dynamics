@@ -343,13 +343,19 @@ def run_step1(args):
     if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
         # todo: update for possibility of csv MRF
         print(f"{file_path} is empty (static solution?).")
-        for kkk, MRF_pair in enumerate(processed_MRFs):
-            assert processed_MRFs[kkk][0] != file_path
+        # Remove all items where the first element equals file_path
+        processed_MRFs = [
+            MRF_pair for MRF_pair in processed_MRFs if MRF_pair[0] != file_path
+        ]
         assert args.hypocenter != "finite_fault"
-        moment_rate = np.loadtxt(processed_MRFs[0][0], skiprows=2)
-        with open(file_path, "w") as f:
-            np.savetxt(f, moment_rate, fmt="%g")
-        print("done copying refMRF to {file_path}")
+        if len(processed_MRFs) > 0:
+            moment_rate = np.loadtxt(processed_MRFs[0][0], skiprows=2)
+            with open(file_path, "w") as f:
+                np.savetxt(f, moment_rate, fmt="%g")
+            print("done copying refMRF to {file_path}")
+        else:
+            processed_MRFs = [["tmp/moment_rate.mr", "USGS"]]
+        derived_config["reference_STFs"] = processed_MRFs
 
     with open("derived_config.yaml") as f:
         derived_config = yaml.safe_load(f)
