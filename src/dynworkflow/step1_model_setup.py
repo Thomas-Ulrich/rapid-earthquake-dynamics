@@ -326,13 +326,12 @@ def run_step1(args):
         mesh_file = shutil.copy(mesh_arg, "tmp")
         mesh_xdmf_file = mesh_arg.split("puml.h5")[0] + ".xdmf"
         shutil.copy(mesh_xdmf_file, "tmp")
-
     derived_config |= {
         "mesh_file": mesh_file,
         "spatial_zoom": spatial_zoom,
         "fault_mesh_size": fault_mesh_size,
         "number_of_segments": number_of_segments,
-        "is_static_solution": is_static_solution,
+        "is_static_solution": bool(is_static_solution),
     }
 
     save_config(derived_config, "derived_config.yaml")
