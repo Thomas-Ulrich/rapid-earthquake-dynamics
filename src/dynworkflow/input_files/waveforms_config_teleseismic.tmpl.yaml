@@ -32,7 +32,7 @@ waveform_plots:
     t_before: 20.0
     t_after: {{ t_after_P_onset }}
     shift_match_correlation: true
-    filter_tmin: 10.0
+    filter_tmin: {{ filter_tmin_P }}
     filter_tmax: 200.0
     ncol_per_component: 2
     components:
@@ -46,7 +46,7 @@ waveform_plots:
     t_before: 20.0
     t_after: {{ t_after_SH_onset }}
     shift_match_correlation: true
-    filter_tmin: 10.0
+    filter_tmin: {{ filter_tmin_SH }}
     filter_tmax: 200.0
     ncol_per_component: 2
     components:
