@@ -42,7 +42,8 @@ def generate_waveform_config_file(
     input_file_dir = f"{script_directory}/input_files"
     templateLoader = jinja2.FileSystemLoader(searchpath=input_file_dir)
     templateEnv = jinja2.Environment(loader=templateLoader)
-    comparison_duration = max(1.3 * duration, duration + 20)
+    comparison_duration = min(60, max(1.3 * duration, duration + 20))
+    filter_tmin_body = 10.0 if duration > 50 else 8.0
     template_par = {
         "setup_name": code,
         "lon": hypocenter_x,
@@ -51,6 +52,8 @@ def generate_waveform_config_file(
         "onset": eventtime,
         "t_after_P_onset": comparison_duration,
         "t_after_SH_onset": comparison_duration,
+        "filter_tmin_P": filter_tmin_body,
+        "filter_tmin_SH": filter_tmin_body,
         "projection": proj,
     }
 

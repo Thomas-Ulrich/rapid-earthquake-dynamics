@@ -41,7 +41,7 @@ def test_get_data_with_mocked_usgs(mock_input, mock_wget, tmp_path):
         assert "projection" in result
         assert (
             result["folder_name"]
-            == "2025-03-28_Mw7.7_Burma_Myanmar_Earthq_us7000pn9s_test"
+            == "2025-03-28_Mw7.7_Burma_Myanmar_Earthq_us7000pn9s_1_test"
         )
         assert (
             result["projection"]

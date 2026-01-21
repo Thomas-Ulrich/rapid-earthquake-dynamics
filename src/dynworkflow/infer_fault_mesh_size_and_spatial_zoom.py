@@ -64,8 +64,9 @@ def infer_quantities(filename, proj, mesh_size="auto"):
     inferred_spatial_zoom = next_odd_integer(min(dx, dy) / mesh_size)
 
     print(f"inferred spatial zoom {inferred_spatial_zoom}")
+    is_static_solution = mfp.is_static_solution()
 
-    return inferred_spatial_zoom, mesh_size, len(mfp.fault_planes)
+    return inferred_spatial_zoom, mesh_size, len(mfp.fault_planes), is_static_solution
 
 
 if __name__ == "__main__":
@@ -89,7 +90,7 @@ if __name__ == "__main__":
         required=True,
     )
     args = parser.parse_args()
-    inferred_spatial_zoom, mesh_size, n_segments = infer_quantities(
+    inferred_spatial_zoom, mesh_size, n_segments, is_static_solution = infer_quantities(
         args.filename, args.proj, args.fault_mesh_size
     )
-    print(inferred_spatial_zoom, mesh_size, n_segments)
+    print(inferred_spatial_zoom, mesh_size, n_segments, is_static_solution)
