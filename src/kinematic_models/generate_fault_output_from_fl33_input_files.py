@@ -36,6 +36,15 @@ class seissolxdmfExtended(seissolxdmf.seissolxdmf):
         ) / 3.0
 
 
+def get_n_time_sub(min_acc_time, dt_output):
+    if min_acc_time == 0.0:
+        print("Warning: min acc_time is zero and a static solution was not detected")
+        dt_required = dt_output
+    else:
+        dt_required = min_acc_time / 3.0
+    return max(1, round(dt_output / dt_required))
+
+
 def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
     sx = seissolxdmfExtended(fault_filename)
     centers = sx.ComputeCellCenters()
@@ -54,8 +63,8 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
         ts = np.maximum(ts, 0)
         tr = np.maximum(tr, ts)
         rise_time = tr + 2.0 * ts
-        dt_required = 1.27 * np.amin(ts) / 3.0
-        n_time_sub = max(1, round(dt_output / dt_required))
+        min_acc_time = 1.27 * np.amin(ts)
+        n_time_sub = get_n_time_sub(min_acc_time, dt_output)
         dt = dt_output / n_time_sub
         print(f"STF numerically integrated (dt used {dt})")
     elif stf == "AsymmetricCosine":
@@ -67,8 +76,8 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
         )
         acc_time = np.maximum(out["tau_S"], 0) * 1.27
         rise_time = out["rupture_rise_time"]
-        dt_required = np.amin(acc_time) / 3.0
-        n_time_sub = max(1, round(dt_output / dt_required))
+        min_acc_time = np.amin(acc_time)
+        n_time_sub = get_n_time_sub(min_acc_time, dt_output)
         dt = dt_output / n_time_sub
         print(f"STF numerically integrated (dt used {dt})")
     elif stf == "Gaussian":

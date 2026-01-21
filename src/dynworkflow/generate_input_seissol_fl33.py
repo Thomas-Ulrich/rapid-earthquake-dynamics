@@ -56,7 +56,7 @@ def generate():
     # a portion of it may be sufficient
     end_time = max(30.0, 0.6 * end_time)
     template_par["end_time"] = end_time
-    derived_config["pseudo_static_simulation_end_time"] = end_time
+    derived_config["pseudo_static_simulation_end_time"] = float(end_time)
 
     with open("derived_config.yaml", "w") as f:
         yaml.dump(derived_config, f)
