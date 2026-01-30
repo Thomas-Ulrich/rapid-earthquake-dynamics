@@ -285,7 +285,7 @@ if __name__ == "__main__":
             nodes_config = get_node_config(
                 mesh_cells,
                 simulation_batch_size,
-                target_cell_per_nodes=100000,
+                target_cell_per_nodes=250000,
                 min_allowed_nodes=17,
                 max_allowed_nodes=400,
                 significant_node_hours=200,
