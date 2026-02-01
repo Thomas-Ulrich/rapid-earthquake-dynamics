@@ -563,57 +563,56 @@ def main(args):
     result_df = pd.DataFrame(results)
     result_df["Mw"] = result_df["Mw"].round(3)
 
-    if os.path.exists("gof_slip.pkl"):
-        gofa = pickle.load(open("gof_slip.pkl", "rb"))
-        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
-        gofa = gofa[["gof_slip", "sim_id"]]
-        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
+    def load_and_merge(df, filename, id_col, value_cols):
+        regex = r"dyn[/_-]([^_]+)_"
+        if not os.path.exists(filename):
+            print(f"{filename} could not be found")
+            return df
 
-    else:
-        print("gof_slip.pkl could not be found")
-
-    if os.path.exists("rms_offset.csv"):
-        gofa = pd.read_csv("rms_offset.csv", sep=",")
-        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
-        gofa["gof_offsets"] = np.exp(-gofa["offset_rms"])
-        gofa = gofa[["gof_offsets", "sim_id"]]
-        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
-    else:
-        print("rms_offset.csv could not be found")
-
-    if os.path.exists("area_max_R.csv"):
-        gofa = pd.read_csv("area_max_R.csv", sep=",")
-        gofa["sim_id"] = (
-            gofa["faultfn"].str.extract(r"fault[/_-]([^_]+)_")[0].astype(int)
+        # Load based on extension
+        data = (
+            pickle.load(open(filename, "rb"))
+            if filename.endswith(".pkl")
+            else pd.read_csv(filename)
         )
-        gofa = gofa[["area_max_R", "sim_id"]]
-        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
+
+        # Extract sim_id safely
+        extracted = data[id_col].str.extract(regex)[0]
+        data["sim_id"] = pd.to_numeric(extracted, errors="coerce")
+        data = data.dropna(subset=["sim_id"]).copy()
+        data["sim_id"] = data["sim_id"].astype(int)
+
+        # Select only necessary columns and merge
+        return pd.merge(df, data[["sim_id"] + value_cols], on="sim_id", how="left")
+
+    result_df = load_and_merge(result_df, "gof_slip.pkl", "faultfn", ["gof_slip"])
+    result_df = load_and_merge(
+        result_df, "percentage_supershear.pkl", "faultfn", ["supershear"]
+    )
+    result_df = load_and_merge(result_df, "rms_offset.csv", "faultfn", ["offset_rms"])
+    result_df = load_and_merge(
+        result_df, "rms_slip_rate.csv", "fault_receiver_fname", ["slip_rate_rms"]
+    )
+    result_df = load_and_merge(
+        result_df,
+        "area_max_R.csv",
+        "faultfn",
+        ["area_max_R"],
+    )
+    result_df = load_and_merge(result_df, "Gc.csv", "faultfn", ["Gc"])
+
+    if "offset_rms" in result_df.columns:
+        result_df["gof_offsets"] = np.exp(-result_df["offset_rms"])
+
+    if "slip_rate_rms" in result_df.columns:
+        result_df["gof_slip_rate"] = np.exp(-result_df["slip_rate_rms"])
+
+    if "area_max_R" in result_df.columns:
         result_df["area_max_R"] = result_df["area_max_R"].round(1)
+        # Be careful: this drops rows from the entire result_df
         result_df = result_df[result_df["area_max_R"] < 1000.0]
-    else:
-        print("area_max_R.csv could not be found")
 
-    fn = "rms_slip_rate.csv"
-    if os.path.exists(fn):
-        gofa = pd.read_csv(fn, sep=",")
-
-        gofa["sim_id"] = (
-            gofa["fault_receiver_fname"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
-        )
-        gofa["gof_slip_rate"] = np.exp(-gofa["slip_rate_rms"])
-        gofa = gofa[["gof_slip_rate", "sim_id"]]
-        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
-    else:
-        print(f"{fn} could not be found")
-
-    pkl_file = "percentage_supershear.pkl"
-    if os.path.exists(pkl_file):
-        gofa = pickle.load(open(pkl_file, "rb"))
-        gofa["sim_id"] = gofa["faultfn"].str.extract(r"dyn[/_-]([^_]+)_")[0].astype(int)
-        gofa = gofa[["supershear", "sim_id"]]
-        result_df = pd.merge(result_df, gofa, on="sim_id", how="left")
-    else:
-        print(f"{pkl_file} could not be found")
+    result_df = result_df.drop(columns=["offset_rms", "slip_rate_rms"], errors="ignore")
 
     def compute_weighted_wf_gof(gof_df, gof_wf_weights, gof_name):
         df_all = None
