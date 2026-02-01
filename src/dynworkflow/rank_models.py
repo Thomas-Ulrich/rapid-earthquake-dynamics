@@ -617,10 +617,16 @@ def main(args):
 
     def compute_weighted_wf_gof(gof_df, gof_wf_weights, gof_name):
         df_all = None
+        available_names = gof_df["gofa_name"].unique()
         for pattern, weight in gof_wf_weights.items():
             # Filter for the pattern
             df_pattern = gof_df[gof_df["gofa_name"].str.contains(rf"{pattern}\d+")]
-            assert not df_pattern.empty
+            if df_pattern.empty:
+                raise ValueError(
+                    f"No rows found for pattern '{pattern}\\d+' while"
+                    f"computing '{gof_name}'.\n"
+                    f"Available gofa_name values:\n{available_names}"
+                )
 
             # Rename 'gofa' column to keep it separate
             df_pattern = df_pattern.rename(columns={"gofa": f"gofa_{pattern}"})
