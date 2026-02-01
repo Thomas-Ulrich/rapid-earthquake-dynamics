@@ -81,7 +81,7 @@ run_file() {
   if ! kill -0 "$pid" 2>/dev/null; then
     echo "Warning: srun for $filename failed to start properly."
     unset active_jobs["$pid"]
-    failed_jobs+=("$fn")
+    failed_jobs+=("$filename")
   else
     active_jobs["$pid"]="$node_subset"
     parameter_lookup["$pid"]="$filename"
