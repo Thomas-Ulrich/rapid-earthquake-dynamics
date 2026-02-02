@@ -612,7 +612,9 @@ def main(args):
         # Be careful: this drops rows from the entire result_df
         result_df = result_df[result_df["area_max_R"] < 1000.0]
 
-    result_df = result_df.drop(columns=["offset_rms", "slip_rate_rms"], errors="ignore")
+    result_df = result_df.drop(
+        columns=["offset_rms", "slip_rate_rms", "gof_M0", "gof_T"], errors="ignore"
+    )
 
     def compute_weighted_wf_gof(gof_df, gof_wf_weights, gof_name):
         df_all = None
