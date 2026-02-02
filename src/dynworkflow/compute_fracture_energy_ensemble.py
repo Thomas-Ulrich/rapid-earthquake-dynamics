@@ -168,6 +168,8 @@ if __name__ == "__main__":
             .replace("_compacted-fault.xdmf", "")
         )
         base_name = base_name.replace("-fault.xdmf", "")
+        if len(base_name.split("dyn_")) < 2:
+            continue
         yaml_filename = "yaml_files/fault_" + base_name.split("dyn_")[1] + ".yaml"
         Gc = compute_Gc(fault_filename, yaml_filename)
         pref = os.path.basename(fault_filename)
