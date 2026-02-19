@@ -20,7 +20,7 @@ from pyproj import Transformer
 from scipy import spatial
 
 # plt.rc("font", family="Poppins", size=8)
-plt.rc("font", size=12)
+plt.rc("font", size=14)
 plt.rcParams["font.family"] = "sans"
 
 
@@ -136,7 +136,7 @@ def extract_dyn_number(filename):
 
 
 def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
-    plt.rc("font", size=12)
+    plt.rc("font", size=14)
 
     fig, ax = init_all_offsets_figure(acc_dist, df)
 
@@ -152,7 +152,7 @@ def plot_individual_offset_figure(df, acc_dist, slip_at_trace, fname):
     full_path = os.path.abspath(fname)
     print(f"full path: {full_path}")
     plt.close(fig)
-    plt.rc("font", size=8)
+    plt.rc("font", size=14)
 
 
 def init_all_offsets_figure(acc_dist, df):
@@ -184,7 +184,7 @@ def init_all_offsets_figure(acc_dist, df):
         # add North and South (Myanmar specific)
         with open("derived_config.yaml", "r") as f:
             derived_config = yaml.safe_load(f)
-            xlabel = "Distance along strike from the epicenter (km, positive southward)"
+            xlabel = "Distance along strike (km)"
             if "2025-03-28" in derived_config["folder_name"]:
                 ax.text(np.amin(acc_dist), 6.5, "North")
                 ax.text(np.amax(acc_dist) - 30, 6.5, "South")
