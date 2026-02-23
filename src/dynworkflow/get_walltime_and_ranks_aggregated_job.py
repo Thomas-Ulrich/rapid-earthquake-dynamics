@@ -59,7 +59,8 @@ def parse_timestamp(ts):
 def get_log_info(log_file):
     """
     Extract:
-      - runtime_sec: walltime between Welcome and Goodbye
+      - initialization_time: walltime between Welcome and end init output
+      - runtime_sec: walltime between end init output and Goodbye
       - kernel_time
       - num_ranks
       - ranks_per_node
@@ -71,32 +72,36 @@ def get_log_info(log_file):
         "ranks_per_node": re.compile(r"#ranks/node:\s*(\d+)"),
     }
 
-    # Timestamp patterns (new + old SeisSol)
-    welcome_pat = re.compile(
-        r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+).*Welcome to SeisSol"
-        r"|"
-        r"([A-Za-z]{3} [A-Za-z]{3} +\d{1,2} \d{2}:\d{2}:\d{2}).*Welcome to SeisSol"
-    )
-    goodbye_pat = re.compile(
-        r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+).*SeisSol done"
-        r"|"
-        r"([A-Za-z]{3} [A-Za-z]{3} +\d{1,2} \d{2}:\d{2}:\d{2}).*SeisSol done"
-    )
+    # Timestamp patterns
+    # 1. Define the reusable time fragments
+    # New format: 2026-02-15 23:55:57.734
+    fmt_new = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+"
+    # Old format: Sun Feb 15 23:55:57
+    fmt_old = r"[A-Za-z]{3} [A-Za-z]{3} +\d{1,2} \d{2}:\d{2}:\d{2}"
 
-    # Storage
+    # 2. Combine them into a single "any time" pattern
+    time_pat = f"({fmt_new}|{fmt_old})"
+
+    # 3. Create your patterns using f-strings
+    welcome_pat = re.compile(rf"{time_pat}.*Welcome to SeisSol")
+    init_end_pat = re.compile(rf"{time_pat}.*End init output")
+    goodbye_pat = re.compile(rf"{time_pat}.*SeisSol done")
+
     extracted = {
         "kernel_time": None,
         "num_ranks": None,
         "ranks_per_node": None,
         "runtime_sec": None,
+        "initialization_time": None,
     }
 
     welcome_time = None
+    init_end_time = None
     goodbye_time = None
 
     with open(log_file, "r") as f:
         for line in f:
-            # ---------- patterns ----------
+            # Standard patterns
             for key, pat in patterns.items():
                 if extracted[key] is None:
                     m = pat.search(line)
@@ -107,19 +112,38 @@ def get_log_info(log_file):
                             else int(m.group(1))
                         )
 
-            # ---------- timestamps ----------
+            # Welcome Timestamp
             m = welcome_pat.search(line)
             if m:
                 ts = m.group(1) or m.group(2)
                 welcome_time = parse_timestamp(ts)
 
+            # End Init Timestamp
+            m = init_end_pat.search(line)
+            if m:
+                ts = m.group(1) or m.group(2)
+                init_end_time = parse_timestamp(ts)
+
+            # Goodbye Timestamp
             m = goodbye_pat.search(line)
             if m:
                 ts = m.group(1) or m.group(2)
                 goodbye_time = parse_timestamp(ts)
 
-    # Compute walltime
-    if welcome_time and goodbye_time:
+    # --- Calculations ---
+
+    # Initialization: From Welcome to End Init
+    if welcome_time and init_end_time:
+        extracted["initialization_time"] = (
+            init_end_time - welcome_time
+        ).total_seconds()
+
+    # Runtime: From End Init to Goodbye
+    if init_end_time and goodbye_time:
+        extracted["runtime_sec"] = (goodbye_time - init_end_time).total_seconds()
+    # Fallback: if init_end wasn't found, use welcome_time for runtime
+    elif welcome_time and goodbye_time:
+        print("End init output not found in log, using full run_time")
         extracted["runtime_sec"] = (goodbye_time - welcome_time).total_seconds()
 
     return extracted
@@ -140,15 +164,18 @@ def get_scaled_walltime_and_ranks(
     simulation_time_ratio,
     use_terminator,
 ):
-    extracted = get_log_info(args.log_file)
+    extracted = get_log_info(log_file)
     print("reference run infos:", extracted)
-    run_time = extracted["runtime_sec"]
+
+    sim_time_ref = extracted["runtime_sec"]
+    init_time_ref = extracted["initialization_time"] or 0  # Default to 0 if not found
     nodes_ref = extracted["num_ranks"] / extracted["ranks_per_node"]
 
     # Compute scaled walltime
     min_nodes = nodes_config["min"]
     max_nodes = nodes_config["max"]
     step_nodes = nodes_config["step"]
+
     max_nodes1 = (step_nodes * simulation_batch_size) // 3
     max_nodes1 = min(max_nodes1, max_nodes)
     candidates = list(range(min_nodes, max_nodes1, step_nodes))
@@ -156,12 +183,12 @@ def get_scaled_walltime_and_ranks(
 
     node_hours_ensemble = (
         safety_factor
-        * simulation_time_ratio
-        * run_time
+        * (init_time_ref + simulation_time_ratio * sim_time_ref)
         * simulation_batch_size
         * nodes_ref
         / 3600
     )
+
     if use_terminator:
         node_hours_ensemble *= 0.85
     print(f"estimated node-hours for the ensemble simulation {node_hours_ensemble:.1f}")
@@ -169,25 +196,23 @@ def get_scaled_walltime_and_ranks(
     if (not use_terminator) or (
         node_hours_ensemble < nodes_config["significant_node_hours"]
     ):
-        # in this case the time of each simulation should
-        # be more similar
         nodes_full_batch = step_nodes * simulation_batch_size
         if nodes_full_batch % 2 == 0:
             nodes_half_batch = nodes_full_batch // 2
             if nodes_half_batch <= max_nodes:
                 candidates.append(nodes_half_batch)
-
         if nodes_full_batch <= max_nodes:
             candidates.append(nodes_full_batch)
+
     print("candidate_nodes: ", candidates)
 
     chosen_nodes = max_nodes
     walltime = ""
 
     for nodes in candidates:
-        target_time = node_hours_ensemble / nodes
-        hours = int(target_time)
-        walltime = convert_to_hms(target_time * 3600)
+        target_sim_time_hours = node_hours_ensemble / nodes
+        hours = int(target_sim_time_hours)
+        walltime = convert_to_hms(target_sim_time_hours * 3600)
 
         chosen_nodes = nodes
         if hours < max_hours:
