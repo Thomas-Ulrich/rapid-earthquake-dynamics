@@ -166,8 +166,8 @@ if __name__ == "__main__":
         "--ref_vector",
         nargs=1,
         help=(
-            "reference vector (see seissol parameter file) used to choose",
-            "fault normal (coma separated string)",
+            "reference vector (see seissol parameter file) used to choose"
+            "fault normal (coma separated string)"
         ),
     )
     parser.add_argument(
