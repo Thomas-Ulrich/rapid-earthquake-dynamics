@@ -25,17 +25,6 @@ set -euo pipefail
 # Environment setup
 ##############################
 
-if [[ ! -f ./select_gpu ]]; then
-
-  cat <<EOF >select_gpu
-#!/bin/bash
-export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID
-exec "\$@"
-EOF
-  chmod +x ./select_gpu
-
-fi
-
 CPU_BIND="7e000000000000,7e00000000000000"
 CPU_BIND="${CPU_BIND},7e0000,7e000000"
 CPU_BIND="${CPU_BIND},7e,7e00"
@@ -48,7 +37,7 @@ export OMP_PLACES="cores(3)"
 export OMP_PROC_BIND=close
 export DEVICE_STACK_MEM_SIZE=4
 export SEISSOL_FREE_CPUS_MASK="52-54,60-62,20-22,28-30,4-6,12-14,36-38,44-46"
-export PATH=/project/project_465002391/ulrich/seissol_base/seissol/build:$PATH
+export PATH=$SEISSOL_BASE/seissol/build_optim:$PATH
 ulimit -Ss 2097152
 unset KMP_AFFINITY
 
@@ -66,7 +55,7 @@ srun_cmd() {
     --cpu-bind=mask_cpu:${CPU_BIND} \
     -o "./logs/${SLURM_JOB_ID}_runs/$logfile" \
     --exclusive \
-    ./select_gpu "$SEISSOL_EXE" "$filename"
+    seissol-launch "$SEISSOL_EXE" "$filename"
 }
 
 script_dir=../rapid-earthquake-dynamics/
