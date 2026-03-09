@@ -19,7 +19,6 @@ from scipy.stats import qmc
 
 from dynworkflow import step1_args
 from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
-from dynworkflow.step1_model_setup import compute_simulation_end_time
 
 
 def compute_max_slip(fn):
@@ -314,7 +313,7 @@ def generate():
     hypo[2] *= -1e3
     hypo[0], hypo[1] = transformer.transform(hypo[0], hypo[1])
 
-    simulation_end_time = compute_simulation_end_time(input_config)
+    simulation_end_time = derived_config["simulation_end_time"]
     fault_sampling = compute_fault_sampling(simulation_end_time)
 
     list_fault_yaml = []

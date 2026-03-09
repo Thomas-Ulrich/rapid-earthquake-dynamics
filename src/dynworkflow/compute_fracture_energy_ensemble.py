@@ -11,6 +11,7 @@ import easi
 import numpy as np
 import pandas as pd
 import seissolxdmf
+import seissolxdmfwriter as sxw
 from tqdm import tqdm
 
 
@@ -81,7 +82,7 @@ def compute_tractions(dicStress, un):
     return outDict
 
 
-def compute_Gc(fault_filename, yaml_filename):
+def compute_Gc(fault_filename, yaml_filename, generate_fault_output):
     sx = SeissolxdmfExtended(fault_filename)
     centers = sx.ComputeCellCenters()
     tags = sx.ReadFaultTags()
@@ -127,6 +128,22 @@ def compute_Gc(fault_filename, yaml_filename):
 
     out["G_c"] = -(mus - mud) * dc * Pn0 * 0.5
 
+    if generate_fault_output:
+        basename = os.path.basename(fault_filename)
+        prefix = os.path.splitext(basename)[0] + "_Gc"
+
+        sxw.write(
+            prefix,
+            sx.xyz,
+            sx.connect,
+            {"Gc": out["G_c"], "ASl": out["ASl"]},
+            {"0": 0},
+            reduce_precision=True,
+        )
+        fn = f"{prefix}.xdmf"
+        full_path = os.path.abspath(fn)
+        print(f"full path: {full_path}")
+
     slip_thres = 0.01
     id_slip = np.where(slip > slip_thres)
     ruptured_area = np.sum(face_area[id_slip])
@@ -149,10 +166,17 @@ if __name__ == "__main__":
         "--ref_vector",
         nargs=1,
         help=(
-            "reference vector (see seissol parameter file) used to choose",
-            "fault normal (coma separated string)",
+            "reference vector (see seissol parameter file) used to choose"
+            "fault normal (coma separated string)"
         ),
     )
+    parser.add_argument(
+        "--generate_fault_output",
+        dest="generate_fault_output",
+        action="store_true",
+        help="generate Gc fault output",
+    )
+
     args = parser.parse_args()
 
     folder = args.output_folder
@@ -168,8 +192,10 @@ if __name__ == "__main__":
             .replace("_compacted-fault.xdmf", "")
         )
         base_name = base_name.replace("-fault.xdmf", "")
+        if len(base_name.split("dyn_")) < 2:
+            continue
         yaml_filename = "yaml_files/fault_" + base_name.split("dyn_")[1] + ".yaml"
-        Gc = compute_Gc(fault_filename, yaml_filename)
+        Gc = compute_Gc(fault_filename, yaml_filename, args.generate_fault_output)
         pref = os.path.basename(fault_filename)
         res[pref] = Gc / 1e6
 

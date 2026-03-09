@@ -25,5 +25,6 @@ repository:
   owner: Thomas-Ulrich
   repo: rapid-earthquake-dynamics
 spatial_zoom: 3
+simulation_end_time: 0.1
 fault_receiver_file:
 fault_output_type: 4

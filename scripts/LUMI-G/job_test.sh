@@ -17,15 +17,6 @@
 #SBATCH --requeue
 #SBATCH --export=ALL
 
-cat <<EOF >select_gpu
-#!/bin/bash
-
-export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID
-exec \$*
-EOF
-
-chmod +x ./select_gpu
-
 CPU_BIND="7e000000000000,7e00000000000000"
 CPU_BIND="${CPU_BIND},7e0000,7e000000"
 CPU_BIND="${CPU_BIND},7e,7e00"
@@ -40,18 +31,18 @@ export OMP_PROC_BIND=close
 
 export DEVICE_STACK_MEM_SIZE=4
 export SEISSOL_FREE_CPUS_MASK="52-54,60-62,20-22,28-30,4-6,12-14,36-38,44-46"
-export PATH=/project/project_465002391/ulrich/seissol_base/seissol/build:$PATH
+export PATH=$SEISSOL_BASE/seissol/build_optim:$PATH
+ulimit -Ss 2097152
 
 part_file=$1
-ORDER=${order:-4}
+ORDER=${order:-5}
 
 mapfile -t filenames <"$part_file"
 
 # Iterate over the array of filenames
 for filename in "${filenames[@]}"; do
   echo "Processing file: $filename"
-  srun --cpu-bind=mask_cpu:${CPU_BIND} ./select_gpu SeisSol_Release_sgfx90a_hip_${ORDER}_elastic $filename
-
+  srun --cpu-bind=mask_cpu:${CPU_BIND} seissol-launch SeisSol_Release_sgfx90a_hip_${ORDER}_elastic $filename
   # Extract the core part of the filename by removing 'parameters_' and '.par'
   core_name=$(basename "$filename" .par)
   core_name=${core_name#parameters_}

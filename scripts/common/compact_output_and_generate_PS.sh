@@ -93,7 +93,7 @@ wait
 
 mv *_compacted* extracted_output
 mv *_disp* extracted_output
-find . -maxdepth 1 -name "*output/*receiver-*" -exec mv {} extracted_output \; || echo "No files to move."
+mkdir -p extracted_output && find . -maxdepth 2 -wholename "./output/*receiver-*" -exec mv {} extracted_output \; || echo "No files to move."
 wait
 
 echo "generating point source representation"

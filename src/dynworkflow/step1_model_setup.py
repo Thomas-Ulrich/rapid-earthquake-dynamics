@@ -12,11 +12,6 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from kinematic_models import (
-    compute_moment_rate_function,
-    generate_fault_output_from_fl33_input_files,
-    generate_FL33_input_files,
-)
 from seismic_waveform_factory.geo.select_stations import select_stations
 
 from dynworkflow import (
@@ -30,18 +25,12 @@ from dynworkflow import (
     prepare_velocity_model_files,
     vizualizeBoundaryConditions,
 )
-from dynworkflow.rank_models import infer_duration
-
-
-def compute_simulation_end_time(input_config):
-    fn_mr = "tmp/moment_rate_from_finite_source_file.txt"
-    moment_rate = np.loadtxt(fn_mr)
-    kinmod_duration = infer_duration(moment_rate[:, 0], moment_rate[:, 1])
-    if input_config["seissol_end_time"] == "auto":
-        end_time = kinmod_duration + max(20.0, 0.25 * kinmod_duration)
-    else:
-        end_time = input_config["seissol_end_time"]
-    return float(end_time)
+from dynworkflow.utils import compute_simulation_end_time
+from kinematic_models import (
+    compute_moment_rate_function,
+    generate_fault_output_from_fl33_input_files,
+    generate_FL33_input_files,
+)
 
 
 def is_slipnear_file(fn):
