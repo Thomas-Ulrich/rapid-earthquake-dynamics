@@ -58,10 +58,9 @@ def copy_files(overwrite_files, setup_dir):
                 dest = Path(yaml_dir) / path.name
             elif ext == ".nc":
                 dest = Path(nc_dir) / path.name
-            elif ext == ".txt":
+            elif ext == ".txt" or ext == ".csv":
                 dest = Path(tmp_dir) / path.name
-            elif ext == ".csv":
-                # offset file
+            elif ext == ".py":
                 dest = Path(setup_dir) / path.name
             else:
                 raise ValueError(f"Skipping unsupported file type: {path}")

@@ -409,9 +409,20 @@ def compute_rms_offset(folder, offset_data, threshold_z, individual_figures, bes
     full_path = os.path.abspath(fn)
     print(f"full path: {full_path}")
 
+    def get_valid_path(fname):
+        # find fname in . or tmp
+        local_path = fname
+        hard_tmp = os.path.join("/tmp", fname)
+
+        for path in [local_path, hard_tmp]:
+            if os.path.exists(path):
+                return path
+        raise FileNotFoundError(f"Error: '{fname}' not found")
+
     # Load the existing CSV if it exists
     try:
-        existing_dfr = pd.read_csv("rms_offset.csv")
+        path = get_valid_path("rms_offset.csv")
+        existing_dfr = pd.read_csv(path)
     except FileNotFoundError:
         existing_dfr = pd.DataFrame(columns=["id", "faultfn", "offset_rms"])
 
