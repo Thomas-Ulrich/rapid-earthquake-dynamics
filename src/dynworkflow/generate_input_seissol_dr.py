@@ -377,7 +377,8 @@ def generate():
         template_par["fault_output_type"] = derived_config["fault_output_type"]
 
         gpu = input_config["gpu"] if "gpu" in input_config.keys() else False
-        template_par["ClusteredLTS"] = "6 2" if gpu else "2"
+        template_par["ClusteredLTS"] = "4 2" if gpu else "2"
+        template_par["LtsWiggleFactorMin"] = "0.2501" if gpu else "0.5001"
 
         fn_param = f"parameters_dyn_{code}.par"
         render_file(templateEnv, template_par, "parameters_dyn.tmpl.par", fn_param)

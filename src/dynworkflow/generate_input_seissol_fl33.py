@@ -71,7 +71,8 @@ def generate():
     template_par["ref_method"] = int(ref_method)
 
     gpu = input_config["gpu"] if "gpu" in input_config.keys() else False
-    template_par["ClusteredLTS"] = "6 2" if gpu else "2"
+    template_par["ClusteredLTS"] = "4 2" if gpu else "2"
+    template_par["LtsWiggleFactorMin"] = "0.2501" if gpu else "0.5001"
 
     mesh_file = derived_config["mesh_file"]
     template_par["mesh_file"] = mesh_file

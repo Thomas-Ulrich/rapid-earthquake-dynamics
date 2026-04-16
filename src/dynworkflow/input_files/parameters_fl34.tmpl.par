@@ -54,7 +54,7 @@ ClusteredLTS = {{ ClusteredLTS }}                               ! 1 for Global t
 !ClusteredLTS defines the multi-rate for the time steps of the clusters 2 for Local time stepping
 ! Wiggle factor settings:
 ! Wiggle factor adjusts time step size by a small factor. This can lead to a slightly better clustering.
-LtsWiggleFactorMin = 0.51 ! Minimal wiggle factor applied to time step size. Should be > 1/rate
+LtsWiggleFactorMin = {{ LtsWiggleFactorMin }} ! Minimal wiggle factor applied to time step size. Should be > 1/rate
 LtsWiggleFactorStepsize = 0.05 ! Stepsize for wiggle factor grid search
 LtsWiggleFactorEnforceMaximumDifference = 1 ! 0 or 1: Enforces the maximum difference between neighboring clusters during wiggle factor search
 LtsAutoMergeClusters = 1 !  0 or 1: Activates auto merging of clusters
