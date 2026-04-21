@@ -378,6 +378,7 @@ def generate():
 
         gpu = input_config["gpu"] if "gpu" in input_config.keys() else False
         template_par["ClusteredLTS"] = "4 2" if gpu else "2"
+        template_par["LtsWeightTypeId"] = "1" if gpu else "0"
         template_par["LtsWiggleFactorMin"] = "0.2501" if gpu else "0.5001"
 
         fn_param = f"parameters_dyn_{code}.par"
