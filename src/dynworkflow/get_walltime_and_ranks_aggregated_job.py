@@ -196,7 +196,11 @@ def get_scaled_walltime_and_ranks(
     if (not use_terminator) or (
         node_hours_ensemble < nodes_config["significant_node_hours"]
     ):
-        divisors = [i for i in range(1, simulation_batch_size + 1) if simulation_batch_size % i == 0]
+        divisors = [
+            i
+            for i in range(1, simulation_batch_size + 1)
+            if simulation_batch_size % i == 0
+        ]
         # Map divisors to actual node counts and filter by min/max constraints
         candidates_divisor = []
         for d in divisors:
@@ -208,7 +212,6 @@ def get_scaled_walltime_and_ranks(
             candidates_divisor = sorted(list(set(candidates + candidates_divisor)))
         if not use_terminator:
             candidates = candidates_divisor
-        
 
     print("candidate_nodes: ", candidates)
 
