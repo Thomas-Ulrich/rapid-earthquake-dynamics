@@ -104,4 +104,11 @@ RUN chmod +x /usr/bin/*
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Copy the current repository into the container
+COPY . /opt/rapid-earthquake-dynamics
+WORKDIR /opt/rapid-earthquake-dynamics
+
+# Install the package and its dependencies
+RUN pip install --no-cache-dir .
+
 ENV PYTHONPATH="/usr/local/lib/cmake/easi/python_wrapper:${PYTHONPATH}"
