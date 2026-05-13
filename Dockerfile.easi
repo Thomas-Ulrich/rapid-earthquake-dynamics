@@ -109,6 +109,6 @@ COPY . /opt/rapid-earthquake-dynamics
 WORKDIR /opt/rapid-earthquake-dynamics
 
 # Install the package and its dependencies
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir . --break-system-packages
 
-ENV PYTHONPATH="/usr/local/lib/cmake/easi/python_wrapper:${PYTHONPATH}"
+ENV PYTHONPATH="/usr/local/lib/cmake/easi/python_wrapper${PYTHONPATH:+:${PYTHONPATH}}"
