@@ -196,13 +196,22 @@ def get_scaled_walltime_and_ranks(
     if (not use_terminator) or (
         node_hours_ensemble < nodes_config["significant_node_hours"]
     ):
-        nodes_full_batch = step_nodes * simulation_batch_size
-        if nodes_full_batch % 2 == 0:
-            nodes_half_batch = nodes_full_batch // 2
-            if nodes_half_batch <= max_nodes:
-                candidates.append(nodes_half_batch)
-        if nodes_full_batch <= max_nodes:
-            candidates.append(nodes_full_batch)
+        divisors = [
+            i
+            for i in range(1, simulation_batch_size + 1)
+            if simulation_batch_size % i == 0
+        ]
+        # Map divisors to actual node counts and filter by min/max constraints
+        candidates_divisor = []
+        for d in divisors:
+            actual_nodes = d * step_nodes
+            if min_nodes <= actual_nodes <= max_nodes:
+                candidates_divisor.append(actual_nodes)
+
+        if node_hours_ensemble < nodes_config["significant_node_hours"]:
+            candidates_divisor = sorted(list(set(candidates + candidates_divisor)))
+        if not use_terminator:
+            candidates = candidates_divisor
 
     print("candidate_nodes: ", candidates)
 
@@ -300,9 +309,9 @@ if __name__ == "__main__":
             nodes_config = get_node_config(
                 mesh_cells,
                 simulation_batch_size,
-                target_cell_per_nodes=1000000,
+                target_cell_per_nodes=1250000,
                 min_allowed_nodes=1,
-                max_allowed_nodes=256,
+                max_allowed_nodes=1024,
                 significant_node_hours=100,
             )
         elif hostname.startswith("login"):

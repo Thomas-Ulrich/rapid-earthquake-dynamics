@@ -79,6 +79,14 @@ def add_parser(subparsers):
         default="usgs",
         help="Path to an alternative finite fault model file.",
     )
+
+    parser.add_argument(
+        "--gpu",
+        dest="Interactive",
+        action="store_true",
+        help="prepare parameters files for GPUs (e.g. by merging first LTS clusters)",
+    )
+
     parser.add_argument(
         "--gmsh_vertex_union_tolerance",
         help="minimum distance below which vertices are merged",

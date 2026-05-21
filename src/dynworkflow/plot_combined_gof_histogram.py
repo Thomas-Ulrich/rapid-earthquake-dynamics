@@ -23,6 +23,10 @@ matplotlib.rcParams.update(
     }
 )
 
+
+if not os.path.exists("figures"):
+    os.makedirs("figures")
+
 # Load data
 df = pd.read_pickle("compiled_results.pkl")
 print(df.head())
