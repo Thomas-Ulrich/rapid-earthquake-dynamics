@@ -55,7 +55,10 @@ def copy_files(overwrite_files, setup_dir):
         if path.is_file():
             ext = path.suffix.lower()
             if ext == ".yaml":
-                dest = Path(yaml_dir) / path.name
+                if path.name.startswith("waveforms_config_"):
+                    dest = Path(setup_dir) / path.name
+                else:
+                    dest = Path(yaml_dir) / path.name
             elif ext == ".nc":
                 dest = Path(nc_dir) / path.name
             elif ext == ".txt" or ext == ".csv":
