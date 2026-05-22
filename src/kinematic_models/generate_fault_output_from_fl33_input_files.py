@@ -64,6 +64,7 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
         tr = np.maximum(tr, ts)
         rise_time = tr + 2.0 * ts
         min_acc_time = 1.27 * np.amin(ts)
+        assert min_acc_time > 0, f"tau_S should be defined positive with {stf}"
         n_time_sub = get_n_time_sub(min_acc_time, dt_output)
         dt = dt_output / n_time_sub
         print(f"STF numerically integrated (dt used {dt})")
@@ -77,6 +78,7 @@ def generate(fault_filename, yaml_filename, output_file, stf, dt_output):
         acc_time = np.maximum(out["tau_S"], 0) * 1.27
         rise_time = out["rupture_rise_time"]
         min_acc_time = np.amin(acc_time)
+        assert min_acc_time > 0, f"tau_S should be defined positive with {stf}"
         n_time_sub = get_n_time_sub(min_acc_time, dt_output)
         dt = dt_output / n_time_sub
         print(f"STF numerically integrated (dt used {dt})")
