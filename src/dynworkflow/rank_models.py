@@ -13,11 +13,11 @@ import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 import yaml
-from cmcrameri import cm
 from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
 
 from dynworkflow import step1_args
+from dynworkflow.plot_utils import plot_combined_gof_plot
 
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
@@ -124,211 +124,6 @@ def extract_params_from_prefix(fname: str) -> dict:
     if not out:
         out = {"coh": np.nan, "sim_id": -1, "B": np.nan, "C": np.nan, "R": np.nan}
     return out
-
-
-def generate_XY_panel(
-    df, name_arr1, arr1, name_arr2, arr2, name3, val3, name_col, ax, cmap
-):
-    "generate a 2D plot with name_arr1 and name_arr2 in X and Y axis"
-    "colored by name_col"
-    unique_arr1 = np.unique(arr1)
-    unique_arr2 = np.unique(arr2)
-    X, Y = np.meshgrid(unique_arr1, unique_arr2)
-    gof_array = np.zeros_like(X) + np.nan
-    for i in range(X.shape[0]):
-        for j in range(X.shape[1]):
-            result = df[
-                (df[name_arr1] == X[i, j])
-                & (df[name_arr2] == Y[i, j])
-                & (df[name3] == val3)
-            ]
-            if not result.empty:
-                specific_index = result.index[0]
-                gof_array[i, j] = result.loc[specific_index, name_col]
-    im = ax.pcolormesh(X, Y, gof_array, cmap=cmap)
-
-    mask_invalid = np.ma.masked_where(np.isfinite(gof_array), gof_array)
-    mask_invalid[np.isnan(gof_array)] = 1
-    ax.pcolor(X, Y, mask_invalid, hatch="/", alpha=0)
-    if name_col in ["Mw"]:
-        im.set_clim(df[name_col].min(), df[name_col].max())
-    # else:
-    #    im.set_clim(0, df[name_col].max())
-
-    ax.set_xlabel(name_arr1)
-    ax.set_ylabel(name_arr2)
-    ax.set_xticks(unique_arr1)
-    from matplotlib.ticker import FormatStrFormatter
-
-    ax.set_xticklabels(FormatStrFormatter("%g").format_ticks(unique_arr1))
-    ax.set_yticks(unique_arr2)
-    ax.set_title(f"{name3}={val3}")
-    if name_col == "gof_MRF":
-        label = "gof moment rate function"
-    elif name_col == "gof_M0":
-        label = "gof seismic moment"
-    elif name_col == "gof_body_wf":
-        label = "gof teleseismic waveforms"
-    elif name_col == "gof_reg":
-        label = "gof regional waveforms"
-    elif name_col == "combined_gof":
-        label = "combined gof"
-    else:
-        label = name_col
-
-    plt.colorbar(im, label=label, ax=ax)
-
-
-def generate_BCR_plots(df, Cname, B, C, R):
-    unique_R = np.unique(R)
-    n_div = 2
-    nrow, ncol = int(np.ceil(len(unique_R) / n_div)), 2 * n_div
-    # nrow, ncol = 2, 2
-    fig, axarr = plt.subplots(
-        nrow,
-        ncol,
-        figsize=(ncol * 4, nrow * 4),
-        dpi=160,
-        sharex=False,
-        sharey=True,
-        squeeze=False,
-    )
-    for k, Rk in enumerate(unique_R):
-        row = k % nrow
-        col = k // nrow * n_div
-        generate_XY_panel(
-            df,
-            "B",
-            B,
-            Cname,
-            C,
-            "R0",
-            Rk,
-            "gof_MRF",
-            axarr[row, col],
-            cm.cmaps["acton_r"],
-        )
-        generate_XY_panel(
-            df,
-            "B",
-            B,
-            Cname,
-            C,
-            "R0",
-            Rk,
-            "gof_M0",
-            axarr[row, col + 1],
-            cm.cmaps["oslo_r"],
-        )
-    fname = "plots/parameter_space_BC_constant_R.pdf"
-    plt.savefig(fname)
-    print(f"done writing {fname}")
-
-    unique_B = np.unique(B)
-    n_div = 1
-    nrow, ncol = len(unique_B) // n_div, 3 * n_div
-    fig, axarr = plt.subplots(
-        nrow,
-        ncol,
-        figsize=(ncol * 4, nrow * 4),
-        dpi=160,
-        sharex=False,
-        sharey=True,
-        squeeze=False,
-    )
-
-    for k, Bk in enumerate(unique_B):
-        row = k % nrow
-        col = k // nrow * n_div
-        generate_XY_panel(
-            df,
-            "R0",
-            R,
-            Cname,
-            C,
-            "B",
-            Bk,
-            "combined_gof",
-            axarr[row, col],
-            cm.cmaps["acton_r"],
-        )
-        if "gof_reg" in df:
-            generate_XY_panel(
-                df,
-                "R0",
-                R,
-                Cname,
-                C,
-                "B",
-                Bk,
-                "gof_reg",
-                axarr[row, col + 1],
-                cm.cmaps["acton_r"],
-            )
-            generate_XY_panel(
-                df,
-                "R0",
-                R,
-                Cname,
-                C,
-                "B",
-                Bk,
-                # "combined_gof",
-                "combined_gof",
-                axarr[row, col + 2],
-                cm.cmaps["batlowW_r"],
-            )
-
-    fname = "plots/parameter_space_R0C_constant_B.pdf"
-    plt.savefig(fname)
-    print(f"done writing {fname}")
-
-
-def generate_BCR_moment_plots(df, Cname, B, C, R):
-    unique_B = np.unique(B)
-    n_div = 1
-    nrow, ncol = len(unique_B) // n_div, 2 * n_div
-    fig, axarr = plt.subplots(
-        nrow,
-        ncol,
-        figsize=(ncol * 4, nrow * 4),
-        dpi=160,
-        sharex=False,
-        sharey=True,
-        squeeze=False,
-    )
-
-    for k, Bk in enumerate(unique_B):
-        row = k % nrow
-        col = k // nrow * n_div
-        generate_XY_panel(
-            df,
-            "R0",
-            R,
-            Cname,
-            C,
-            "B",
-            Bk,
-            "Mw",
-            axarr[row, col],
-            cm.cmaps["acton"],
-        )
-        generate_XY_panel(
-            df,
-            "R0",
-            R,
-            Cname,
-            C,
-            "B",
-            Bk,
-            "duration",
-            axarr[row, col + 1],
-            cm.cmaps["oslo"],
-        )
-
-    fname = "plots/parameter_space_Mw_duration_R0C_constant_B.pdf"
-    plt.savefig(fname)
-    print(f"done writing {fname}")
 
 
 def main(args):
@@ -717,23 +512,6 @@ def main(args):
     result_df.to_pickle("compiled_results.pkl")
     print(result_df.to_string())
 
-    required_keys = {"coh", "B", Cname, "R0"}
-    if required_keys.issubset(result_df.columns):
-        coh = result_df["coh"].values
-        B = result_df["B"].values
-        C = result_df[Cname].values
-        R = result_df["R0"].values
-
-        def are_all_elements_same(arr):
-            if arr.size == 0:
-                return True
-            return np.all([np.array_equal(x, arr[0]) for x in arr])
-
-        assert len(result_df) > 0
-        if are_all_elements_same(coh):
-            generate_BCR_plots(result_df, Cname, B, C, R)
-            generate_BCR_moment_plots(result_df, Cname, B, C, R)
-
     varying_param = {}
     for name in parameter_names_with_coh:
         varying_param[name] = len(np.unique(result_df[name].values)) > 1
@@ -893,3 +671,14 @@ def main(args):
         print(f"components used for teleseismic_body_wf: {gof_weights_body}")
     if "teleseismic_surface_wf" in component_used.keys():
         print(f"components used for teleseismic_surface_wf: {gof_weights_surf}")
+
+    if not result_df.empty:
+        keys_to_plot = [key for key in result_df.keys() if "gof" in key]
+        nlines = len(keys_to_plot) // 3
+        preferred_model = {
+            "B": result_df["B"].iloc[0],
+            Cname: result_df[Cname].iloc[0],
+            "R": result_df["R"].iloc[0],
+        }
+        preferred_model = {k: float(v) for k, v in preferred_model.items()}
+        plot_combined_gof_plot(result_df, keys_to_plot, nlines, preferred_model)
