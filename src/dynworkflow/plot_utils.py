@@ -142,6 +142,7 @@ def plot_combined_gof_plot(
     combine_B_in_one_fig: bool = False,
     share_colorbar: bool = True,
     extra_label_map: dict | None = None,
+    output_prefix: str | None = None,
 ):
     """
     Plot Goodness-of-Fit (GoF) panels across parameter slices.
@@ -168,6 +169,14 @@ def plot_combined_gof_plot(
         is True.
     extra_label_map : dict, optional
         Custom mapping dictionary to add or override default panel labels.
+    output_prefix : str, optional
+            Custom filename or path prefix for exported PDF(s).
+            - If combine_B_in_one_fig=True:
+              Defaults to "plots/figure_panels_allB_gof.pdf".
+              If provided as "my_run", saves to "plots/my_run.pdf".
+            - If combine_B_in_one_fig=False:
+              Defaults to "plots/figure_panelsB{B}_gof.pdf".
+              If provided as "my_run", saves to "plots/my_run_B{B}.pdf".
     """
     # 1. Validation
     missing_keys = set(keys_to_plot) - set(df.columns)
@@ -278,7 +287,15 @@ def plot_combined_gof_plot(
             axes_flat[unused_idx].set_visible(False)
 
         plt.tight_layout()
-        fn = "plots/figure_panels_allB_gof.pdf"
+        if output_prefix:
+            # Ensures .pdf extension is appended cleanly
+            fn = (
+                output_prefix
+                if output_prefix.endswith(".pdf")
+                else f"{output_prefix}.pdf"
+            )
+        else:
+            fn = "plots/figure_panels_allB_gof.pdf"
         fig.savefig(fn, bbox_inches="tight")
         plt.close(fig)
         print(f"done writing {fn}")
@@ -339,6 +356,17 @@ def plot_combined_gof_plot(
 
             ax_grid[0, 0].set_title(f"a. B={B}", fontweight="bold")
             plt.tight_layout()
+            if output_prefix:
+                # Strips .pdf if included, then appends the B-value
+                base_prefix = (
+                    output_prefix[:-4]
+                    if output_prefix.endswith(".pdf")
+                    else output_prefix
+                )
+                fn = f"plots/{base_prefix}_B{B}.pdf"
+            else:
+                fn = f"plots/figure_panelsB{B}_gof.pdf"
+
             fn = f"plots/figure_panelsB{B}_gof.pdf"
             fig.savefig(fn, bbox_inches="tight")
             plt.close(fig)
