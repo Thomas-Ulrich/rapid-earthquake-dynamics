@@ -116,82 +116,151 @@ def plot_xy_panel(
     fig.colorbar(im, ax=ax, label=v_label)
 
 
-def plot_combined_gof_plot(df, keys_to_plot, nlines, preferred_model):
-    print(df.keys())
+def plot_combined_gof_plot(
+    df: pd.DataFrame,
+    keys_to_plot: list[str],
+    nlines: int,
+    preferred_model: dict,
+    combine_B_in_one_fig: bool = False,
+):
+    """
+    Plot GoF panels across parameter slices.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Results dataframe containing metrics and simulation parameters.
+    keys_to_plot : list[str]
+        DataFrame columns to visualize.
+    nlines : int
+        Number of rows PER B-value panel block.
+    preferred_model : dict
+        Dictionary with preferred parameters, e.g. {'B': 0.9, 'C': 0.1, 'R': 0.7}.
+    combine_B_in_one_fig : bool, optional
+        If True, plots all B-values into a single figure saved as one PDF.
+        If False, exports one PDF figure per B-value.
+    """
+    # 1. Validation
+    missing_keys = set(keys_to_plot) - set(df.columns)
+    assert not missing_keys, f"Missing required keys in DataFrame: {missing_keys}"
 
     label_map = {
         "gof_offsets": "Fault-offsets (GOF)",
         "gof_slip_rate": "Slip-rate at CCTV (GOF)",
         "gof_slip": "Fault-slip distribution (GOF)",
         "gof_body_wf": "Body waveforms (GOF)",
-        "gof_reg": "Regional waveforms  (GOF)",
+        "gof_reg": "Regional waveforms (GOF)",
         "gof_MRF": "Moment-rate function (GOF)",
         "gof_surf_wf": "Surface waveforms (GOF)",
         "combined_gof": "Combined GOF",
     }
 
-    # Check if all keys exist in the DataFrame
-    missing_keys = set(keys_to_plot) - set(df.columns)
-    assert not missing_keys, f"Missing required keys in DataFrame: {missing_keys}"
     ncol = int(np.ceil(len(keys_to_plot) / nlines))
+    unique_B = sorted(df["B"].unique())
+    n_B = len(unique_B)
 
     if "sigman" in df.columns:
         dim_var_x = {"col": "sigman", "label": r"$\sigma_n$"}
     elif "R" in df.columns:
         dim_var_x = {"col": "R", "label": "R"}
     else:
-        raise ValueError("structure of df not understood")
+        raise ValueError(
+            "Structure of df not understood (neither 'sigman' nor 'R' found)"
+        )
 
-    for B in df["B"].unique():
-        fig, ax = plt.subplots(nlines, ncol, figsize=(4 * ncol, 3 * nlines), dpi=80)
+    dim_vars_0 = {
+        "x": dim_var_x,
+        "y": {"col": "C", "label": "C"},
+        "z": {"col": "B", "label": "B"},
+    }
+    alpha = "abcdefghijklmnopqrstuvwxyz"
 
-        dim_vars_0 = {
-            "x": dim_var_x,
-            "y": {"col": "C", "label": "C"},
-            "z": {"col": "B", "label": "B"},
-        }
+    # 2. Setup Figure Canvas
+    if combine_B_in_one_fig:
+        total_rows = nlines * n_B
+        fig, ax_global = plt.subplots(
+            total_rows, ncol, figsize=(4 * ncol, 3 * total_rows), dpi=80, squeeze=False
+        )
+    else:
+        fig = None
+
+    # 3. Main Plotting Loop
+    for b_idx, B in enumerate(unique_B):
+        if not combine_B_in_one_fig:
+            fig, ax_grid = plt.subplots(
+                nlines, ncol, figsize=(4 * ncol, 3 * nlines), dpi=80, squeeze=False
+            )
+        else:
+            row_offset = b_idx * nlines
+            # Slice row block for current B-value
+            ax_grid = ax_global[row_offset : row_offset + nlines, :]
 
         for i in range(nlines):
             for j in range(ncol):
                 k = i * ncol + j
-                if k > len(keys_to_plot):
-                    ax[i, j].set_visible(False)
-                    break
+                target_ax = ax_grid[i, j]
+
+                if k >= len(keys_to_plot):
+                    target_ax.set_visible(False)
+                    continue
+
                 dim_vars = copy.deepcopy(dim_vars_0)
                 dim_vars["x"]["label"] = (
                     None if i < nlines - 1 else dim_vars_0["x"]["label"]
                 )
                 dim_vars["y"]["label"] = None if j > 0 else dim_vars_0["y"]["label"]
-                contour_lines = None
+
                 key = keys_to_plot[k]
-                label = label_map[key] if key in label_map.keys() else key
+                label = label_map.get(key, key)
                 dim_vars["v"] = {"col": key, "label": label}
-                alpha = "abcdefghij"
-                letter = alpha[k]
-                ax[i, j].set_title(f"{letter}.", fontweight="bold")
+
+                letter_idx = (
+                    (b_idx * len(keys_to_plot) + k) if combine_B_in_one_fig else k
+                )
+                letter = (
+                    alpha[letter_idx]
+                    if letter_idx < len(alpha)
+                    else f"{letter_idx + 1}"
+                )
+
                 plot_xy_panel(
                     fig,
-                    ax[i, j],
+                    target_ax,
                     df,
                     dim_vars,
                     val_z=B,
                     cmap=cm.cmaps["lipari_r"],
-                    contour_lines=contour_lines,
+                    contour_lines=None,
                 )
-                if B == preferred_model["B"]:
+
+                title_prefix = (
+                    f"{letter}. B={B}"
+                    if (combine_B_in_one_fig and k == 0) or not combine_B_in_one_fig
+                    else f"{letter}."
+                )
+                target_ax.set_title(title_prefix, fontweight="bold")
+
+                if preferred_model and B == preferred_model.get("B"):
                     cx, cy = dim_vars["x"]["col"], dim_vars["y"]["col"]
-                    ax[i, j].scatter(
-                        [preferred_model[cx]], [preferred_model[cy]], c="g", marker="x"
-                    )
-                    print(
-                        "plotting preferred",
+                    target_ax.scatter(
                         [preferred_model[cx]],
                         [preferred_model[cy]],
-                        B,
+                        c="g",
+                        marker="x",
                     )
 
-        ax[0, 0].set_title(f"a. B={B}", fontweight="bold")
-        ext = "pdf"
-        fn = f"plots/figure_panelsB{B}_gof.{ext}"
-        plt.savefig(fn)
+        # Save individual figures if not combined
+        if not combine_B_in_one_fig:
+            plt.tight_layout()
+            fn = f"plots/figure_panelsB{B}_gof.pdf"
+            fig.savefig(fn, bbox_inches="tight")
+            plt.close(fig)
+            print(f"done writing {fn}")
+
+    # Save combined figure if enabled
+    if combine_B_in_one_fig:
+        plt.tight_layout()
+        fn = "plots/figure_panels_allB_gof.pdf"
+        fig.savefig(fn, bbox_inches="tight")
+        plt.close(fig)
         print(f"done writing {fn}")
