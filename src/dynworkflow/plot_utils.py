@@ -3,6 +3,10 @@ import numpy as np
 from cmcrameri import cm
 import pandas as pd
 import copy
+import os
+import matplotlib
+
+from dynworkflow.stf_loader import read_usgs_moment_rate, trim_trailing_zero
 
 
 def plot_xy_panel(
@@ -253,7 +257,7 @@ def plot_combined_gof_plot(
                 letter = (
                     alpha[panel_counter]
                     if panel_counter < len(alpha)
-                    else f"{panel_counter+1}"
+                    else f"{panel_counter + 1}"
                 )
                 vmin, vmax = gof_bounds.get(key, (None, None))
 
@@ -328,7 +332,7 @@ def plot_combined_gof_plot(
                     label = label_map.get(key, key)
                     dim_vars["v"] = {"col": key, "label": label}
 
-                    letter = alpha[k] if k < len(alpha) else f"{k+1}"
+                    letter = alpha[k] if k < len(alpha) else f"{k + 1}"
                     vmin, vmax = gof_bounds.get(key, (None, None))
 
                     plot_xy_panel(
@@ -371,3 +375,156 @@ def plot_combined_gof_plot(
             fig.savefig(fn, bbox_inches="tight")
             plt.close(fig)
             print(f"done writing {fn}")
+
+
+def plot_moment_rates(
+    energy_files: list[str],
+    result_df: pd.DataFrame,
+    args,
+    ref_stfs: list,
+    mr_ref: np.ndarray,
+    ref_name: str,
+    Mwref: float,
+    varying_param: dict,
+):
+    """Generates and saves the moment rate plot."""
+    one_model_shown = args.nmax == 1
+    matplotlib.rcParams["lines.linewidth"] = 0.5 if one_model_shown else 1.0
+
+    centimeter = 1 / 2.54
+    figsize = (7.5 * centimeter, 4.0 * centimeter) if one_model_shown else (8, 4)
+    fig = plt.figure(figsize=figsize, dpi=80)
+    ax = fig.add_subplot(111)
+
+    combined_gof = result_df["combined_gof"].values
+    Mw = result_df["Mw"].values
+    indices_of_nlargest_values = result_df["combined_gof"].nlargest(args.nmin).index
+    indices_of_nmax_largest_values = result_df["combined_gof"].nlargest(args.nmax).index
+    indices_greater_than_threshold = result_df[
+        result_df["combined_gof"] > args.gof_threshold
+    ].index
+
+    if len(indices_greater_than_threshold) > args.nmax:
+        selected_indices = indices_of_nmax_largest_values
+    else:
+        selected_indices = indices_greater_than_threshold
+
+    for fn in energy_files:
+        prefix_to_match = os.path.basename(fn.split("-energy.csv")[0])
+        row_with_prefix = result_df[
+            result_df["faultfn"].str.startswith(prefix_to_match)
+        ]
+        if not row_with_prefix.empty:
+            i = row_with_prefix.index[0]
+        else:
+            raise ValueError(
+                f"could not associate {fn} ({prefix_to_match}) with a ",
+                "fault filename from",
+                result_df["faultfn"],
+            )
+            continue
+
+        df = pd.read_csv(fn)
+        df = df.pivot_table(index="time", columns="variable", values="measurement")
+        dt = df.index[1] - df.index[0]
+        assert dt == 0.25
+        df["seismic_moment_rate"] = np.gradient(df["seismic_moment"], dt)
+
+        if one_model_shown:
+            label = "simulation"
+        else:
+            label_parts = []
+            for name, is_varying in varying_param.items():
+                if is_varying:
+                    value = result_df[name].values[i]
+                    vname = r"$\sigma_n$" if name == "sigman" else name
+                    unit = " MPa" if name == "sigman" else ""
+                    label_parts.append(f"{vname}={value}{unit}")
+            label = ", ".join(label_parts)
+
+        if i in selected_indices or i in indices_of_nlargest_values:
+            if one_model_shown:
+                labelargs = {"label": f"{label} (Mw={Mw[i]:.2f})"}
+            else:
+                labelargs = {
+                    "label": f"{label} (Mw={Mw[i]:.2f}, GOF={combined_gof[i]:.2})"
+                }
+            alpha = 1.0
+        else:
+            labelargs = {"color": "lightgrey", "zorder": 1}
+            alpha = 0.5
+
+        ax.plot(
+            df.index.values,
+            df["seismic_moment_rate"] / 1e19,
+            alpha=alpha,
+            **labelargs,
+        )
+
+    refMRFfile = ref_stfs[0][0] if ref_stfs else ""
+    if refMRFfile != "tmp/moment_rate.mr":
+        ax.plot(
+            mr_ref[:, 0],
+            mr_ref[:, 1] / 1e19,
+            label=f"{ref_name} (Mw={Mwref:.2f})",
+            color="black",
+        )
+
+    if ref_name != "usgs" and os.path.exists("tmp/moment_rate.mr"):
+        mr_usgs = read_usgs_moment_rate("tmp/moment_rate.mr")
+        mr_usgs = trim_trailing_zero(mr_usgs)
+        M0usgs = np.trapezoid(mr_usgs[:, 1], x=mr_usgs[:, 0])
+        Mwusgs = 2.0 * np.log10(M0usgs) / 3.0 - 6.07
+        ax.plot(
+            mr_usgs[:, 0],
+            mr_usgs[:, 1] / 1e19,
+            label=f"USGS (Mw={Mwusgs:.2f})",
+            color="k",
+            linestyle="--",
+        )
+
+    ls = ["-", ":", "-."]
+    if len(ref_stfs) > 1:
+        for kkk, mrfdata in enumerate(ref_stfs[1:]):
+            mrf_file, mrf_label = mrfdata
+            if not os.path.exists(mrf_file):
+                print(f"Warning: file {mrf_file} does not exist, skipping.")
+                continue
+
+            ext = os.path.splitext(mrf_file.lower())[1]
+            if ext == ".csv":
+                mrf = np.genfromtxt(mrf_file, delimiter=",", skip_header=1)
+            else:
+                mrf = np.loadtxt(mrf_file)
+
+            M0 = np.trapezoid(mrf[:, 1], x=mrf[:, 0])
+            Mw_mrf = 2.0 * np.log10(M0) / 3.0 - 6.07
+            ax.plot(
+                mrf[:, 0],
+                mrf[:, 1] / 1e19,
+                label=f"{mrf_label} (Mw={Mw_mrf:.2f})",
+                color="k",
+                linestyle=ls[kkk % len(ls)],
+            )
+
+    col = 1 if args.nmax < 8 else 2
+    kargs = {"bbox_to_anchor": (1.0, 1.28)}
+    ax.legend(
+        frameon=False, loc="upper right", ncol=col, fontsize=args.font_size[0], **kargs
+    )
+    ax.set_ylim(bottom=0)
+    ax.set_xlim(left=0)
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+    ax.set_ylabel(r"moment rate (e19 $\times$ Nm/s)")
+    ax.set_xlabel("time (s)")
+
+    fn_out = f"plots/moment_rate.{args.extension}"
+    fig.savefig(fn_out, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+    print(f"done write {fn_out}")
+    print(f"full path: {os.path.abspath(fn_out)}")
