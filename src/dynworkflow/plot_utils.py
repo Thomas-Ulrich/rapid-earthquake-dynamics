@@ -296,7 +296,7 @@ def plot_combined_gof_plot(
             fn = (
                 output_prefix
                 if output_prefix.endswith(".pdf")
-                else f"{output_prefix}.pdf"
+                else f"plots/{output_prefix}.pdf"
             )
         else:
             fn = "plots/figure_panels_allB_gof.pdf"
