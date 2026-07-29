@@ -83,6 +83,8 @@ def plot_xy_panel(
 
     # 4. Plot surface (contourf or pcolormesh)
     if plot_type == "contourf":
+        if min(values.shape) == 1:
+            return
         if vmin is not None and vmax is not None:
             levels = np.linspace(vmin, vmax, 21)
             im = ax.contourf(

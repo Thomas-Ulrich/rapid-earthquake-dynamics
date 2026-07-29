@@ -47,9 +47,11 @@ def infer_duration(time, moment_rate):
 
 
 def computeMw(label, time, moment_rate):
+    time = np.asarray(time, dtype=np.float64)
+    moment_rate = np.asarray(moment_rate, dtype=np.float64)
     M0 = np.trapezoid(moment_rate, x=time)
     Mw = 2.0 * np.log10(M0) / 3.0 - 6.07
-    # print(f"{label} moment magnitude: {Mw:.2} (M0 = {M0:.4e})")
+    print(f"{label} moment magnitude: {Mw:.2} (M0 = {M0:.4e})")
     return M0, Mw
 
 

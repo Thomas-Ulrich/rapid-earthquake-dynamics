@@ -59,7 +59,7 @@ def load_reference_stfs(
     else:
         mr_ref = read_usgs_moment_rate(refMRFfile)
 
-    mr_ref = trim_trailing_zero(mr_ref)
+    mr_ref = trim_trailing_zero(mr_ref).astype(np.float64)
 
     # Compute M0, Mw for main ref
     M0ref = np.trapezoid(mr_ref[:, 1], x=mr_ref[:, 0])
