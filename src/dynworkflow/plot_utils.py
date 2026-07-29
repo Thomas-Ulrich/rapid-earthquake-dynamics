@@ -9,6 +9,13 @@ import matplotlib
 from dynworkflow.stf_loader import read_usgs_moment_rate, trim_trailing_zero
 
 
+ps = 12
+matplotlib.rcParams.update({"font.size": ps})
+plt.rcParams["font.family"] = "sans"
+matplotlib.rc("xtick", labelsize=ps)
+matplotlib.rc("ytick", labelsize=ps)
+
+
 def plot_xy_panel(
     fig,
     ax,
@@ -71,27 +78,30 @@ def plot_xy_panel(
     values = pivot.values.astype(float)
 
     # 3. Determine color limits (vmin/vmax)
-    if vmin is None:
-        vmin = np.nanmin(values)
-    if vmax is None:
-        vmax = np.nanmax(values)
-
-    if vmin == vmax:
+    if vmin is not None and vmax is not None and vmin == vmax:
         vmax = vmin + 1e-6
 
     # 4. Plot surface (contourf or pcolormesh)
     if plot_type == "contourf":
-        levels = np.linspace(vmin, vmax, 21)
-        im = ax.contourf(X, Y, values, cmap=cmap, levels=levels, vmin=vmin, vmax=vmax)
+        if vmin is not None and vmax is not None:
+            levels = np.linspace(vmin, vmax, 21)
+            im = ax.contourf(
+                X, Y, values, cmap=cmap, levels=levels, vmin=vmin, vmax=vmax
+            )
+        else:
+            im = ax.contourf(X, Y, values, cmap=cmap, levels=20)
         if contour_lines:
             contours = ax.contour(
                 X, Y, values, levels=contour_lines, colors="k", linestyles="-"
             )
-            ax.clabel(contours, inline=True, fontsize=9, fmt="%1.2f")
+            ax.clabel(contours, inline=True, fontsize=9, fmt="%g")
     else:
-        im = ax.pcolormesh(
-            X, Y, values, cmap=cmap, shading="auto", vmin=vmin, vmax=vmax
-        )
+        if vmin is not None and vmax is not None:
+            im = ax.pcolormesh(
+                X, Y, values, cmap=cmap, shading="auto", vmin=vmin, vmax=vmax
+            )
+        else:
+            im = ax.contourf(X, Y, values, cmap=cmap, levels=20)
 
     # Limit bounds to exact pivot extents
     ax.set_xlim(pivot.columns.min(), pivot.columns.max())
@@ -136,7 +146,10 @@ def plot_xy_panel(
 
     # 7. Colorbar attachment
     v_label = dim_vars["v"].get("label", col_v)
-    fig.colorbar(im, ax=ax, label=v_label, format="%.2f")
+    if "GOF" in v_label:
+        fig.colorbar(im, ax=ax, label=v_label, format="%.2f")
+    else:
+        fig.colorbar(im, ax=ax, label=v_label)
 
 
 def plot_combined_gof_plot(
@@ -260,7 +273,6 @@ def plot_combined_gof_plot(
                     else f"{panel_counter + 1}"
                 )
                 vmin, vmax = gof_bounds.get(key, (None, None))
-
                 plot_xy_panel(
                     fig,
                     target_ax,
