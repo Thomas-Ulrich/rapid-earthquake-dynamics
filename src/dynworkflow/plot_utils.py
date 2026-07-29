@@ -110,7 +110,7 @@ def plot_xy_panel(
 
     # X-Label handling
     x_label = dim_vars["x"].get("label", col_x)
-    if x_label:
+    if x_label and dim_vars["x"].get("show_label", True):
         ax.set_xlabel(x_label)
         vals = pivot.columns.values
         if len(vals) > 7:
@@ -120,6 +120,7 @@ def plot_xy_panel(
         else:
             ax.set_xticklabels([f"{x:g}" for x in vals])
     else:
+        ax.set_xlabel("")
         ax.set_xticklabels([])
 
     # Y-Label handling
@@ -135,7 +136,7 @@ def plot_xy_panel(
 
     # 7. Colorbar attachment
     v_label = dim_vars["v"].get("label", col_v)
-    fig.colorbar(im, ax=ax, label=v_label)
+    fig.colorbar(im, ax=ax, label=v_label, format="%.2f")
 
 
 def plot_combined_gof_plot(
@@ -213,9 +214,11 @@ def plot_combined_gof_plot(
         gof_bounds = {}
 
     if "sigman" in df.columns:
-        dim_var_x = {"col": "sigman", "label": r"$\sigma_n$"}
+        dim_var_x = {"col": "sigman", "label": r"$\sigma_\mathrm{n}$"}
     elif "R" in df.columns:
         dim_var_x = {"col": "R", "label": "R"}
+    elif "Ru" in df.columns:  # for Myanmar study
+        dim_var_x = {"col": "Ru", "label": r"$R_\mathrm{u}$"}
     else:
         raise ValueError(
             "Structure of df not understood (neither 'sigman' nor 'R' found)"
@@ -242,13 +245,10 @@ def plot_combined_gof_plot(
         for b_idx, B in enumerate(unique_B):
             for k, key in enumerate(keys_to_plot):
                 target_ax = axes_flat[panel_counter]
-                row_i = panel_counter // ncol
                 col_j = panel_counter % ncol
 
                 dim_vars = copy.deepcopy(dim_vars_0)
-                dim_vars["x"]["label"] = (
-                    None if row_i < nlines - 1 else dim_vars_0["x"]["label"]
-                )
+                dim_vars["x"]["show_label"] = panel_counter + ncol >= total_subpanels
                 dim_vars["y"]["label"] = None if col_j > 0 else dim_vars_0["y"]["label"]
 
                 label = label_map.get(key, key)
@@ -323,9 +323,7 @@ def plot_combined_gof_plot(
                         continue
 
                     dim_vars = copy.deepcopy(dim_vars_0)
-                    dim_vars["x"]["label"] = (
-                        None if i < nlines - 1 else dim_vars_0["x"]["label"]
-                    )
+                    dim_vars["x"]["show_label"] = k + ncol >= num_keys
                     dim_vars["y"]["label"] = None if j > 0 else dim_vars_0["y"]["label"]
 
                     key = keys_to_plot[k]
@@ -520,8 +518,9 @@ def plot_moment_rates(
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
 
-    ax.set_ylabel(r"moment rate (e19 $\times$ Nm/s)")
-    ax.set_xlabel("time (s)")
+    # ax.set_ylabel(r"Moment rate (e19 $\times$ Nm/s)")
+    ax.set_ylabel(r"Moment rate ($\times 10^{19}$ Nm/s)")
+    ax.set_xlabel("Time (s)")
 
     fn_out = f"plots/moment_rate.{args.extension}"
     fig.savefig(fn_out, bbox_inches="tight", transparent=True)
