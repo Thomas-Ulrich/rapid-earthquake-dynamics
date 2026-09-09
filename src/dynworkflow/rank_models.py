@@ -165,7 +165,8 @@ def main(args):
     parameter_names_with_coh = ["coh"] + parameter_names
 
     def unpack_gof_components_and_weights(gof_components_descr):
-        gof_components = gof_components_descr.strip().split(",")
+        gof_components = gof_components_descr.split(",")
+        gof_components = [s.strip() for s in gof_components]
         gof_weights = {}
         for i, comp_and_weight in enumerate(gof_components):
             parts = comp_and_weight.split()
@@ -543,7 +544,8 @@ def main(args):
 
     if not result_df.empty:
         keys_to_plot = [key for key in result_df.keys() if "gof" in key]
-        nlines = len(keys_to_plot) // 3
+        nlines = max(1, len(keys_to_plot) // 3)
+
         preferred_model = {
             "B": result_df["B"].iloc[0],
             Cname: result_df[Cname].iloc[0],
