@@ -13,11 +13,12 @@ import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 import yaml
-from cmcrameri import cm
 from obspy.signal.cross_correlation import correlate, xcorr_max
 from scipy import integrate
 
 from dynworkflow import step1_args
+from dynworkflow.plot_utils import plot_combined_gof_plot, plot_moment_rates
+from dynworkflow.stf_loader import read_usgs_moment_rate, trim_trailing_zero
 
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
@@ -46,9 +47,11 @@ def infer_duration(time, moment_rate):
 
 
 def computeMw(label, time, moment_rate):
+    time = np.asarray(time, dtype=np.float64)
+    moment_rate = np.asarray(moment_rate, dtype=np.float64)
     M0 = np.trapezoid(moment_rate, x=time)
     Mw = 2.0 * np.log10(M0) / 3.0 - 6.07
-    # print(f"{label} moment magnitude: {Mw:.2} (M0 = {M0:.4e})")
+    print(f"{label} moment magnitude: {Mw:.2} (M0 = {M0:.4e})")
     return M0, Mw
 
 
@@ -126,211 +129,6 @@ def extract_params_from_prefix(fname: str) -> dict:
     return out
 
 
-def generate_XY_panel(
-    df, name_arr1, arr1, name_arr2, arr2, name3, val3, name_col, ax, cmap
-):
-    "generate a 2D plot with name_arr1 and name_arr2 in X and Y axis"
-    "colored by name_col"
-    unique_arr1 = np.unique(arr1)
-    unique_arr2 = np.unique(arr2)
-    X, Y = np.meshgrid(unique_arr1, unique_arr2)
-    gof_array = np.zeros_like(X) + np.nan
-    for i in range(X.shape[0]):
-        for j in range(X.shape[1]):
-            result = df[
-                (df[name_arr1] == X[i, j])
-                & (df[name_arr2] == Y[i, j])
-                & (df[name3] == val3)
-            ]
-            if not result.empty:
-                specific_index = result.index[0]
-                gof_array[i, j] = result.loc[specific_index, name_col]
-    im = ax.pcolormesh(X, Y, gof_array, cmap=cmap)
-
-    mask_invalid = np.ma.masked_where(np.isfinite(gof_array), gof_array)
-    mask_invalid[np.isnan(gof_array)] = 1
-    ax.pcolor(X, Y, mask_invalid, hatch="/", alpha=0)
-    if name_col in ["Mw"]:
-        im.set_clim(df[name_col].min(), df[name_col].max())
-    # else:
-    #    im.set_clim(0, df[name_col].max())
-
-    ax.set_xlabel(name_arr1)
-    ax.set_ylabel(name_arr2)
-    ax.set_xticks(unique_arr1)
-    from matplotlib.ticker import FormatStrFormatter
-
-    ax.set_xticklabels(FormatStrFormatter("%g").format_ticks(unique_arr1))
-    ax.set_yticks(unique_arr2)
-    ax.set_title(f"{name3}={val3}")
-    if name_col == "gof_MRF":
-        label = "gof moment rate function"
-    elif name_col == "gof_M0":
-        label = "gof seismic moment"
-    elif name_col == "gof_body_wf":
-        label = "gof teleseismic waveforms"
-    elif name_col == "gof_reg":
-        label = "gof regional waveforms"
-    elif name_col == "combined_gof":
-        label = "combined gof"
-    else:
-        label = name_col
-
-    plt.colorbar(im, label=label, ax=ax)
-
-
-def generate_BCR_plots(df, Cname, B, C, R):
-    unique_R = np.unique(R)
-    n_div = 2
-    nrow, ncol = int(np.ceil(len(unique_R) / n_div)), 2 * n_div
-    # nrow, ncol = 2, 2
-    fig, axarr = plt.subplots(
-        nrow,
-        ncol,
-        figsize=(ncol * 4, nrow * 4),
-        dpi=160,
-        sharex=False,
-        sharey=True,
-        squeeze=False,
-    )
-    for k, Rk in enumerate(unique_R):
-        row = k % nrow
-        col = k // nrow * n_div
-        generate_XY_panel(
-            df,
-            "B",
-            B,
-            Cname,
-            C,
-            "R0",
-            Rk,
-            "gof_MRF",
-            axarr[row, col],
-            cm.cmaps["acton_r"],
-        )
-        generate_XY_panel(
-            df,
-            "B",
-            B,
-            Cname,
-            C,
-            "R0",
-            Rk,
-            "gof_M0",
-            axarr[row, col + 1],
-            cm.cmaps["oslo_r"],
-        )
-    fname = "plots/parameter_space_BC_constant_R.pdf"
-    plt.savefig(fname)
-    print(f"done writing {fname}")
-
-    unique_B = np.unique(B)
-    n_div = 1
-    nrow, ncol = len(unique_B) // n_div, 3 * n_div
-    fig, axarr = plt.subplots(
-        nrow,
-        ncol,
-        figsize=(ncol * 4, nrow * 4),
-        dpi=160,
-        sharex=False,
-        sharey=True,
-        squeeze=False,
-    )
-
-    for k, Bk in enumerate(unique_B):
-        row = k % nrow
-        col = k // nrow * n_div
-        generate_XY_panel(
-            df,
-            "R0",
-            R,
-            Cname,
-            C,
-            "B",
-            Bk,
-            "combined_gof",
-            axarr[row, col],
-            cm.cmaps["acton_r"],
-        )
-        if "gof_reg" in df:
-            generate_XY_panel(
-                df,
-                "R0",
-                R,
-                Cname,
-                C,
-                "B",
-                Bk,
-                "gof_reg",
-                axarr[row, col + 1],
-                cm.cmaps["acton_r"],
-            )
-            generate_XY_panel(
-                df,
-                "R0",
-                R,
-                Cname,
-                C,
-                "B",
-                Bk,
-                # "combined_gof",
-                "combined_gof",
-                axarr[row, col + 2],
-                cm.cmaps["batlowW_r"],
-            )
-
-    fname = "plots/parameter_space_R0C_constant_B.pdf"
-    plt.savefig(fname)
-    print(f"done writing {fname}")
-
-
-def generate_BCR_moment_plots(df, Cname, B, C, R):
-    unique_B = np.unique(B)
-    n_div = 1
-    nrow, ncol = len(unique_B) // n_div, 2 * n_div
-    fig, axarr = plt.subplots(
-        nrow,
-        ncol,
-        figsize=(ncol * 4, nrow * 4),
-        dpi=160,
-        sharex=False,
-        sharey=True,
-        squeeze=False,
-    )
-
-    for k, Bk in enumerate(unique_B):
-        row = k % nrow
-        col = k // nrow * n_div
-        generate_XY_panel(
-            df,
-            "R0",
-            R,
-            Cname,
-            C,
-            "B",
-            Bk,
-            "Mw",
-            axarr[row, col],
-            cm.cmaps["acton"],
-        )
-        generate_XY_panel(
-            df,
-            "R0",
-            R,
-            Cname,
-            C,
-            "B",
-            Bk,
-            "duration",
-            axarr[row, col + 1],
-            cm.cmaps["oslo"],
-        )
-
-    fname = "plots/parameter_space_Mw_duration_R0C_constant_B.pdf"
-    plt.savefig(fname)
-    print(f"done writing {fname}")
-
-
 def main(args):
     args.nmin = min(args.nmin, args.nmax)
 
@@ -352,24 +150,6 @@ def main(args):
 
     # remove fl33
     energy_files = [s for s in energy_files if "fl33" not in s]
-    one_model_shown = args.nmax == 1
-    matplotlib.rcParams["lines.linewidth"] = 0.5 if one_model_shown else 1.0
-
-    centimeter = 1 / 2.54
-    figsize = (7.5 * centimeter, 4.0 * centimeter) if one_model_shown else (8, 4)
-    fig = plt.figure(figsize=figsize, dpi=80)
-    ax = fig.add_subplot(111)
-
-    def read_usgs_moment_rate(fname):
-        mr_ref = np.loadtxt(fname, skiprows=2)
-        # Conversion factor from dyne-cm/sec to Nm/sec (for older usgs files)
-        scaling_factor = 1.0 if np.amax(mr_ref[:, 1]) < 1e23 else 1e-7
-        mr_ref[:, 1] *= scaling_factor
-        return mr_ref
-
-    def trim_trailing_zero(mr_ref):
-        last_index_non_zero = np.nonzero(mr_ref[:, 1])[0][-1]
-        return mr_ref[:last_index_non_zero, :]
 
     fn = "tmp/reference_STF.txt"
 
@@ -385,7 +165,8 @@ def main(args):
     parameter_names_with_coh = ["coh"] + parameter_names
 
     def unpack_gof_components_and_weights(gof_components_descr):
-        gof_components = gof_components_descr.strip().split(",")
+        gof_components = gof_components_descr.split(",")
+        gof_components = [s.strip() for s in gof_components]
         gof_weights = {}
         for i, comp_and_weight in enumerate(gof_components):
             parts = comp_and_weight.split()
@@ -717,134 +498,20 @@ def main(args):
     result_df.to_pickle("compiled_results.pkl")
     print(result_df.to_string())
 
-    required_keys = {"coh", "B", Cname, "R0"}
-    if required_keys.issubset(result_df.columns):
-        coh = result_df["coh"].values
-        B = result_df["B"].values
-        C = result_df[Cname].values
-        R = result_df["R0"].values
-
-        def are_all_elements_same(arr):
-            if arr.size == 0:
-                return True
-            return np.all([np.array_equal(x, arr[0]) for x in arr])
-
-        assert len(result_df) > 0
-        if are_all_elements_same(coh):
-            generate_BCR_plots(result_df, Cname, B, C, R)
-            generate_BCR_moment_plots(result_df, Cname, B, C, R)
-
     varying_param = {}
     for name in parameter_names_with_coh:
         varying_param[name] = len(np.unique(result_df[name].values)) > 1
 
-    combined_gof = result_df["combined_gof"].values
-    Mw = result_df["Mw"].values
-    indices_of_nlargest_values = result_df["combined_gof"].nlargest(args.nmin).index
-    indices_of_nmax_largest_values = result_df["combined_gof"].nlargest(args.nmax).index
-    indices_greater_than_threshold = result_df[
-        result_df["combined_gof"] > args.gof_threshold
-    ].index
-    if len(indices_greater_than_threshold) > args.nmax:
-        selected_indices = indices_of_nmax_largest_values
-    else:
-        selected_indices = indices_greater_than_threshold
-
-    for fn in energy_files:
-        prefix_to_match = os.path.basename(fn.split("-energy.csv")[0])
-        row_with_prefix = result_df[
-            result_df["faultfn"].str.startswith(prefix_to_match)
-        ]
-        if not row_with_prefix.empty:
-            i = row_with_prefix.index[0]
-        else:
-            continue
-            raise ValueError(
-                f"could not associate {fn} ({prefix_to_match}) with a ",
-                "fault filename from",
-                result_df["faultfn"],
-            )
-            continue
-
-        df = pd.read_csv(fn)
-        df = df.pivot_table(index="time", columns="variable", values="measurement")
-        dt = df.index[1] - df.index[0]
-        assert dt == 0.25
-        df["seismic_moment_rate"] = np.gradient(df["seismic_moment"], dt)
-
-        if one_model_shown:
-            label = "simulation"
-        else:
-            label = ""
-            for name, is_varying in varying_param.items():
-                if is_varying:
-                    value = result_df[name].values[i]
-                    vname = r"$\sigma_n$" if name == "sigman" else name
-                    unit = " MPa" if name == "sigman" else ""
-                    label += f"{vname}={value}{unit},"
-            # remove the last ,
-            label = label[0:-1]
-        if i in selected_indices or i in indices_of_nlargest_values:
-            if one_model_shown:
-                labelargs = {"label": f"{label} (Mw={Mw[i]:.2f})"}
-            else:
-                labelargs = {
-                    "label": f"{label} (Mw={Mw[i]:.2f}, gof={combined_gof[i]:.2})"
-                }
-            alpha = 1.0
-        else:
-            labelargs = {"color": "lightgrey", "zorder": 1}
-            alpha = 0.5
-        ax.plot(
-            df.index.values,
-            df["seismic_moment_rate"] / 1e19,
-            alpha=alpha,
-            **labelargs,
-        )
-
-    if refMRFfile != "tmp/moment_rate.mr":
-        ax.plot(
-            mr_ref[:, 0],
-            mr_ref[:, 1] / 1e19,
-            label=f"{ref_name} (Mw={Mwref:.2f})",
-            color="black",
-        )
-
-    if ref_name != "usgs" and os.path.exists("tmp/moment_rate.mr"):
-        mr_usgs = read_usgs_moment_rate("tmp/moment_rate.mr")
-        mr_usgs = trim_trailing_zero(mr_usgs)
-        M0usgs, Mwusgs = computeMw("usgs", mr_usgs[:, 0], mr_usgs[:, 1])
-        ax.plot(
-            mr_usgs[:, 0],
-            mr_usgs[:, 1] / 1e19,
-            label=f"USGS (Mw={Mwusgs:.2f})",
-            color="k",
-            linestyle="--",
-        )
-
-    ls = ["-", ":", "-."]
-
-    if len(ref_stfs) > 1:
-        for kkk, mrfdata in enumerate(ref_stfs[1:]):
-            mrf_file, mrf_label = mrfdata
-            if not os.path.exists(mrf_file):
-                print(f"Warning: file {mrf_file} does not exist, skipping.")
-                continue
-
-            ext = os.path.splitext(mrf_file.lower())[1]
-            if ext == ".csv":
-                mrf = np.genfromtxt(mrf_file, delimiter=",", skip_header=1)
-            else:
-                mrf = np.loadtxt(mrf_file)
-
-            M0, Mw = computeMw(mrf_label, mrf[:, 0], mrf[:, 1])
-            ax.plot(
-                mrf[:, 0],
-                mrf[:, 1] / 1e19,
-                label=f"{mrf_label} (Mw={Mw:.2f})",
-                color="k",
-                linestyle=ls[kkk % len(ls)],
-            )
+    plot_moment_rates(
+        energy_files=energy_files,
+        result_df=result_df,
+        args=args,
+        ref_stfs=ref_stfs,
+        mr_ref=mr_ref,
+        ref_name=ref_name,
+        Mwref=Mwref,
+        varying_param=varying_param,
+    )
 
     selected_rows = result_df[result_df["Mw"] > 6]
     selected_rows = selected_rows.sort_values(
@@ -867,25 +534,6 @@ def main(args):
         fid.write("output/dyn-usgs-fault.xdmf\n")
     print(f"done writing {fname}")
 
-    col = 1 if args.nmax < 8 else 2
-    kargs = {"bbox_to_anchor": (1.0, 1.28)}
-    ax.legend(frameon=False, loc="upper right", ncol=col, fontsize=ps, **kargs)
-    ax.set_ylim(bottom=0)
-    ax.set_xlim(left=0)
-
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
-
-    ax.set_ylabel(r"moment rate (e19 $\times$ Nm/s)")
-    ax.set_xlabel("time (s)")
-
-    fn = f"plots/moment_rate.{args.extension}"
-    fig.savefig(fn, bbox_inches="tight", transparent=True)
-    print(f"done write {fn}")
-    full_path = os.path.abspath(fn)
-    print(f"full path: {full_path}")
     print(f"components used for combined_gof: {component_used}")
     if "regional_wf" in component_used.keys():
         print(f"components used for regional_wf: {gof_weights_reg}")
@@ -893,3 +541,15 @@ def main(args):
         print(f"components used for teleseismic_body_wf: {gof_weights_body}")
     if "teleseismic_surface_wf" in component_used.keys():
         print(f"components used for teleseismic_surface_wf: {gof_weights_surf}")
+
+    if not result_df.empty:
+        keys_to_plot = [key for key in result_df.keys() if "gof" in key]
+        nlines = max(1, len(keys_to_plot) // 3)
+
+        preferred_model = {
+            "B": result_df["B"].iloc[0],
+            Cname: result_df[Cname].iloc[0],
+            "R": result_df["R"].iloc[0],
+        }
+        preferred_model = {k: float(v) for k, v in preferred_model.items()}
+        plot_combined_gof_plot(result_df, keys_to_plot, nlines, preferred_model)

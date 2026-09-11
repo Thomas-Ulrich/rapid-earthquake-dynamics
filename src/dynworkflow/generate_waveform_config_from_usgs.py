@@ -84,11 +84,16 @@ def generate_waveform_config_file(
         ("regional", regional_stations),
         ("teleseismic", teleseismic_stations),
     ]:
+        output_filename = f"waveforms_config_{name}.yaml"
+        if os.path.exists(output_filename):
+            print(f"WARNING: {output_filename} already exists. Skipping rendering.")
+            continue
+
         template_par["stations"] = "" if user_stations == "auto" else user_stations
         render_file(
             template_par,
             f"waveforms_config_{name}.tmpl.yaml",
-            f"waveforms_config_{name}.yaml",
+            output_filename,
         )
 
 

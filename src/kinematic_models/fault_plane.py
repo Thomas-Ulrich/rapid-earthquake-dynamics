@@ -851,8 +851,11 @@ The correcting factor ranges between {np.amin(factor_area)} and {np.amax(factor_
         dx1 = self.affine_map["dx1"]
         dx2 = self.affine_map["dx2"]
 
-        vertex[0, :] = p0 + 0.5 * (-hh * dx1 - hw * dx2) * non_square_factor
-        vertex[1, :] = p2 + 0.5 * (hh * dx1 - hw * dx2) * non_square_factor
+        # increase n_top to extend the fault artifically towards the surface
+        # (fault-topography intersection)
+        n_top = 1
+        vertex[0, :] = p0 + 0.5 * (-hh * dx1 - n_top * hw * dx2) * non_square_factor
+        vertex[1, :] = p2 + 0.5 * (hh * dx1 - n_top * hw * dx2) * non_square_factor
         vertex[2, :] = p3 + 0.5 * (hh * dx1 + hw * dx2) * non_square_factor
         vertex[3, :] = p1 + 0.5 * (-hh * dx1 + hw * dx2) * non_square_factor
 

@@ -5,6 +5,7 @@
 
 import io
 import os
+import json
 
 import pandas as pd
 
@@ -76,14 +77,49 @@ vel_model_slipnear = """H P_VEL S_VEL DENS QP QS
 10000 8.1 4.68 3.3 1000 500"""
 
 
-def generate_arbitrary_velocity_files(vel_model=vel_model_slipnear):
-    if os.path.isfile(vel_model):
-        with open(vel_model, "r") as file:
-            vel_model_content = file.read()
-    else:
-        vel_model_content = vel_model
+def _load_json_model(content):
+    """Parses JSON content, normalizes column names, and converts strings to floats."""
+    try:
+        json_data = json.loads(content)
+        df = pd.DataFrame(json_data)
 
-    df = pd.read_csv(io.StringIO(vel_model_content), sep=" ")
+        rename_map = {
+            "thick": "H",
+            "dens": "DENS",
+            "p_vel": "P_VEL",
+            "s_vel": "S_VEL",
+            "qa": "QP",
+            "qb": "QS",
+        }
+        df = df.rename(columns=rename_map)
+
+        # Ensure all structural and physical properties are converted to float
+        cols_to_convert = ["H", "DENS", "P_VEL", "S_VEL", "QP", "QS"]
+        df[cols_to_convert] = df[cols_to_convert].astype(float)
+        return df
+    except (json.JSONDecodeError, KeyError) as e:
+        raise ValueError(f"Error parsing JSON velocity model: {e}")
+
+
+def _load_txt_model(content):
+    """Parses space-separated text content."""
+    return pd.read_csv(io.StringIO(content), sep=" ")
+
+
+def generate_arbitrary_velocity_files(vel_model=vel_model_slipnear):
+    if not os.path.isfile(vel_model):
+        raise FileNotFoundError(f"Velocity model file not found: {vel_model}")
+
+    with open(vel_model, "r") as file:
+        vel_model_content = file.read().strip()
+
+    _, ext = os.path.splitext(vel_model.lower())
+
+    if ext == ".json":
+        df = _load_json_model(vel_model_content)
+    else:
+        df = _load_txt_model(vel_model_content)
+
     df["rho"] = 1000.0 * df["DENS"]
     df["mu"] = 1e6 * df["rho"] * df["S_VEL"] ** 2
     df["lambda"] = 1e6 * df["rho"] * (df["P_VEL"] ** 2 - 2.0 * df["S_VEL"] ** 2)

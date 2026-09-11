@@ -40,7 +40,7 @@ n, bins, patches = ax.hist(
 )
 
 # Labels and title
-ax.set_xlabel(r"$gof_\mathrm{combined}$")
+ax.set_xlabel(r"$\text{GOF}_\mathrm{combined}$")
 ax.set_ylabel("Frequency")
 # ax.set_title('Histogram of Combined GOF Values')
 
