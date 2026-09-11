@@ -315,8 +315,18 @@ def main(args):
             results[name].append(out[name])
 
         results["faultfn"].append(faultfn)
-        # max_shift = int(min(5, 0.25 * inferred_duration) / dt)
-        max_shift = 0
+        max_shift_STF_sec = config_dict.get("max_shift_STF_sec")
+        if max_shift_STF_sec is None:
+            max_shift_STF_sec = 0.0
+        elif max_shift_STF_sec == "auto":
+            max_shift_STF_sec = max(3, 0.10 * inferred_duration)
+        else:
+            try:
+                max_shift_STF_sec = float(max_shift_STF_sec)
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid max_shift_STF_sec value: {max_shift_STF_sec}")
+
+        max_shift = int(max_shift_STF_sec / dt)
 
         len_corr = max(len(mr_ref_interp), len(df["seismic_moment_rate"]))
         # signal padded for easier interpretation of the shift
@@ -335,7 +345,22 @@ def main(args):
         cc = correlate(s1, s2, shift=max_shift)
         shift, ccmax = xcorr_max(cc, abs_max=False)
         # results["shift_syn_ref_sec"].append(shift * dt)
-        results["gof_MRF"].append(ccmax)
+
+        # Roll/shift s2 by the optimal cross-correlation lag
+        s2_aligned = np.roll(s2, shift)
+
+        # Compute Normalized Root Mean Square Error (NRMSE) on aligned signals
+        l2_ref = np.linalg.norm(s1)
+        if l2_ref > 0:
+            relative_error = np.linalg.norm(s1 - s2_aligned) / l2_ref
+            gof = max(
+                0.0, 1.0 - relative_error
+            )  # 1.0 = perfect match, 0.0 = poor match
+        else:
+            gof = 0.0
+
+        results["gof_MRF"].append(gof)
+
         # allow 15% variation on the misfit
         M0_gof = min(1, 1.15 - abs(M0 - M0ref) / M0ref)
         results["gof_M0"].append(M0_gof)
