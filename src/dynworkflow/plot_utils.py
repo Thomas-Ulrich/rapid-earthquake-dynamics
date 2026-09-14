@@ -161,6 +161,7 @@ def plot_combined_gof_plot(
     preferred_model: dict,
     combine_B_in_one_fig: bool = False,
     share_colorbar: bool = True,
+    cmap=cm.cmaps["lipari_r"],
     extra_label_map: dict | None = None,
     output_prefix: str | None = None,
 ):
@@ -187,16 +188,13 @@ def plot_combined_gof_plot(
         If True, precomputes global (vmin, vmax) bounds across the whole DataFrame for
         each metric in `keys_to_plot` so color scales match across B-values. Default
         is True.
+    cmap : Colormap or str, optional
+        Matplotlib colormap or cmcrameri colormap instance. Defaults to
+        cm.cmaps["lipari_r"].
     extra_label_map : dict, optional
         Custom mapping dictionary to add or override default panel labels.
     output_prefix : str, optional
-            Custom filename or path prefix for exported PDF(s).
-            - If combine_B_in_one_fig=True:
-              Defaults to "plots/figure_panels_allB_gof.pdf".
-              If provided as "my_run", saves to "plots/my_run.pdf".
-            - If combine_B_in_one_fig=False:
-              Defaults to "plots/figure_panelsB{B}_gof.pdf".
-              If provided as "my_run", saves to "plots/my_run_B{B}.pdf".
+        Custom filename or path prefix for exported PDF(s).
     """
     # 1. Validation
     missing_keys = set(keys_to_plot) - set(df.columns)
@@ -281,7 +279,7 @@ def plot_combined_gof_plot(
                     df,
                     dim_vars,
                     val_z=B,
-                    cmap=cm.cmaps["lipari_r"],
+                    cmap=cmap,
                     contour_lines=None,
                     vmin=vmin,
                     vmax=vmax,
@@ -306,7 +304,6 @@ def plot_combined_gof_plot(
 
         plt.tight_layout()
         if output_prefix:
-            # Ensures .pdf extension is appended cleanly
             fn = (
                 output_prefix
                 if output_prefix.endswith(".pdf")
@@ -353,7 +350,7 @@ def plot_combined_gof_plot(
                         df,
                         dim_vars,
                         val_z=B,
-                        cmap=cm.cmaps["lipari_r"],
+                        cmap=cmap,
                         contour_lines=None,
                         vmin=vmin,
                         vmax=vmax,
@@ -373,7 +370,6 @@ def plot_combined_gof_plot(
             ax_grid[0, 0].set_title(f"a. B={B}", fontweight="bold")
             plt.tight_layout()
             if output_prefix:
-                # Strips .pdf if included, then appends the B-value
                 base_prefix = (
                     output_prefix[:-4]
                     if output_prefix.endswith(".pdf")
@@ -383,7 +379,6 @@ def plot_combined_gof_plot(
             else:
                 fn = f"plots/figure_panelsB{B}_gof.pdf"
 
-            fn = f"plots/figure_panelsB{B}_gof.pdf"
             fig.savefig(fn, bbox_inches="tight")
             plt.close(fig)
             print(f"done writing {fn}")
