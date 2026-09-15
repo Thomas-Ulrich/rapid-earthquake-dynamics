@@ -45,7 +45,8 @@ def plot_xy_panel(
             "x": {"col": "B", "label": "B-value"},
             "y": {"col": "C", "label": "C-value"},
             "z": {"col": "R0", "label": "R0"},
-            "v": {"col": "combined_gof", "label": "Combined GoF"}
+            "v": {"col": "combined_gof", "label": "Combined GoF"},
+            "v_contour": {"col": "some_metric", "label": "Contour Metric"}  # Optional
         }
     val_z : float/int
         Value to filter the 'z' column by.
@@ -54,7 +55,7 @@ def plot_xy_panel(
     plot_type : str, optional
         'contourf' for filled contours or 'pcolormesh' for discrete cells.
     contour_lines : list of float, optional
-        Levels at which to draw labeled contour lines.
+        Levels at which to draw labeled contour lines on v_contour (or v if v_contour not present).
     vmin : float, optional
         Minimum value for the colorbar scale.
     vmax : float, optional
@@ -64,6 +65,7 @@ def plot_xy_panel(
     col_y = dim_vars["y"]["col"]
     col_z = dim_vars["z"]["col"]
     col_v = dim_vars["v"]["col"]
+    col_v_contour = dim_vars.get("v_contour", {}).get("col")  # Optional contour data
 
     # 1. Filter DataFrame by z-slice
     sub_df = df[df[col_z] == val_z]
@@ -76,6 +78,13 @@ def plot_xy_panel(
     pivot = sub_df.pivot_table(index=col_y, columns=col_x, values=col_v)
     X, Y = np.meshgrid(pivot.columns.values, pivot.index.values)
     values = pivot.values.astype(float)
+
+    # 2b. Generate contour values grid if v_contour is specified
+    if col_v_contour:
+        pivot_contour = sub_df.pivot_table(index=col_y, columns=col_x, values=col_v_contour)
+        values_contour = pivot_contour.values.astype(float)
+    else:
+        values_contour = None
 
     # 3. Determine color limits (vmin/vmax)
     if vmin is not None and vmax is not None and vmin == vmax:
@@ -93,8 +102,9 @@ def plot_xy_panel(
         else:
             im = ax.contourf(X, Y, values, cmap=cmap, levels=20)
         if contour_lines:
+            contour_data = values_contour if col_v_contour and values_contour is not None else values
             contours = ax.contour(
-                X, Y, values, levels=contour_lines, colors="k", linestyles="-"
+                X, Y, contour_data, levels=contour_lines, colors="k", linestyles="-"
             )
             ax.clabel(contours, inline=True, fontsize=9, fmt="%g")
     else:
@@ -103,7 +113,13 @@ def plot_xy_panel(
                 X, Y, values, cmap=cmap, shading="auto", vmin=vmin, vmax=vmax
             )
         else:
-            im = ax.contourf(X, Y, values, cmap=cmap, levels=20)
+            im = ax.pcolormesh(X, Y, values, cmap=cmap, shading="auto")
+        if contour_lines:
+            contour_data = values_contour if col_v_contour and values_contour is not None else values
+            contours = ax.contour(
+                X, Y, contour_data, levels=contour_lines, colors="k", linestyles="-"
+            )
+            ax.clabel(contours, inline=True, fontsize=9, fmt="%g")
 
     # Limit bounds to exact pivot extents
     ax.set_xlim(pivot.columns.min(), pivot.columns.max())
@@ -164,6 +180,7 @@ def plot_combined_gof_plot(
     cmap=cm.cmaps["lipari_r"],
     extra_label_map: dict | None = None,
     output_prefix: str | None = None,
+    contour_map: dict | None = None,
 ):
     """
     Plot Goodness-of-Fit (GoF) panels across parameter slices.
@@ -195,6 +212,9 @@ def plot_combined_gof_plot(
         Custom mapping dictionary to add or override default panel labels.
     output_prefix : str, optional
         Custom filename or path prefix for exported PDF(s).
+    contour_map : dict, optional
+        Mapping of key -> {"col": column_name, "label": display_label} for overlay contours.
+        E.g. {"gof_slip": {"col": "combined_gof", "label": "Combined GoF"}}.
     """
     # 1. Validation
     missing_keys = set(keys_to_plot) - set(df.columns)
@@ -211,6 +231,7 @@ def plot_combined_gof_plot(
         "combined_gof": "Combined GOF",
     }
     label_map = default_label_map | (extra_label_map or {})
+    contour_map = contour_map or {}
 
     unique_B = sorted(df["B"].unique())
     n_B = len(unique_B)
@@ -266,6 +287,9 @@ def plot_combined_gof_plot(
 
                 label = label_map.get(key, key)
                 dim_vars["v"] = {"col": key, "label": label}
+
+                if key in contour_map:
+                    dim_vars["v_contour"] = contour_map[key]
 
                 letter = (
                     alpha[panel_counter]
@@ -340,6 +364,9 @@ def plot_combined_gof_plot(
                     key = keys_to_plot[k]
                     label = label_map.get(key, key)
                     dim_vars["v"] = {"col": key, "label": label}
+
+                    if key in contour_map:
+                        dim_vars["v_contour"] = contour_map[key]
 
                     letter = alpha[k] if k < len(alpha) else f"{k + 1}"
                     vmin, vmax = gof_bounds.get(key, (None, None))
