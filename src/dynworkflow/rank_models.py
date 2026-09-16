@@ -324,7 +324,9 @@ def main(args):
             try:
                 max_shift_STF_sec = float(max_shift_STF_sec)
             except (ValueError, TypeError):
-                raise ValueError(f"Invalid max_shift_STF_sec value: {max_shift_STF_sec}")
+                raise ValueError(
+                    f"Invalid max_shift_STF_sec value: {max_shift_STF_sec}"
+                )
 
         max_shift = int(max_shift_STF_sec / dt)
 
