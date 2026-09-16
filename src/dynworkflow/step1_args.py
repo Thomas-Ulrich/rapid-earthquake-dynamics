@@ -160,6 +160,13 @@ def add_parser(subparsers):
     )
 
     parser.add_argument(
+        "--max_shift_STF_sec",
+        type=str,
+        default="auto",
+        help="Max shift when cross-correlating STF with reference STF, in seconds",
+    )
+
+    parser.add_argument(
         "--mesh",
         type=str,
         default="auto",
