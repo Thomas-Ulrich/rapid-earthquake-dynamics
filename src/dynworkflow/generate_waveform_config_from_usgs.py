@@ -13,13 +13,29 @@ import yaml
 from dynworkflow.get_usgs_finite_fault_data import get_value_from_usgs_data
 
 
+def has_no_dens_key(filepath):
+    """Returns True if 'dens' is not a top-level key in the JSON file."""
+    try:
+        with open(filepath, "r") as f:
+            data = json.load(f)
+            # Ensures data is a dictionary and 'dens' is not one of its keys
+            return isinstance(data, dict) and "dens" not in data
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
 def generate_waveform_config_file(
     regional_stations="auto", teleseismic_stations="auto", ignore_source_files=False
 ):
-    fn_json = glob.glob("tmp/*.json")[0]
+    # Find the first JSON file where "dens" is not a key inside the JSON structure
+    # (file with the dens key would be a 1D velocity model from wisp)
+    fn_json = next((f for f in glob.glob("tmp/*.json") if has_no_dens_key(f)), None)
 
-    with open(fn_json) as f:
-        jsondata = json.load(f)
+    if fn_json:
+        with open(fn_json, "r") as f:
+            jsondata = json.load(f)
+    else:
+        print("No USGS JSON file found.")
 
     code = get_value_from_usgs_data(jsondata, "code")
     origin = get_value_from_usgs_data(jsondata, "origin")
