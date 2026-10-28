@@ -12,6 +12,11 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from kinematic_models import (
+    compute_moment_rate_function,
+    generate_fault_output_from_fl33_input_files,
+    generate_FL33_input_files,
+)
 from seismic_waveform_factory.geo.select_stations import select_stations
 
 from dynworkflow import (
@@ -26,11 +31,6 @@ from dynworkflow import (
     vizualizeBoundaryConditions,
 )
 from dynworkflow.utils import compute_simulation_end_time
-from kinematic_models import (
-    compute_moment_rate_function,
-    generate_fault_output_from_fl33_input_files,
-    generate_FL33_input_files,
-)
 
 
 def is_slipnear_file(fn):

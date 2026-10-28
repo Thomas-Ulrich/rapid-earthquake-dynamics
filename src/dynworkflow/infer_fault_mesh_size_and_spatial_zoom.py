@@ -4,64 +4,69 @@
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
 import argparse
-import os
-import os.path
 
 import numpy as np
-from sklearn.decomposition import PCA
 
 from kinematic_models.multi_fault_plane import MultiFaultPlane
 
 
+def project_on_principal_axes(xyz, n_components=2):
+    """Project points (n, 3) on their first principal axes (same result as
+    sklearn.decomposition.PCA(n_components).fit_transform, up to the sign of the
+    axes). Done with numpy to avoid importing sklearn (and pyarrow)."""
+    centered = xyz - xyz.mean(axis=0)
+    # rows of vt: principal directions, by decreasing variance
+    _, _, vt = np.linalg.svd(centered, full_matrices=False)
+    return centered @ vt[:n_components].T
+
+
+def next_odd_integer(x):
+    "smallest odd integer >= x (1 at least)"
+    if (x == int(x)) & (int(x) % 2 == 1):
+        return int(x)
+    nearest_integer = int(x)
+    # If nearest integer is even, add 1, else add 2
+    return nearest_integer + (1 if nearest_integer % 2 == 0 else 2)
+
+
+def get_fault_mesh_size(total_area):
+    "mesh size (m) from the total fault area (km2)"
+    if total_area < 40 * 80:
+        return 500
+    elif total_area > 100 * 200:
+        return 1000
+    else:
+        return 700
+
+
 def infer_quantities(filename, proj, mesh_size="auto"):
-    prefix, ext = os.path.splitext(filename)
-    prefix = os.path.basename(prefix)
     mfp = MultiFaultPlane.from_file(filename)
 
     dx = float("inf")
     dy = float("inf")
-    min_fault_plane_area = float("inf")
     total_area = 0
-    for p, p1 in enumerate(mfp.fault_planes):
+    for p1 in mfp.fault_planes:
         p1.compute_xy_from_latlon(proj)
         xyz = np.column_stack(
             (p1.x.flatten(), p1.y.flatten(), -p1.depth.flatten() * 1e3)
         )
-        # Perform PCA to get principal axes
-        pca = PCA(n_components=2)
-        points = pca.fit_transform(xyz) / 1e3
-        la, lb = np.amax(points, axis=0) - np.amin(points, axis=0)
-        min_fault_plane_area = min(min_fault_plane_area, la * lb)
+        # coordinates (in m) along the two principal axes of the fault plane
+        points = project_on_principal_axes(xyz, n_components=2)
+        la, lb = (np.amax(points, axis=0) - np.amin(points, axis=0)) / 1e3
         total_area += la * lb
-        print("inferred fault dimensions (km)", la, lb)
-        points = points.reshape((p1.ny, p1.nx, 2)) * 1e3
+        print(f"inferred fault dimensions (km): {la:.1f} {lb:.1f}")
+        points = points.reshape((p1.ny, p1.nx, 2))
         iy = p1.ny // 2
         ix = p1.nx // 2
         dx = min(dx, np.amax(np.abs(points[iy, ix, :] - points[iy, ix - 1, :])))
-        dy = min(dy, np.amax(np.abs(abs(points[iy, ix, :] - points[iy - 1, ix, :]))))
-
-    def next_odd_integer(x):
-        if (x == int(x)) & (int(x) % 2 == 1):
-            return int(x)
-        nearest_integer = int(x)
-        # If nearest integer is even, add 1, else add 2
-        next_odd = nearest_integer + (1 if nearest_integer % 2 == 0 else 2)
-        return next_odd
-
-    def get_fault_mesh_size(min_plane_area, total_area):
-        if total_area < 40 * 80:
-            return 500
-        elif total_area > 100 * 200:
-            return 1000
-        else:
-            return 700
+        dy = min(dy, np.amax(np.abs(points[iy, ix, :] - points[iy - 1, ix, :])))
 
     if mesh_size == "auto":
-        mesh_size = get_fault_mesh_size(min_fault_plane_area, total_area)
+        mesh_size = get_fault_mesh_size(total_area)
     else:
         mesh_size = float(mesh_size)
     print(f"using a mesh size of {mesh_size}")
-    print(min(dx, dy))
+    print(f"smallest source grid spacing (m): {min(dx, dy):.1f}")
     inferred_spatial_zoom = next_odd_integer(min(dx, dy) / mesh_size)
 
     print(f"inferred spatial zoom {inferred_spatial_zoom}")
