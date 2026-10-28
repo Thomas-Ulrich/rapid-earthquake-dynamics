@@ -8,7 +8,7 @@ import os
 import yaml
 from kinematic_models import project_fault_tractions_onto_asagi_grid
 
-from dynworkflow import generate_input_seissol_dr
+from dynworkflow import generate_ensemble_input
 
 
 def main(args):
@@ -43,4 +43,4 @@ def main(args):
         edge_clearance=8,
     )
 
-    generate_input_seissol_dr.generate()
+    generate_ensemble_input.generate()
