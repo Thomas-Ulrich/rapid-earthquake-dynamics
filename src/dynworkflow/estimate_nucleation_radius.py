@@ -13,20 +13,21 @@ hypocenter such that
 
 where area_crit = max(Uenishi 2009 estimate, Galis et al. 2015 estimate).
 R is limited to min(sqrt(0.15 * slip_area / pi), fault_width / 2).
-If the criterion is not reached within this limit, NaN is returned.
+R is searched on a grid of radii (default 500 m, 750 m, 1000 m, ... in steps of
+250 m). If the criterion is not reached up to the
+limit, the largest radius of the grid below the limit is returned.
 """
 
 import argparse
+import multiprocessing
 import os
 import time
-from multiprocessing import Pool, cpu_count
 
 import easi
 import numpy as np
 import seissolxdmf
 from scipy import interpolate
 from scipy.special import ellipe, ellipk
-from sklearn.decomposition import PCA
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
@@ -94,7 +95,11 @@ def compute_slip_area(centers, tags, face_area, slip_yaml):
 
 def estimate_fault_width(centers):
     "smallest extent of the fault along its two principal directions"
-    points = PCA(n_components=2).fit_transform(centers)
+    # PCA done with numpy (same result as sklearn PCA(n_components=2)), to avoid
+    # importing sklearn (and pyarrow), which can fail in spawned workers
+    centered = centers - centers.mean(axis=0)
+    _, eigvecs = np.linalg.eigh(np.cov(centered.T))  # eigenvalues in ascending order
+    points = centered @ eigvecs[:, ::-1][:, :2]  # two principal directions
     la, lb = np.amax(points, axis=0) - np.amin(points, axis=0)
     return min(la, lb)
 
@@ -163,7 +168,17 @@ def compute_area_crit(centers, tags, G, CG, fault_yaml, fmin_interpf):
 
 
 def compute_critical_nucleation_one_file(
-    centers, dist, face_area, G, CG, tags, fault_yaml, max_radius, factor
+    centers,
+    dist,
+    face_area,
+    G,
+    CG,
+    tags,
+    fault_yaml,
+    max_radius,
+    factor,
+    radius_step,
+    min_radius,
 ):
     """Critical radius for one fault yaml. centers etc. are already cropped to
     the sphere of radius max_radius around the hypocenter, dist = distance of
@@ -178,12 +193,29 @@ def compute_critical_nucleation_one_file(
     order = np.argsort(dist)
     cumsum = np.cumsum((face_area / area_crit)[order])
     k = np.searchsorted(cumsum, factor)  # first cell where the sum reaches factor
-    nuc_radius = dist[order][k] if k < len(cumsum) else np.nan
+    # candidate radii: min_radius, min_radius + radius_step, ... <= max_radius
+    # (as in the original script); the result is the first one satisfying the criterion
+    reached = False
+    if k < len(cumsum):
+        nuc_radius = max(
+            min_radius, np.ceil(dist[order][k] / radius_step) * radius_step
+        )
+        reached = nuc_radius <= max_radius
+    if not reached:
+        # we still try with the largest candidate radius, even if it may not nucleate
+        if max_radius >= min_radius:
+            nuc_radius = (
+                min_radius
+                + np.floor((max_radius - min_radius) / radius_step) * radius_step
+            )
+        else:
+            nuc_radius = max_radius
 
     runtime = time.time() - start_time
     return {
         "yaml": bn_fault_yaml,
         "radius": nuc_radius,
+        "reached": reached,
         "n_excluded": n_excluded,
         "n_cells": len(dist),
         "runtime": runtime,
@@ -205,9 +237,13 @@ def compute_critical_nucleation(
     factor=4.0,
     max_radius=None,
     nproc=None,
+    radius_step=250.0,
+    min_radius=500.0,
 ):
-    """Returns the list of critical nucleation radii (NaN if not reached),
-    one per fault yaml, in the same order."""
+    """Returns the list of critical nucleation radii, one per fault yaml, in the
+    same order. Radii are on the grid min_radius + n * radius_step; if the
+    criterion is not reached, the largest radius of the grid below the max
+    radius is returned."""
     sx = SeissolxdmfExtended(fault_xdmf)
     centers = sx.ComputeCellCenters()
     face_area = sx.ComputeCellAreas()
@@ -218,7 +254,7 @@ def compute_critical_nucleation(
     limit = min(np.sqrt((0.15 / np.pi) * slip_area), 0.5 * width)
     print(f"estimated fault width: {width:.1f}")
     print(
-        f"slip area: {slip_area:.4g} -> "
+        f"slip area: {slip_area:.4g} ->"
         f"radius limit (15% slip area, width/2): {limit:.1f}"
     )
     if max_radius is not None:
@@ -245,23 +281,34 @@ def compute_critical_nucleation(
     G, CG = compute_G_and_CG(centers, normals, mat_yaml)
 
     args_list = [
-        (centers, dist, face_area, G, CG, tags, fault_yaml, limit, factor)
+        (
+            centers,
+            dist,
+            face_area,
+            G,
+            CG,
+            tags,
+            fault_yaml,
+            limit,
+            factor,
+            radius_step,
+            min_radius,
+        )
         for fault_yaml in list_fault_yaml
     ]
 
     if nproc is None:
         omp = os.environ.get("OMP_NUM_THREADS")
-        nproc = int(omp) if omp else cpu_count()
+        nproc = int(omp) if omp else multiprocessing.cpu_count()
     nproc = max(1, min(nproc, len(args_list)))
 
     def report(r):
         "print the result of one yaml as soon as it is available"
         rad = r["radius"]
-        if np.isnan(rad):
-            msg = f"{r['yaml']}: not reached within {limit:.0f}"
-        else:
-            ratio = 100 * np.pi * rad**2 / slip_area
-            msg = f"{r['yaml']}: {rad:.0f} {ratio:.1f}"
+        ratio = 100 * np.pi * rad**2 / slip_area
+        msg = f"{r['yaml']}: {rad:.0f} {ratio:.1f}"
+        if not r["reached"]:
+            msg += "  [criterion not reached: largest candidate radius used]"
         if r["n_excluded"]:
             msg += f"  [{r['n_excluded']} cells excluded: strength_drop<=0]"
         print(
@@ -279,13 +326,17 @@ def compute_critical_nucleation(
             report(r)
     else:
         print(f"using {nproc} processes", flush=True)
-        with Pool(processes=nproc) as pool:
+        # "spawn" instead of the default "fork": easi/ASAGI (OpenMP, threads) has
+        # already been used in this process to evaluate the material, and forking
+        # after that can deadlock the children
+        ctx = multiprocessing.get_context("spawn")
+        with ctx.Pool(processes=nproc) as pool:
             # unordered: each result is printed as soon as it is finished
             for i, r in pool.imap_unordered(_worker, indexed_args):
                 results[i] = r
                 report(r)
     # the returned list follows the order of list_fault_yaml
-    return [r["radius"] for r in results]
+    return [float(r["radius"]) for r in results]
 
 
 if __name__ == "__main__":
@@ -320,6 +371,18 @@ if __name__ == "__main__":
         default=None,
         help="override the max radius (default: min(sqrt(0.15*slip_area/pi), width/2))",
     )
+    parser.add_argument(
+        "--radius-step",
+        type=float,
+        default=250.0,
+        help="step of the candidate radii, in mesh units (default: 250)",
+    )
+    parser.add_argument(
+        "--min-radius",
+        type=float,
+        default=500.0,
+        help="smallest candidate radius, in mesh units (default: 500)",
+    )
     parser.add_argument("--nproc", type=int, default=None, help="number of processes")
     args = parser.parse_args()
 
@@ -332,4 +395,6 @@ if __name__ == "__main__":
         factor=args.factor,
         max_radius=args.max_radius,
         nproc=args.nproc,
+        radius_step=args.radius_step,
+        min_radius=args.min_radius,
     )
