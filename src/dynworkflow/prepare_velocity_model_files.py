@@ -4,8 +4,8 @@
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
 import io
-import os
 import json
+import os
 
 import pandas as pd
 
