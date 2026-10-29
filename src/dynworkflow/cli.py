@@ -5,6 +5,7 @@
 
 
 import netCDF4  # noqa: F401  # isort: skip
+
 # Must be imported before h5py/easi/seissolxdmf: several HDF5 builds end up in the
 # process otherwise, and netCDF4 writes fail with "NetCDF: HDF error".
 
