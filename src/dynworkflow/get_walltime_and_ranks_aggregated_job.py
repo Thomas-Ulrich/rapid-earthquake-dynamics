@@ -61,7 +61,9 @@ def parse_duration(text):
     units = {"d": 86400.0, "h": 3600.0, "min": 60.0, "s": 1.0, "ms": 1e-3}
     total = 0.0
     found = False
-    for value, unit in re.findall(r"(\d+\.?\d*(?:[eE][+-]?\d+)?)\s*(ms|min|d|h|s)\b", text):
+    for value, unit in re.findall(
+        r"(\d+\.?\d*(?:[eE][+-]?\d+)?)\s*(ms|min|d|h|s)\b", text
+    ):
         total += float(value) * units[unit]
         found = True
     return total if found else None
