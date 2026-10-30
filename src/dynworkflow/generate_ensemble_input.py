@@ -24,11 +24,18 @@ from dynworkflow.estimate_nucleation_radius import compute_critical_nucleation
 def compute_max_slip(fn):
     sx0 = sx.seissolxdmf(fn)
     ndt = sx0.ReadNdt()
-    ASl = sx0.ReadData("ASl", ndt - 1)
-    if np.any(np.isnan(ASl)):
-        ASl = sx0.ReadData("ASl", ndt - 2)
+    # use the last output without NaN (the last one may be incomplete)
+    for idt in (ndt - 1, ndt - 2):
+        if idt < 0:
+            continue
+        ASl = sx0.ReadData("ASl", idt)
+        if not np.any(np.isnan(ASl)):
+            break
+    else:
+        raise ValueError(f"no output without NaN found for ASl in {fn}")
     max_slip = ASl.max()
-    assert max_slip > 0
+    if not max_slip > 0:
+        raise ValueError(f"max slip in {fn} is not positive ({max_slip})")
     return max_slip
 
 
@@ -56,16 +63,20 @@ def render_file(templateEnv, template_par, template_fname, out_fname, verbose=Tr
         print(f"done creating {out_fname}")
 
 
-def generate_param_df(input_config, number_of_segments, first_simulation_id):
+def generate_param_df(
+    input_config, derived_config, number_of_segments, first_simulation_id
+):
     mode = input_config["mode"]
     parameters_structured = input_config["parameters_structured"]
     names = sorted(parameters_structured.keys())
     names_no_cohesion = [name for name in names if name != "cohesion"]
 
+    # note: underscores are removed from the parameter names
+    # (see parse_parameter_string)
     if ("C" not in names) and ("dc" not in names):
-        raise ValueError("nor C nor d_c given in parameters")
-    if ("C" in names) and ("d_c" in names):
-        raise ValueError("both C and d_c given in parameters")
+        raise ValueError("nor C nor dc given in parameters")
+    if ("C" in names) and ("dc" in names):
+        raise ValueError("both C and dc given in parameters")
 
     cohesion_values = parameters_structured["cohesion"]
     cohesion_ids = list(range(len(cohesion_values)))
@@ -83,24 +94,22 @@ def generate_param_df(input_config, number_of_segments, first_simulation_id):
         cohesion_values = parameters_structured["cohesion"]
         assert len(cohesion_values) == 1
 
-        if not os.path.exists("tmp/seed.txt"):
-            seed = random.randint(1, 1000000)
-            # keep the seed for reproducibility
-            with open("tmp/seed.txt", "w+") as fid:
-                fid.write(f"{seed}\n")
+        if "latin_hypercube_seed" in input_config:
+            seed = int(input_config["latin_hypercube_seed"])
+            print("seed read from input_config.yaml")
         else:
-            with open("tmp/seed.txt", "r") as fid:
-                seed = int(fid.readline())
-            print("seed read from tmp/seed.txt")
+            seed = random.randint(1, 1000000)
+            # keep the seed (in derived_config.yaml) for reproducibility
+            derived_config["latin_hypercube_seed"] = seed
 
-        sampler = qmc.LatinHypercube(d=3, seed=seed)
+        sampler = qmc.LatinHypercube(d=len(names_no_cohesion), seed=seed)
         nsample = input_config["nsamples"]
         sample = sampler.random(n=nsample)
         pars = qmc.scale(sample, l_bounds, u_bounds)
         pars = np.around(pars, decimals=3)
-        column_of_zeros = np.zeros((1, nsample))
-        pars = np.insert(pars, 0, column_of_zeros, axis=1)
-        labels = names_no_cohesion
+        # first column: cohesion index (a single cohesion in this mode)
+        pars = np.hstack((np.zeros((nsample, 1)), pars))
+        labels = ["cohesion_idx"] + names_no_cohesion
 
     elif mode == "grid_search":
         use_R_segment_wise = False
@@ -279,7 +288,10 @@ def generate():
     input_file_dir = f"{script_directory}/input_files"
 
     if "template_folder" in input_config.keys():
-        search_path = ["templates", input_file_dir]
+        template_folder = input_config["template_folder"]
+        if not isinstance(template_folder, str):
+            template_folder = "templates"
+        search_path = [template_folder, input_file_dir]
     else:
         search_path = input_file_dir
 
@@ -298,7 +310,9 @@ def generate():
     longer_and_more_frequent_output = mode == "picked_models"
 
     first_sim_id = derived_config["first_simulation_id"]
-    param_df = generate_param_df(input_config, number_of_segments, first_sim_id)
+    param_df = generate_param_df(
+        input_config, derived_config, number_of_segments, first_sim_id
+    )
     param_df.to_csv(
         f"simulation_parameters_{first_sim_id}.csv", index=True, index_label="id"
     )
@@ -427,14 +441,11 @@ def generate():
         )
         fn_fault = f"yaml_files/fault_{code}.yaml"
         fn_param = f"parameters_dyn_{code}.par"
-        if list_nucleation_size[k]:
-            template_par["r_crit"] = list_nucleation_size[k]
-            render_file(templateEnv, template_par, fn_fault_template, fn_fault)
-            parameter_files.append(fn_param)
-        else:
-            print(f"removing {fn} and {fn_param} (nucleation too large)")
-            os.remove(fn)
-            os.remove(fn_param)
+        # the nucleation radius is always defined (if the criterion is not
+        # reached, the largest candidate radius is used)
+        template_par["r_crit"] = list_nucleation_size[k]
+        render_file(templateEnv, template_par, fn_fault_template, fn_fault)
+        parameter_files.append(fn_param)
 
     # write parts.txt files
     nfiles = len(parameter_files)

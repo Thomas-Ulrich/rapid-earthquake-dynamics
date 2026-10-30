@@ -1,13 +1,13 @@
-import matplotlib.pyplot as plt
-import numpy as np
-from cmcrameri import cm
-import pandas as pd
 import copy
 import os
+
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from cmcrameri import cm
 
 from dynworkflow.stf_loader import read_usgs_moment_rate, trim_trailing_zero
-
 
 ps = 12
 matplotlib.rcParams.update({"font.size": ps})
@@ -270,11 +270,19 @@ def plot_combined_gof_plot(
             "Structure of df not understood (neither 'sigman' nor 'R' found)"
         )
 
+    if "dc" in df.columns:
+        dim_var_y = {"col": "dc", "label": r"$d_\mathrm{c}$"}
+    elif "C" in df.columns:
+        dim_var_y = {"col": "C", "label": "C"}
+    else:
+        raise ValueError("Structure of df not understood (neither 'dc' nor 'C' found)")
+
     dim_vars_0 = {
         "x": dim_var_x,
-        "y": {"col": "C", "label": "C"},
+        "y": dim_var_y,
         "z": {"col": "B", "label": "B"},
     }
+
     alpha = "abcdefghijklmnopqrstuvwxyz"
 
     # 3. Combined Canvas Mode

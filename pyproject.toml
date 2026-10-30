@@ -37,7 +37,6 @@ dependencies = [
     "pyvista",
     "PyYAML",
     "requests",
-    "scikit-learn",
     "scipy",
     "seissolxdmf",
     "seissolxdmfwriter",
