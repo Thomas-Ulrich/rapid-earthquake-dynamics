@@ -3,16 +3,31 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2024–2025 Thomas Ulrich
 
+"""
+Critical nucleation radius around a given hypocenter, for a list of fault yaml files.
+
+For each fault yaml, the nucleation radius R is the smallest radius around the
+hypocenter such that
+
+    sum_{cells with center within R} face_area / area_crit  >=  factor
+
+where area_crit = max(Uenishi 2009 estimate, Galis et al. 2015 estimate).
+R is limited to min(sqrt(0.15 * slip_area / pi), fault_width / 2).
+R is searched on a grid of radii (default 500 m, 750 m, 1000 m, ... in steps of
+250 m). If the criterion is not reached up to the
+limit, the largest radius of the grid below the limit is returned.
+"""
+
 import argparse
+import multiprocessing
 import os
 import time
-from multiprocessing import cpu_count
 
 import easi
 import numpy as np
 import seissolxdmf
 from scipy import interpolate
-from sklearn.decomposition import PCA
+from scipy.special import ellipe, ellipk
 
 
 class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
@@ -22,8 +37,14 @@ class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
         self.connect = self.ReadConnect()
 
     def ReadFaultTags(self):
-        """Read partition array"""
+        """Read fault tag array"""
         return self.Read1dData("fault-tag", self.nElements, isInt=True).T
+
+    def _cross(self):
+        return np.cross(
+            self.xyz[self.connect[:, 1], :] - self.xyz[self.connect[:, 0], :],
+            self.xyz[self.connect[:, 2], :] - self.xyz[self.connect[:, 0], :],
+        )
 
     def ComputeCellCenters(self):
         """compute cell center array"""
@@ -34,266 +55,303 @@ class SeissolxdmfExtended(seissolxdmf.seissolxdmf):
         ) / 3.0
 
     def ComputeCellNormals(self):
-        """compute cell normal"""
-        cross = np.cross(
-            self.xyz[self.connect[:, 1], :] - self.xyz[self.connect[:, 0], :],
-            self.xyz[self.connect[:, 2], :] - self.xyz[self.connect[:, 0], :],
-        )
-        norm = np.apply_along_axis(np.linalg.norm, 1, cross)
-        return cross / norm.reshape((self.nElements, 1))
+        """compute unit cell normals"""
+        cross = self._cross()
+        return cross / np.linalg.norm(cross, axis=1)[:, None]
 
     def ComputeCellAreas(self):
         """compute area of each cell"""
-        cross = np.cross(
-            self.xyz[self.connect[:, 1], :] - self.xyz[self.connect[:, 0], :],
-            self.xyz[self.connect[:, 2], :] - self.xyz[self.connect[:, 0], :],
-        )
-        return 0.5 * np.apply_along_axis(np.linalg.norm, 1, cross)
+        return 0.5 * np.linalg.norm(self._cross(), axis=1)
 
 
-def k_int(x):
-    "K integral in Uenishi 2009, see Galis 2015, eq 20"
-    ti = np.linspace(0, 1, 250, endpoint=False)
-    f = 1.0 / np.sqrt((1.0 - ti**2) * (1.0 - x**2 * ti**2))  # for t in ti]
-    return np.trapezoid(f, ti)
-
-
-def e_int(x):
-    "E integral in Uenishi 2009, see Galis 2015, eq 21"
-    ti = np.linspace(0, 1, 250, endpoint=False)
-    f = [np.sqrt((1.0 - x**2 * t**2) / (1.0 - t**2)) for t in ti]
-    return np.trapezoid(f, ti)
-
-
-def C_Uenishi(x):
-    "C(nu) in Uenishi 2009, see Galis 2015, eq 19"
-    a = np.sqrt(x * (2.0 - x))
-    return (e_int(a) + (1.0 - x) * k_int(a)) / (2.0 - x)
-
-
-def C_Uenishi_interp():
-    "interpolated function based on C_Uenishi (much faster)"
-    x = np.arange(0.0, 0.5, 0.001)
-    y = np.array([C_Uenishi(xi) for xi in x])
-    return interpolate.interp1d(x, y)
+def C_Uenishi(nu):
+    "C(nu) in Uenishi 2009, see Galis 2015, eqs 19-21 (exact, vectorized)"
+    nu = np.clip(nu, 0.0, 0.499)
+    m = nu * (2.0 - nu)  # a^2, parameter of the complete elliptic integrals
+    return (ellipe(m) + (1.0 - nu) * ellipk(m)) / (2.0 - nu)
 
 
 def stiffness_average(G1, G2):
     return 2.0 * G1 * G2 / (G1 + G2)
 
 
-def compute_G_and_CG(centers, ids, sx, mat_yaml):
-    "compute nu across the fault, and compute C_Uenishi(nu)"
-    fault_normal = sx.ComputeCellNormals()[ids]
-    nx = fault_normal.shape[0]
-    regions = np.ones((2 * nx,))
-    centers_mp = np.vstack((centers + 0.1 * fault_normal, centers - 0.1 * fault_normal))
+def compute_G_and_CG(centers, normals, mat_yaml):
+    "G and C_Uenishi(nu)*G across the fault (harmonic average of both sides)"
+    nx = centers.shape[0]
+    regions = np.ones((2 * nx,), dtype=int)
+    centers_mp = np.vstack((centers + 0.1 * normals, centers - 0.1 * normals))
     out = easi.evaluate_model(centers_mp, regions, ["lambda", "mu"], mat_yaml)
-    lambda_x = stiffness_average(out["lambda"][0:nx], out["lambda"][nx:])
-    G = stiffness_average(out["mu"][0:nx], out["mu"][nx:])
+    lambda_x = stiffness_average(out["lambda"][:nx], out["lambda"][nx:])
+    G = stiffness_average(out["mu"][:nx], out["mu"][nx:])
     nu = 0.5 * lambda_x / (lambda_x + G)
-    f = C_Uenishi_interp()
-    return G, np.array([f(nui) for nui in nu]) * G
+    return G, C_Uenishi(nu) * G
 
 
-def points_in_sphere(points, center, radius):
-    distances = np.linalg.norm(points - center, axis=1)
-    within_sphere = distances <= radius
-    return within_sphere
-
-
-def compute_slip_area(centers, sx, slip_yaml):
-    face_area = sx.ComputeCellAreas()
-    tags = sx.ReadFaultTags()
+def compute_slip_area(centers, tags, face_area, slip_yaml):
+    "area of the fault where slip exceeds 5% of the max slip"
     slip = easi.evaluate_model(centers, tags, ["fault_slip"], slip_yaml)["fault_slip"]
     return np.sum(face_area[slip > 0.05 * np.amax(slip)])
 
 
-def f(x, S):
-    # Galis et al. e.q. (25)
+def estimate_fault_width(centers):
+    "smallest extent of the fault along its two principal directions"
+    # PCA done with numpy (same result as sklearn PCA(n_components=2)), to avoid
+    # importing sklearn (and pyarrow), which can fail in spawned workers
+    centered = centers - centers.mean(axis=0)
+    _, eigvecs = np.linalg.eigh(np.cov(centered.T))  # eigenvalues in ascending order
+    points = centered @ eigvecs[:, ::-1][:, :2]  # two principal directions
+    la, lb = np.amax(points, axis=0) - np.amin(points, axis=0)
+    return min(la, lb)
+
+
+def _f(x, S):
+    # Galis et al. eq. (25)
     return np.sqrt(x) * (1.0 + S * (1.0 - np.sqrt(1.0 - 1.0 / x**2)))
 
 
 def compute_fmin_interp():
     Si = np.logspace(-2, 2, num=500)
-    fmin = np.zeros_like(Si)
     # I verified that for S=100, fmin ~15 < 20
     x = np.linspace(1.01, 20, 1000)
-    for i, S in enumerate(Si):
-        fmin[i] = np.amin(f(x, S))
+    fmin = np.array([np.amin(_f(x, S)) for S in Si])
     return interpolate.interp1d(Si, fmin)
 
 
-def compute_critical_nucleation_one_file(
-    estimated_fault_width,
-    centers,
-    center,
-    face_area,
-    slip_area,
-    G,
-    CG,
-    fmin_interpf,
-    tags,
-    fault_yaml,
-):
-    start_time = time.time()
-    bn_fault_yaml = os.path.basename(fault_yaml)
+def compute_area_crit(centers, tags, G, CG, fault_yaml, fmin_interpf):
+    """Critical nucleation area per cell (inf where not defined)."""
     out = easi.evaluate_model(
         centers,
         tags,
         ["d_c", "static_strength", "dynamic_strength", "tau_0"],
         fault_yaml,
     )
-    easi_runtime = time.time() - start_time
+    Dc = out["d_c"]
+    static_strength = out["static_strength"]
+    dynamic_strength = out["dynamic_strength"]
+    tau_0 = out["tau_0"]
 
-    Dc, static_strength, dynamic_strength, tau_0 = (
-        out["d_c"],
-        out["static_strength"],
-        out["dynamic_strength"],
-        out["tau_0"],
-    )
+    if not np.all(np.isfinite(Dc)) or np.any(Dc <= 0):
+        raise ValueError(
+            f"{fault_yaml}: d_c non-finite or <= 0 in "
+            f"{np.count_nonzero(~(np.isfinite(Dc) & (Dc > 0)))} cells "
+            f"(min d_c = {np.nanmin(Dc):.3g}): check the fault yaml file"
+        )
+    if not np.all(np.isfinite(CG)) or np.any(CG <= 0):
+        raise ValueError(
+            f"non-finite or <= 0 values in C(nu)*G (min = {np.nanmin(CG):.3g}): "
+            "check the material yaml file"
+        )
+
     strength_drop = static_strength - dynamic_strength
     eps = 0.001
-    S = (static_strength - tau_0) / np.maximum(eps, tau_0 - dynamic_strength)
-    # 0.01- 100 is the range of numerical evaluation of the function
-    fmin = fmin_interpf(np.maximum(np.minimum(S, 100 - eps), 0.01 + eps))
+    valid = strength_drop > 0
 
-    W = strength_drop / Dc
-    # L = 0.624 * CG / np.median(W)
-    L = 0.624 * CG / W
-    area_crit = np.pi * L**2
+    stress_drop = np.maximum(eps, tau_0 - dynamic_strength)
+    S = (static_strength - tau_0) / stress_drop
+    # 0.01 - 100 is the range of numerical evaluation of the function
+    fmin = fmin_interpf(np.clip(S, 0.01 + eps, 100 - eps))
 
-    A2_Gallis = (
+    # cells with strength_drop <= 0 are set to inf below, silence the warning
+    with np.errstate(divide="ignore"):
+        L = 0.624 * CG / (strength_drop / Dc)
+    area_uenishi = np.pi * L**2
+    area_galis = (
         np.pi**3
         * strength_drop**2
         * G**2
         * Dc**2
-        / (16.0 * fmin**4 * np.maximum(eps, tau_0 - dynamic_strength) ** 4)
+        / (16.0 * fmin**4 * stress_drop**4)
     )
-    area_crit = np.maximum(area_crit, A2_Gallis)
-    L = np.sqrt(area_crit / np.pi)
+    area_crit = np.maximum(area_uenishi, area_galis)
+    area_crit[~valid] = np.inf
+    return area_crit, np.count_nonzero(~valid)
 
-    maxnucRadius = np.sqrt((0.15 / np.pi) * slip_area)
-    radius = np.arange(0.5e3, maxnucRadius + 0.25e3, 0.25e3)
 
-    nucRadius = False
-    for k, rad in enumerate(radius):
-        ratio_slip_area = 100 * np.pi * rad**2 / slip_area
-        if ratio_slip_area > 15.0 or rad > 0.5 * estimated_fault_width:
-            nucRadius = radius[max(0, k - 1)]
-            # min(rad, np.sqrt((0.15 / np.pi) * slip_area))
-            ratio_slip_area = 100 * np.pi * nucRadius**2 / slip_area
-            break
+def compute_critical_nucleation_one_file(
+    centers,
+    dist,
+    face_area,
+    G,
+    CG,
+    tags,
+    fault_yaml,
+    max_radius,
+    factor,
+    radius_step,
+    min_radius,
+):
+    """Critical radius for one fault yaml. centers etc. are already cropped to
+    the sphere of radius max_radius around the hypocenter, dist = distance of
+    each cell center to the hypocenter."""
+    start_time = time.time()
+    bn_fault_yaml = os.path.basename(fault_yaml)
+    area_crit, n_excluded = compute_area_crit(
+        centers, tags, G, CG, fault_yaml, compute_fmin_interp()
+    )
+    easi_runtime = time.time() - start_time
 
-        ids = points_in_sphere(centers, center, rad)
-        selected_area_ratio = face_area[ids] / area_crit[ids]
-        sum_ratio = np.sum(selected_area_ratio)
-        # 1.0 is what in theory needed
-        if sum_ratio > 4.0:
-            nucRadius = rad
-            break
+    order = np.argsort(dist)
+    cumsum = np.cumsum((face_area / area_crit)[order])
+    k = np.searchsorted(cumsum, factor)  # first cell where the sum reaches factor
+    # candidate radii: min_radius, min_radius + radius_step, ... <= max_radius
+    # (as in the original script); the result is the first one satisfying the criterion
+    reached = False
+    if k < len(cumsum):
+        nuc_radius = max(
+            min_radius, np.ceil(dist[order][k] / radius_step) * radius_step
+        )
+        reached = nuc_radius <= max_radius
+    if not reached:
+        # we still try with the largest candidate radius, even if it may not nucleate
+        if max_radius >= min_radius:
+            nuc_radius = (
+                min_radius
+                + np.floor((max_radius - min_radius) / radius_step) * radius_step
+            )
+        else:
+            nuc_radius = max_radius
+
     runtime = time.time() - start_time
-    print(
-        f"{bn_fault_yaml}: {nucRadius:.0f} {ratio_slip_area:.1f} "
-        f" ({runtime:.3f} s, easi {easi_runtime:.3f}s)"
-    )
-    return nucRadius
+    return {
+        "yaml": bn_fault_yaml,
+        "radius": nuc_radius,
+        "reached": reached,
+        "n_excluded": n_excluded,
+        "n_cells": len(dist),
+        "runtime": runtime,
+        "easi_runtime": easi_runtime,
+    }
 
 
-def compute_nucleation(args):
-    (
-        estimated_fault_width,
-        centers,
-        center,
-        face_area,
-        slip_area,
-        G,
-        CG,
-        fmin_interpf,
-        tags,
-        fault_yaml,
-    ) = args
-    return compute_critical_nucleation_one_file(
-        estimated_fault_width,
-        centers,
-        center,
-        face_area,
-        slip_area,
-        G,
-        CG,
-        fmin_interpf,
-        tags,
-        fault_yaml,
-    )
+def _worker(indexed_args):
+    i, args = indexed_args
+    return i, compute_critical_nucleation_one_file(*args)
 
 
 def compute_critical_nucleation(
-    fault_xdmf, mat_yaml, slip_yaml, list_fault_yaml, hypo_coords
+    fault_xdmf,
+    mat_yaml,
+    slip_yaml,
+    list_fault_yaml,
+    hypo_coords,
+    factor=4.0,
+    max_radius=None,
+    nproc=None,
+    radius_step=250.0,
+    min_radius=500.0,
 ):
-    fmin_interpf = compute_fmin_interp()
+    """Returns the list of critical nucleation radii, one per fault yaml, in the
+    same order. Radii are on the grid min_radius + n * radius_step; if the
+    criterion is not reached, the largest radius of the grid below the max
+    radius is returned."""
     sx = SeissolxdmfExtended(fault_xdmf)
     centers = sx.ComputeCellCenters()
-    pca = PCA(n_components=2)
-    points = pca.fit_transform(centers)
-    la, lb = np.amax(points, axis=0) - np.amin(points, axis=0)
-    estimated_fault_width = min(la, lb)
-    print("estimated_fault_width", estimated_fault_width)
+    face_area = sx.ComputeCellAreas()
+    tags = sx.ReadFaultTags()
 
-    slip_area = compute_slip_area(centers, sx, slip_yaml)
+    width = estimate_fault_width(centers)
+    slip_area = compute_slip_area(centers, tags, face_area, slip_yaml)
+    limit = min(np.sqrt((0.15 / np.pi) * slip_area), 0.5 * width)
+    print(f"estimated fault width: {width:.1f}")
+    print(
+        f"slip area: {slip_area:.4g} ->"
+        f"radius limit (15% slip area, width/2): {limit:.1f}"
+    )
+    if max_radius is not None:
+        limit = max_radius
+        print(f"using user-defined max radius: {limit:.1f}")
 
-    center = np.array(hypo_coords)
-    maxnucRadius = np.sqrt((0.15 / np.pi) * slip_area)
-    ids = points_in_sphere(centers, center, maxnucRadius)
-    centers = centers[ids]
+    hypo = np.array(hypo_coords, dtype=float)
+    dist_all = np.linalg.norm(centers - hypo, axis=1)
+    print(f"closest fault cell center to the hypocenter: {dist_all.min():.1f}")
+    ids = dist_all <= limit
+    if not np.any(ids):
+        raise ValueError(
+            f"no fault cell within {limit:.1f} of the hypocenter {hypo}: "
+            "check the hypocenter coordinates"
+        )
 
-    G, CG = compute_G_and_CG(centers, ids, sx, mat_yaml)
-    tags = sx.ReadFaultTags()[ids]
-
-    face_area = sx.ComputeCellAreas()[ids]
+    normals = sx.ComputeCellNormals()[ids]
+    centers, dist, face_area, tags = (
+        centers[ids],
+        dist_all[ids],
+        face_area[ids],
+        tags[ids],
+    )
+    G, CG = compute_G_and_CG(centers, normals, mat_yaml)
 
     args_list = [
         (
-            estimated_fault_width,
             centers,
-            center,
+            dist,
             face_area,
-            slip_area,
             G,
             CG,
-            fmin_interpf,
             tags,
             fault_yaml,
+            limit,
+            factor,
+            radius_step,
+            min_radius,
         )
         for fault_yaml in list_fault_yaml
     ]
-    from multiprocessing import Pool
 
-    def get_num_threads():
-        omp_num_threads = os.environ.get("OMP_NUM_THREADS")
-        if omp_num_threads:
-            return int(omp_num_threads)  # Use the defined value
-        return cpu_count()  # Fall back to the number of CPUs
+    if nproc is None:
+        omp = os.environ.get("OMP_NUM_THREADS")
+        nproc = int(omp) if omp else multiprocessing.cpu_count()
+    nproc = max(1, min(nproc, len(args_list)))
 
-    num_threads = get_num_threads()
+    def report(r):
+        "print the result of one yaml as soon as it is available"
+        rad = r["radius"]
+        ratio = 100 * np.pi * rad**2 / slip_area
+        msg = f"{r['yaml']}: {rad:.0f} {ratio:.1f}"
+        if not r["reached"]:
+            msg += "  [criterion not reached: largest candidate radius used]"
+        if r["n_excluded"]:
+            msg += f"  [{r['n_excluded']} cells excluded: strength_drop<=0]"
+        print(
+            msg + f"  ({r['runtime']:.3f} s, easi {r['easi_runtime']:.3f} s)",
+            flush=True,
+        )
 
-    print(f"using {num_threads} threads")
-    print("fault_yaml: selected_r ratio_slip_area")
-    with Pool(processes=num_threads) as pool:
-        async_result = pool.map_async(compute_nucleation, args_list)
-        results = async_result.get()
-    return results
+    print(f"fault_yaml: radius ratio_slip_area[%] (cells in sphere: {len(dist)})")
+    results = [None] * len(args_list)
+    indexed_args = list(enumerate(args_list))
+    if nproc == 1:
+        for ia in indexed_args:
+            i, r = _worker(ia)
+            results[i] = r
+            report(r)
+    else:
+        print(f"using {nproc} processes", flush=True)
+        # "spawn" instead of the default "fork": easi/ASAGI (OpenMP, threads) has
+        # already been used in this process to evaluate the material, and forking
+        # after that can deadlock the children
+        ctx = multiprocessing.get_context("spawn")
+        with ctx.Pool(processes=nproc) as pool:
+            # unordered: each result is printed as soon as it is finished
+            for i, r in pool.imap_unordered(_worker, indexed_args):
+                results[i] = r
+                report(r)
+    # the returned list follows the order of list_fault_yaml
+    return [float(r["radius"]) for r in results]
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="compute critical depletion")
-    parser.add_argument(
-        "faultfile", help="fault file (vtk or seissol xdmf fault output)"
+    parser = argparse.ArgumentParser(
+        description="compute the critical nucleation radius around a hypocenter "
+        "for a list of fault yaml files"
     )
-    parser.add_argument("faultyamlfile", help="yaml file describing fault parameters")
+    parser.add_argument("faultfile", help="seissol xdmf fault output")
     parser.add_argument("hypocenter", type=float, nargs=3, help="hypocenter coords")
     parser.add_argument(
+        "faultyamlfiles", nargs="+", help="yaml file(s) describing fault parameters"
+    )
+    parser.add_argument(
         "--materialyamlfile",
-        help="yaml file desribing Lame parameters",
+        help="yaml file describing Lame parameters",
         default="yaml_files/material.yaml",
     )
     parser.add_argument(
@@ -301,11 +359,42 @@ if __name__ == "__main__":
         help="yaml file describing fault slip",
         default="yaml_files/fault_slip.yaml",
     )
+    parser.add_argument(
+        "--factor",
+        type=float,
+        default=4.0,
+        help="required sum(face_area/area_crit) (1.0 is the theoretical minimum)",
+    )
+    parser.add_argument(
+        "--max-radius",
+        type=float,
+        default=None,
+        help="override the max radius (default: min(sqrt(0.15*slip_area/pi), width/2))",
+    )
+    parser.add_argument(
+        "--radius-step",
+        type=float,
+        default=250.0,
+        help="step of the candidate radii, in mesh units (default: 250)",
+    )
+    parser.add_argument(
+        "--min-radius",
+        type=float,
+        default=500.0,
+        help="smallest candidate radius, in mesh units (default: 500)",
+    )
+    parser.add_argument("--nproc", type=int, default=None, help="number of processes")
     args = parser.parse_args()
-    fault_xdmf = args.faultfile
-    fault_yaml = args.faultyamlfile
-    slip_yaml = args.slipyamlfile
-    mat_yaml = args.materialyamlfile
-    hypo = args.hypocenter
 
-    compute_critical_nucleation(fault_xdmf, mat_yaml, slip_yaml, [fault_yaml], hypo)
+    compute_critical_nucleation(
+        args.faultfile,
+        args.materialyamlfile,
+        args.slipyamlfile,
+        args.faultyamlfiles,
+        args.hypocenter,
+        factor=args.factor,
+        max_radius=args.max_radius,
+        nproc=args.nproc,
+        radius_step=args.radius_step,
+        min_radius=args.min_radius,
+    )

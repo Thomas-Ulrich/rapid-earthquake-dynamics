@@ -56,6 +56,19 @@ def parse_timestamp(ts):
     return None
 
 
+def parse_duration(text):
+    """Parse durations such as '20 min 11.2452 s', '58.7883 s', '1 h 2 min 3 s'."""
+    units = {"d": 86400.0, "h": 3600.0, "min": 60.0, "s": 1.0, "ms": 1e-3}
+    total = 0.0
+    found = False
+    for value, unit in re.findall(
+        r"(\d+\.?\d*(?:[eE][+-]?\d+)?)\s*(ms|min|d|h|s)\b", text
+    ):
+        total += float(value) * units[unit]
+        found = True
+    return total if found else None
+
+
 def get_log_info(log_file):
     """
     Extract:
@@ -95,12 +108,30 @@ def get_log_info(log_file):
         "initialization_time": None,
     }
 
+    # Progress lines, used to estimate the runtime of crashed jobs
+    total_spent_pat = re.compile(r"Total time spent:\s*(.*?)\s*\(per rank")
+    expected_pat = re.compile(r"Expected time until finish:\s*(.*?)\s*\(per rank")
+
     welcome_time = None
     init_end_time = None
     goodbye_time = None
+    last_total_spent = None
+    last_expected_remaining = None
 
     with open(log_file, "r") as f:
         for line in f:
+            # Progress info (keep the last occurrence)
+            m = total_spent_pat.search(line)
+            if m:
+                val = parse_duration(m.group(1))
+                if val is not None:
+                    last_total_spent = val
+            m = expected_pat.search(line)
+            if m:
+                val = parse_duration(m.group(1))
+                if val is not None:
+                    last_expected_remaining = val
+
             # Standard patterns
             for key, pat in patterns.items():
                 if extracted[key] is None:
@@ -145,6 +176,15 @@ def get_log_info(log_file):
     elif welcome_time and goodbye_time:
         print("End init output not found in log, using full run_time")
         extracted["runtime_sec"] = (goodbye_time - welcome_time).total_seconds()
+    # Fallback for crashed / killed jobs (no "SeisSol done" in the log):
+    # estimate the runtime as the last reported "Total time spent" plus the
+    # last reported "Expected time until finish".
+    elif last_total_spent is not None and last_expected_remaining is not None:
+        print(
+            "SeisSol done not found in log (job crashed?), estimating runtime as "
+            "last 'Total time spent' + 'Expected time until finish'"
+        )
+        extracted["runtime_sec"] = last_total_spent + last_expected_remaining
 
     return extracted
 
@@ -178,7 +218,7 @@ def get_scaled_walltime_and_ranks(
 
     max_nodes1 = (step_nodes * simulation_batch_size) // 3
     max_nodes1 = min(max_nodes1, max_nodes)
-    candidates = list(range(min_nodes, max_nodes1, step_nodes))
+    candidates = list(range(min_nodes, max_nodes1 + 1, step_nodes))
     safety_factor = 1.15
 
     node_hours_ensemble = (

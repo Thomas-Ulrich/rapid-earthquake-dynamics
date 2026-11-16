@@ -1,5 +1,6 @@
-import numpy as np
 import os
+
+import numpy as np
 
 
 def read_usgs_moment_rate(fname: str) -> np.ndarray:

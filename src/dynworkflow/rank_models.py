@@ -56,7 +56,7 @@ def computeMw(label, time, moment_rate):
 
 
 def plot_gof_xy(df, gof1, gof2):
-    if gof1 in df.keys() and gof2 in df.keys():
+    if gof1 not in df.keys() or gof2 not in df.keys():
         print(f"skipping plot_gof_xy with {gof1} {gof2} as not found in {df.keys()}")
         return
 
